@@ -97,6 +97,7 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/data/<path>` | GET | the files in `public/data/` | Vercel's CDN serves them before any rewrite; Flask serves them for local runs |
 | `/api/queue.csv?k=` | GET | top-k CSV | `public/data/top500.csv` (k capped at 500 in LITE) |
 | `/api/draft_message/<bbl>` | GET | templated notice, never sent | computed from the shard |
+| `/unsubscribe?email=&bbl=` | GET | removes the registration (linked from every email); on Vercel this must forward to the instance like `/api/register` once forwarding exists, because durable registrations live there | forwarded; plain-text confirmation |
 | `/api/live/stats`, `/api/live/queue?k=` | GET | proxy to the realtime service | `REALTIME_URL` env var; 503 `{offline:true}` when unreachable |
 | `/api/live/replay/start` | POST | proxy | same |
 
@@ -110,6 +111,7 @@ New endpoints go under `/api/` and get a row in this table in the same commit.
 | `REGISTER_FORWARD_URL` | `http://148.100.77.112:8080` | registrations, landlord portfolio, unsubscribe, health |
 | `APP_MODE` | leave unset (auto); `lite` forces the JSON path | `web/app.py` |
 | `SMTP_*` | only if alerts ever send from Vercel (they should not; the alert worker runs on the instance) | `web/alerts.py` |
+| `SITE_URL` | base URL used in email links (default `https://ibmsubmission.vercel.app`); set on the instance, where the emails are sent from | `web/mailer.py` |
 
 Vercel functions make outbound HTTP calls server-side, so a plain-HTTP instance URL is fine
 there. The browser must never call the instance directly from the HTTPS site (mixed content

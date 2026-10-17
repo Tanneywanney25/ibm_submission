@@ -20,7 +20,7 @@ import pandas as pd
 import requests
 
 sys.path.append(str(Path(__file__).resolve().parent))
-from mailer import log, make_msg, send  # noqa: E402
+from mailer import log, make_msg, send, unsubscribe_url  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 DB = Path(__file__).resolve().parent / "heatahead.db"
@@ -81,7 +81,7 @@ def compose(email, bbl, row, spell_start, cold_days):
         f"fails within 48 hours of each cold day - probabilities are calibrated "
         f"on last winter.\n\n"
         f"One alert per cold spell, never more. Unsubscribe: reply STOP or "
-        f"visit /unsubscribe?email={email}&bbl={bbl}\n")
+        f"visit {unsubscribe_url(email, bbl)}\n")
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")

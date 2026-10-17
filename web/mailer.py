@@ -10,8 +10,15 @@ import smtplib
 from datetime import datetime
 from email.message import EmailMessage
 from pathlib import Path
+from urllib.parse import quote_plus
 
 LOG = Path(__file__).resolve().parent / "alerts.log"
+SITE_URL = os.environ.get("SITE_URL", "https://ibmsubmission.vercel.app").rstrip("/")
+
+
+def unsubscribe_url(email, bbl=None):
+    u = f"{SITE_URL}/unsubscribe?email={quote_plus(email)}"
+    return u + (f"&bbl={bbl}" if bbl else "")
 
 
 def log(msg):
@@ -79,8 +86,7 @@ def welcome_email(email, role, bbl=None, p_season=None):
         "since Oct 1, 2026, HPD must attempt an inspection for every "
         "non-anonymous heat complaint.",
         "",
-        f"Unsubscribe any time: /unsubscribe?email={email}" +
-        (f"&bbl={bbl}" if bbl else ""),
+        f"Unsubscribe any time: {unsubscribe_url(email, bbl)}",
     ]
     return make_msg(email, "HeatAhead: you're signed up for heat-risk alerts",
                     "\n".join(lines))
