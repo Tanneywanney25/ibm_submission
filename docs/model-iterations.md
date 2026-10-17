@@ -69,6 +69,35 @@ outcome window).
 - Rolling backtest, train strictly on earlier seasons: the model wins **all six**
   test seasons 2020-21 → 2025-26 at k=100 (e.g. 2024-25: 73.7% vs 68.5%).
 
+## Iteration 4 — landlord portfolios, boiler facts, ensemble, calibration (final)
+
+Added, at the team's direction to use every dataset we had:
+
+- **Landlord portfolio features** (HPD registration contacts, feu5-w2e2): portfolio
+  size and last season's complaints across the owner's *other* buildings — 136,589
+  landlords mapped, 11,481 with 2+ buildings (largest: 246). Neglect travels with
+  the owner, not just the address.
+- **Boiler facts** (DOB 52dp-yji6 + f4rp-2kvy via BIN): recorded boiler defects
+  (21,448 lots) and oil-fired flag (22,806 lots).
+- **Ensemble:** XGBoost + sklearn HistGradientBoosting, probabilities averaged.
+- **Calibration:** isotonic regression fit on full-universe test-day pairs, so the
+  ranked list's `p_calibrated` is a real probability (a 0.999 raw score maps to
+  ~54% — the honest 48-hour odds for a top building on a cold day).
+
+**Final (ensemble on LinuxONE): 68.7% @100 (48h), 96.5% @100 (30d)** — +7.0 points
+over the recency baseline at 48h, and the rolling backtest wins **all six seasons**.
+
+| iteration | p@100 48h | p@100 30d |
+|---|---|---|
+| recency baseline | 61.7% | 91.0% |
+| 1 plan-spec | 65.7% | — |
+| 2 cold-sensitivity + history cut | 67.8% | — |
+| 3 whole-building + horizons | 67.7% | 96.3% |
+| **4 landlord + boiler + ensemble** | **68.7%** | **96.5%** |
+
+Snapshot caveat: landlord and boiler tables are current-day snapshots, so past
+seasons inherit today's owner/boiler state in the backtest.
+
 ## Why gradient boosting (and not something fancier)
 
 Gradient-boosted trees are the consistent state of the art for tabular data at this
