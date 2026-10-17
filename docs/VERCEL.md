@@ -101,9 +101,13 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | route | method | serves | LITE mode source |
 |---|---|---|---|
 | `/` | GET | Google sign-in or signed-in account, saved buildings and registration (`index.html`) | template + authenticated account API |
-| `/building` | GET | lookup page (`building.html`) | template |
-| `/map` | GET | risk map (`map.html`) | template |
+| `/building` | GET | lookup page (`building.html`); `?bbl=` opens a building directly, `?q=` runs an address search on arrival (T17) | template |
+| `/map` | GET | risk map (`map.html`); `?bbl=` opens centered on that building with a highlight ring, `?embed=1` is the chrome-free embed the building page's map panel uses (T17) | template |
 | `/monitor` | GET | live monitor (`monitor.html`) | template |
+| `/learn-more` | GET | how the site works, map reading, prediction windows, actions, data and privacy | template + shared guide content |
+| `/faq` | GET | 26 searchable, categorized questions with deep links and official sources | shared guide content, server-rendered answers (works without JavaScript) |
+| `/about` | GET | About/Methods page: what HeatAhead is, methods, why precision@k, ranges and calibration, open source (`about.html`; copy source `docs/about-copy.md`) | template only, static content |
+| `/api/guide/ask` | POST | `{question,previous_topic?}` → `{topic,mode}`; optional AI selects an existing FAQ id; no generated URLs, scores, account actions or conversation storage; 400 invalid/private input, 403 cross-origin, 429 warm-worker request limit | stdlib + requests; 200 `{topic:null,mode:"guide"}` if unconfigured or provider fails |
 | `/api/lookup?address=` | GET | `{bbl, normalized}` from NYC GeoSearch; 502 when the geocoder is down | live call, same in both modes |
 | `/api/building/<bbl>` | GET | the building payload | `public/data/b/NN.json` |
 | `/api/map_data` | GET | map rows | 302 redirect to `/data/map_data.json` (static, 3.1 MB; the function must not return 4 MB bodies, Vercel caps function responses at 4.5 MB). `fetch` follows the redirect, so `map.html` is unchanged |
@@ -121,8 +125,8 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/api/queue.csv?k=` | GET | top-k CSV | `public/data/top500.csv` (k capped at 500 in LITE) |
 | `/api/draft_message/<bbl>?as=&address=` | GET | `{to, recipients, subject, body, framing, note}`: a notice the user copies or opens in their own mail client, never sent. `as=tenant` (default) is a resident's request to the registered owner care of the managing agent; `as=landlord` is the owner's pre-winter self-audit; `address` names the building in the text (units are cut). 400 for another `as`, 404 for an unranked building | computed from the shard |
 | `/api/live/stats`, `/api/live/queue?k=` | GET | proxy to the realtime service | `REALTIME_URL` env var; 503 `{offline:true}` when unreachable |
-| `/api/current/stats`, `/api/current/queue?k=`, `/api/current/events` | GET | latest published HPD heat reports, distinct complaint counts and collection freshness; no current model probabilities | `COMPLAINT_URL` proxy; 503 JSON when unavailable |
 | `/api/live/replay/start` | POST | proxy | same |
+| `/api/current/stats`, `/api/current/queue?k=`, `/api/current/events` | GET | published HPD complaints and collection freshness | COMPLAINT_URL proxy; 503 when unavailable |
 
 New endpoints go under `/api/` and get a row in this table in the same commit.
 
@@ -131,6 +135,7 @@ New endpoints go under `/api/` and get a row in this table in the same commit.
 | name | value | used by |
 |---|---|---|
 | `REALTIME_URL` | `http://148.100.77.112:8080/api/live` (the instance's FULL app proxies its own realtime service on `127.0.0.1:5000`, so only port 8080 is open) | live monitor proxy |
+| `COMPLAINT_URL` | LinuxONE: `http://127.0.0.1:5001`; Vercel Production: `http://148.100.78.43:8080/api/current` | published complaint monitor |
 | `REGISTER_FORWARD_URL` | `http://148.100.77.112:8080` | registrations, landlord portfolio, unsubscribe, health |
 | `APP_MODE` | leave unset (auto); `lite` forces the JSON path | `web/app.py` |
 | `SMTP_*` | only if alerts ever send from Vercel (they should not; the alert worker runs on the instance) | `web/alerts.py` |
@@ -138,6 +143,8 @@ New endpoints go under `/api/` and get a row in this table in the same commit.
 | `FLASK_SECRET_KEY` | stable random secret of at least 32 characters; exactly the same value on Vercel and LinuxONE; never commit it | signed cookies and one-use account forwarding |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth web application credentials; Vercel only | Google sign-in |
 | `AUTH_BASE_URL` | `https://ibmsubmission.vercel.app` for Production; exact stable preview origin for a preview; no trailing path | OAuth callback origin and cookie host |
+| `OPENAI_API_KEY` | optional server-side provider key; never send it to the browser or commit it | guide AI topic matching only |
+| `GUIDE_AI_MODEL` | explicit active Responses API model with Structured Outputs support; AI stays disabled unless both variables are set | optional semantic matching of unfamiliar wording |
 
 The browser calls only the HTTPS website. Account forwarding now signs the exact request
 and matching reply with 60-second expiry, SHA-256, and a SQLite one-use nonce. An old backend,
@@ -164,8 +171,10 @@ instance. Full setup and coordinated rollout: [GOOGLE_LOGIN.md](GOOGLE_LOGIN.md)
 ## 6. Rules for every prompt that touches the site (Claude: follow these)
 
 1. Keep the URL contract in section 3 intact. Templates only call same-origin `/api/...`
-   paths and `/data/...` static files. Never reference `localhost`, `127.0.0.1` or the
-   instance IP from browser code.
+   paths and `/data/...` static files, plus the public third-party services already in use
+   (basemap/tile CDNs, ArcGIS imagery, and NYC Planning GeoSearch autocomplete for the T17
+   search box — the query string is the only thing sent). Never reference `localhost`,
+   `127.0.0.1` or the instance IP from browser code.
 2. Code that runs on Vercel imports the standard library, Flask, requests and the pinned
    Google auth libraries in `requirements.txt`. Google SDK imports are lazy, used only by
    sign-in; the LinuxONE registration service does not need them. Put any
@@ -220,13 +229,25 @@ All six steps were done on October 17, 2026.
 | systemd unit | what | where |
 |---|---|---|
 | `heatahead-web` | `web/app.py` in FULL mode under waitress, `0.0.0.0:8080` | `~/heatahead/site` (a clone of `main`; `data` and `model/out` are symlinks into `~/heatahead/ibm_submission`), log `~/heatahead/logs/web.log`, SQLite `~/heatahead/site/web/heatahead.db` |
-| `heatahead-realtime` | `realtime/app.py` replaying `data/replay_feb7_9.csv` on `127.0.0.1:5000`: the model's own complaint filter (`problem_code` NO HEAT or NO HEAT AND NO HOT WATER, as in `model/01_build_panel.py`), columns `received_date, complaint_id, bbl` only, 13,186 complaints at 6,133 tax lots (`docs/SUBMISSION.md` counts 13,222 at 6,382 HPD building ids; 36 of those complaints carry no BBL) | same clone, log `~/heatahead/logs/realtime.log`, checkpoint `data/realtime_checkpoint.json` |
+| `heatahead-realtime` | `realtime/app.py` replaying `data/replay_feb7_9.csv` on `127.0.0.1:5000` and scoring every complaint with the frozen model (`scoring_mode: xgboost_final_isotonic_cpu`, 36 features, 62,716 ranked buildings). The replay file uses the model's own complaint filter (`problem_code` NO HEAT or NO HEAT AND NO HOT WATER, as in `model/01_build_panel.py`) with columns `received_date, complaint_id, bbl, minor_category`: 13,186 complaints at 6,133 tax lots, 8,252 of them ENTIRE BUILDING (`docs/SUBMISSION.md` counts 13,222 at 6,382 HPD building ids; 36 of those complaints carry no BBL). Startup also needs `model/out/feature_schema.json` and `model/out/building_features.csv`, which git does not carry: make them with `python model/10_export_replay_assets.py 2026-02-06` and copy `model/out/replay/features_schema.json` and `static_features.csv` to those two names | same clone, log `~/heatahead/logs/realtime.log`, checkpoint `data/realtime_model_checkpoint.json` |
 | `heatahead-jupyter` | JupyterLab on `127.0.0.1:8888`, reached through an SSH tunnel. Pick the `datathon-env` kernel (the project venv, registered October 17, 2026); the default `python3` kernel is the system interpreter, which has no Flask. `web/jupyter/run_in_jupyter.py <notebook>` executes a notebook inside this server from an SSH shell | token in `~/.config/heatahead/jupyter.env` (mode 600); read it in your own terminal with `ssh linux1@148.100.77.112 cat ~/.config/heatahead/jupyter.env` and never paste it into a chat |
 | cron, minute 7 of every hour | `web/alerts.py` against the same SQLite | log `~/heatahead/logs/alerts_cron.log` |
 
 After a push that changes `web/`: `cd ~/heatahead/site && git pull --rebase origin main &&
-sudo systemctl restart heatahead-web`. Port 8080 is the only port open besides 22
-(`sudo iptables -S INPUT`; persisted in `/etc/iptables/rules.v4`).
+sudo systemctl restart heatahead-web`; after one that changes `realtime/`, restart
+`heatahead-realtime` too and check `curl -s localhost:5000/stats` reports the model scoring mode
+(a failed start loops under `Restart=always`, so read `~/heatahead/logs/realtime.log`). Port 8080
+is the only port open besides 22 (`sudo iptables -S INPUT`; persisted in `/etc/iptables/rules.v4`).
+
+This instance is production: `REALTIME_URL` and `REGISTER_FORWARD_URL` in Vercel point here,
+and its `model/out` holds the frozen model files the published site was built from
+(`public/data/meta.json` lists them). Other team LinuxONE guests are development machines; a copy
+of `model/out` taken from the shared Drive before the 17:42 UTC rebuild on October 17, 2026 is an
+older model (its `heat_model_final.json` hashes differently), so compare `sha256sum` before
+quoting numbers measured there. On October 17, 2026 the replay service crash-looped from about
+20:16 to 20:27 UTC after the model-scoring code was pulled without those two files, then stayed
+stopped until 22:07 UTC, when the files above were generated here and a full replay passed
+(p50 0.40 ms and p99 0.99 ms per complaint; 62,716 buildings rescored in 0.55 s).
 
 ## 9. Checking a deploy without the dashboard
 
@@ -250,10 +271,43 @@ in the existing instance SQLite database and reload after a fresh Google sign-in
 The map uses a fixed pale-blue to deep-blue risk scale, interpolated into 256 steps for
 deck.gl 8 compatibility. Area color is mean property risk; the legend uses the same endpoints.
 Clicking a hexagon opens all its current-filter buildings in a paginated list; only clicking
-an individual marker or list link navigates to a building. Wheel easing is disabled, wheel
-speed is explicit, both map canvases use CSS pixels, and camera updates coalesce per frame.
-Panning reuses existing data layers; the flat/3D choice is preserved when zooming to buildings.
+an individual marker or list link navigates to a building. The citywide view uses 400 m
+hexagon radii, smoothly blending to fixed 120 m radii at zooms 11.3–12.5, before the existing
+12.8–14.8 fade to individual property dots. All layers use the same filtered properties;
+color remains the mean risk, height the sum of last-season complaints at 1.5 display m per
+complaint. No scores or public assets change. A grid switch closes any previous area list
+so its members do not refer to the old grid. Exactly one representation handles picking.
 
+Wheel easing is disabled, wheel speed is explicit, and camera updates coalesce per frame.
+Panning reuses existing data layers and fixed radii avoid per-frame re-binning. Basemap
+pixel ratio follows the screen up to 2, and the data overlay up to 1.5, instead of forcing
+both to 1 and blurring Retina text. Caps bound the fill/picking cost. The flat/3D choice
+is preserved when zooming to buildings. Verify actual-device appearance/performance in
+the preview; logic tests cannot prove frame rate or GPU rendering.
+
+## 11. Learn more, FAQs and site guide
+
+`web/site_guide.py` owns `/learn-more`, `/faq` and the optional AI topic endpoint. The 26
+answers live once in `web/static/guide-content.json`, which drives the FAQ page and the
+guide on every page. The guide matches common wording locally using `web/static/guide.js`;
+it runs without Google credentials, a provider key or the LinuxONE backend. FAQ details
+and links remain available when JavaScript is disabled. New UI uses the existing theme.
+
+Optional AI **only selects a topic id** from the shared catalog. The application, not the
+model, supplies the published answer and allowlisted links. The visitor clicks a shortcut
+to navigate; no account changes, notices, complaint filings or model scoring occur.
+Questions use a same-origin POST, not a query string. Account identity and conversation
+history never enter the provider payload; BBLs are redacted, obvious contact/unit details
+are rejected, and the application stores no guide conversation. `store:false` on provider
+requests is not a promise of zero provider retention. No provider error, question or key
+is logged. Source links for heat requirements and reporting go to official NYC pages.
+
+The public AI endpoint has a warm-worker budget of 5 requests/client/minute and 20 total
+requests/minute, a 400-character input cap, bounded provider timeout and output length,
+and no automatic retries. These are **not distributed quotas or a global spending cap**:
+set a provider project budget/rate limit and hosting controls before enabling public AI.
+Without a key/model, only the local guide runs; it must not be advertised as generative AI.
+Setup, tests and rollout: [SITE_GUIDE.md](SITE_GUIDE.md).
 
 ## 12. Current published heat complaints (Sid)
 
@@ -320,16 +374,16 @@ start a second process on 8080. The web app defaults COMPLAINT_URL to localhost:
 same guest; no Vercel setting is needed for the SSH-tunneled development monitor.
 Verify localhost:8080/api/current/stats and /monitor before requesting a production cutover.
 
-### Public deployment on the existing team guest
+### Public deployment using Sid's collector
 
-Commit only the listed source files on a branch, preserving unrelated notebook edits;
-merge after checks. This deploys templates/proxy to Vercel, but the LinuxONE checkout must
-also pull and start its own collector, with its own venv and data. Set Production Vercel
-COMPLAINT_URL=http://148.100.77.112:8080/api/current and redeploy the existing project only
-after this guest's checks pass. REGISTER_FORWARD_URL and REALTIME_URL stay unchanged.
-Running the collector on Sid's guest does not change the public backend. If production
-later deliberately uses Sid's collector, point only COMPLAINT_URL at his reachable
-8080/api/current endpoint and update this document; do not move registrations implicitly.
+Current published complaints run on 148.100.78.43:
+- Collector: loopback port 5001.
+- Web proxy: port 8080 under heatahead-web.
+- Vercel Production COMPLAINT_URL: http://148.100.78.43:8080/api/current
+
+Merge the source changes, set that variable in the existing Vercel project,
+and redeploy. Verify the public /api/current/stats and /monitor afterward.
+REALTIME_URL and REGISTER_FORWARD_URL remain on 148.100.77.112.
 
 All frontend calls remain same-origin `/api/current/*`. No pandas/scientific packages
 enter the Vercel import path. The public collector API is read-only; no synthetic inputs

@@ -73,6 +73,26 @@ th { color:var(--muted); font-weight:600; }
 .skybars .cur b { color:var(--window); }
 .skyfoot { display:flex; align-items:flex-end; gap:4px; height:104px;
            overflow:hidden; margin-top:2.2rem; pointer-events:none; }
+/* T17: address search with autocomplete (web/static/search.js) */
+.ha-search { display:flex; gap:.5rem; align-items:center; }
+.ha-search-box { position:relative; flex:1; min-width:0; }
+.ha-search-box input { width:100%; }
+.ha-search-list { position:absolute; top:calc(100% + 5px); left:0; right:0; z-index:40;
+  margin:0; padding:.3rem; list-style:none; background:var(--panel);
+  border:1px solid var(--line); border-radius:8px; box-shadow:0 12px 30px #000a;
+  max-height:300px; overflow-y:auto; text-align:left; }
+.ha-search-list[hidden] { display:none; }
+.ha-search-list li { padding:.5rem .65rem; border-radius:6px; cursor:pointer;
+  font-size:.88rem; color:var(--ink); }
+.ha-search-list li b { font-weight:600; }
+.ha-search-list li small { color:var(--muted); font-size:.78rem; }
+.ha-search-list li.active { background:var(--well); outline:2px solid var(--accent);
+  outline-offset:-2px; }
+.ha-search-status { font-size:.78rem; color:var(--muted); min-height:1.1rem; margin-top:.35rem; }
+nav .ha-search { margin-left:auto; flex:1 1 170px; max-width:330px; }
+nav .ha-search input { padding:.42rem .65rem; font-size:.84rem; }
+nav .account-nav { margin-left:0; }
+@media (max-width:760px){ nav .ha-search { flex-basis:100%; max-width:none; order:9; } }
 </style>
 <script>
 // Display rules (docs/webapp-spec.md): calibrated numbers only, never above 99%,
@@ -119,14 +139,23 @@ function skyline(el, specs, cell, gap, pad){
 }
 </script>
 {% block head %}{% endblock %}
+<link rel="stylesheet" href="{{ url_for('static', filename='guide.css') }}">
+<script defer src="{{ url_for('static', filename='guide.js') }}"></script>
+<script defer src="{{ url_for('static', filename='search.js') }}"></script>
 </head>
 <body>
-<nav>
+<nav aria-label="Main navigation">
   <a class="brand" href="/">HeatAhead</a>
   <a href="/" class="{{ 'active' if page == 'signup' }}">{{ 'My account' if account_user else 'Sign in' }}</a>
   <a href="/building" class="{{ 'active' if page == 'building' }}">Check a building</a>
   <a href="/map" class="{{ 'active' if page == 'map' }}">Risk map</a>
   <a href="/monitor" class="{{ 'active' if page == 'monitor' }}">Live monitor</a>
+  <a href="/learn-more" class="{{ 'active' if page == 'learn' }}">Learn more</a>
+  <a href="/faq" class="{{ 'active' if page == 'faq' }}">FAQs</a>
+  <a href="/about" class="{{ 'active' if page == 'about' }}">About</a>
+  <form data-ha-search class="ha-search" role="search" aria-label="Find a building by address">
+    <input type="search" placeholder="Search an address…" aria-label="Search a building by street address">
+  </form>
   {% if account_user %}
   <div class="account-nav">
     <span title="{{ account_user.email }}">{{ account_user.name or account_user.email }}</span>
@@ -156,7 +185,9 @@ function skyline(el, specs, cell, gap, pad){
   <span><span class="dot" id="hdot"></span><span id="hstatus">checking the LinuxONE backend…</span></span>
   <span>Building-level data only · probabilities calibrated on the held-out 2025-26 winter</span>
   <span>Browse freely · Google sign-in for saved buildings</span>
+  <span><a href="/learn-more">How it works</a> · <a href="/faq">Help &amp; FAQs</a></span>
 </footer>
+{% include "_guide.html" %}
 <script>
 (async () => {
   const dot = document.getElementById('hdot'), st = document.getElementById('hstatus');

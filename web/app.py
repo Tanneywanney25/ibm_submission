@@ -34,6 +34,7 @@ from flask import (Flask, g, jsonify, redirect, render_template, request,
 sys.path.append(str(Path(__file__).resolve().parent))
 import mailer  # noqa: E402
 import account_auth  # noqa: E402
+import site_guide  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "model/out"
@@ -796,6 +797,7 @@ def api_draft_message(bbl):
 
 
 account_auth.init_app(app, consume_account_nonce)
+site_guide.init_app(app)
 
 
 if __name__ == "__main__":

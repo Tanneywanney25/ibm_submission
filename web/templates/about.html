@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}About HeatAhead{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='help-pages.css') }}">{% endblock %}
+{% block body %}
+<div class="help-page">
+  <header class="help-hero">
+    <p class="help-eyebrow">About this project</p>
+    <h1>Heat should never<br>be a surprise.</h1>
+    <p class="help-lead">Every winter, thousands of New York City buildings lose heat during cold snaps — and the
+      city finds out one 311 call at a time. HeatAhead flips that order: it predicts which buildings are likely
+      to lose heat before the cold arrives, so inspectors, tenants and owners can act early instead of react late.</p>
+    <div class="help-actions"><a class="help-primary" href="/building">Check a building</a><a class="help-secondary" href="/learn-more">How to use the site</a></div>
+    <p class="help-small">Built by NYU Tingineers at the IBM Z Datathon, October 2026. Building-level only — never apartments.</p>
+  </header>
+
+  <nav class="help-toc" aria-label="On this page">
+    <a href="#what-it-is">What it is</a><a href="#methods">Methods</a>
+    <a href="#top-100">Why top 100</a><a href="#uncertainty">Ranges &amp; calibration</a>
+    <a href="#open-source">Open source</a>
+  </nav>
+
+  <section id="what-it-is" class="help-section">
+    <p class="help-eyebrow">01 / What it is</p><h2>A ranked list, and what it buys the city.</h2>
+    <div class="help-steps">
+      <article class="help-panel"><span class="help-step">1</span><h3>Score every building</h3>
+        <p>When a cold spell approaches, the model scores every ranked residential building in the city.
+          On IBM LinuxONE that takes under a second — 481,356 buildings per second.</p></article>
+      <article class="help-panel"><span class="help-step">2</span><h3>Rank for inspection</h3>
+        <p>Of the first 100 buildings flagged at the start of a spell, about 90 go on to experience a
+          whole-building heat failure during that spell (held-out winters; details below).</p></article>
+      <article class="help-panel"><span class="help-step">3</span><h3>Measured impact</h3>
+        <p>We replayed the real 2025-26 winter — 183,384 complaint-days — under the city's actual capacity.
+          Same inspectors, dispatched by our ranking instead of first-come-first-served: 7.8% more violations
+          confirmed, failing buildings reached in 2.0 days instead of 3.1, cold-household-days cut in half.</p></article>
+    </div>
+  </section>
+
+  <section id="methods" class="help-section">
+    <p class="help-eyebrow">02 / Methods</p><h2>Public data in, one honest probability out.</h2>
+    <p>The model answers: <em>“a cold spell is starting now — will this building have a whole-building heat
+      failure at some point during the spell?”</em> Every input is public data, dated strictly before the
+      moment of prediction.</p>
+    <div class="help-two">
+      <article class="help-panel"><h3>What it looks at</h3>
+        <p>Heat-complaint history over several trailing windows · past-winter failures and verified violations ·
+          the building itself (age, size, units, boiler records) · the landlord's other buildings ·
+          complaints next door in the last 48 hours · the forecast.</p></article>
+      <article class="help-panel"><h3>How we keep it honest</h3>
+        <p>The model only ever sees the past: features predate the prediction moment, and the entire 2025-26
+          winter stayed untouched until final evaluation. Training rolls forward across six winters, always
+          testing on the next unseen one — it beat the strongest recency baseline in 6 of 6. A nine-test
+          leakage suite runs against the codebase itself.</p></article>
+    </div>
+    <ul class="help-points">
+      <li>Headline precision at the top 100: 69.1% at 48 hours, 86.1% per cold spell, 96.6% at 30 days,
+        99% for the season. Our newest spell-level model reaches 90.1% — evaluated on held-out data it
+        was allowed to see exactly once.</li>
+      <li>Alternatives we built and rejected on evidence: a learning-to-rank model and a graph neural
+        network, both beaten by the simpler model under identical tests.</li>
+    </ul>
+  </section>
+
+  <section id="top-100" class="help-section">
+    <p class="help-eyebrow">03 / Why “top 100”?</p><h2>Why we grade the top of a list, not “accuracy.”</h2>
+    <div class="help-two">
+      <article class="help-panel"><h3>Accuracy rewards doing nothing</h3>
+        <p>About 1–2% of buildings fail in a given spell. A model that predicts “no failure” for every
+          building in New York scores over 98% accuracy while being completely useless. With rare events,
+          accuracy is the wrong yardstick — so we don't report it, and you shouldn't trust anyone who does.</p></article>
+      <article class="help-panel"><h3>Precision at depth is the real question</h3>
+        <p>The city has limited inspectors. “90 at the top 100” means: of the first 100 buildings our list
+          says to visit, about 90 genuinely lose heat during the spell — the hit rate of roughly the first
+          day of inspections. And we never show one cutoff alone: every evaluation reports the top 100, 500,
+          1,000 and 2,500, so no single flattering number can carry the story. The ranking holds up beyond
+          the top too: the top 1% of our list captures 26% of all heat failures in a spell, and the top 10%
+          captures 75% — against 1% and 10% for random inspection.</p></article>
+    </div>
+    <aside class="help-callout"><h3>Two different promises, both graded</h3>
+      <p>The ranked list is graded by precision at depth (who to visit first). The percentages shown on
+        building pages are graded by calibration — checked bin by bin, so “60%” means failure really happens
+        about 60% of the time in that group. One model, two measured guarantees. That discipline has teeth:
+        we rejected a model that <em>won</em> at the top 100 because it lost at the depths where the city
+        actually inspects.</p>
+    </aside>
+  </section>
+
+  <section id="uncertainty" class="help-section">
+    <p class="help-eyebrow">04 / Ranges &amp; calibration</p><h2>Uncertainty we measured and chose to show.</h2>
+    <div class="help-two">
+      <article class="help-panel"><h3>Why ranges</h3>
+        <p>A single number can be lucky. Every headline carries a bootstrap confidence interval — the
+          evaluation data is resampled thousands of times, including in blocks of consecutive days, because
+          days inside one cold snap rise and fall together. The model's edge over the best baseline survives
+          at p ≈ 0.00001 on daily rankings, and it won all 8 of 8 held-out cold spells.</p></article>
+      <article class="help-panel"><h3>Why capped and banded</h3>
+        <p>Every probability on this site is calibrated, then capped at 99% (nothing is certain) and shown
+          as a band above 20% — because “61.3%” implies a precision no forecast honestly has. The calibration
+          table is one click away on every building page.</p></article>
+    </div>
+  </section>
+
+  <section id="open-source" class="help-section">
+    <p class="help-eyebrow">05 / Open source</p><h2>The code is open. The data stays safe.</h2>
+    <div class="help-two">
+      <article class="help-panel"><h3>Published</h3>
+        <p>The feature pipeline, model training, the evaluation protocol, the statistical test suite,
+          portable JSON model files, and this website. Source available on request while the team
+          finalizes the license.</p></article>
+      <article class="help-panel"><h3>Deliberately not published</h3>
+        <p>Raw complaint extracts (get them from NYC Open Data directly), anything apartment-level,
+          and operational secrets. The underlying data is public: NYC 311, HPD violations, PLUTO and
+          weather archives.</p></article>
+    </div>
+    <p class="help-small">Built with Python, XGBoost, scikit-learn, Snap ML, Flask and deck.gl — running on
+      IBM LinuxONE (s390x) and Vercel. HeatAhead is an independent project, not NYC311 or an HPD service.</p>
+  </section>
+</div>
+{% endblock %}

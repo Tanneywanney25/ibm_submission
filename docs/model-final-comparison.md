@@ -71,6 +71,45 @@ reproducible artifact (`final_spell_ensemble.json` + five member JSONs).
 The remaining gap to the ~93% label-noise ceiling is the mild-spell floor;
 the squeeze delivered the predicted +0.5–1.5 and the stream is closed.
 
+## Whole-universe metrics (model/25; reporting only, nothing retrained)
+
+precision@k grades the top of the list; these grade the whole ~62k-building
+ranking, on the same 8 held-out 2025-26 spells with the frozen M13 scores
+(the pure 5-seed bag; `final_spell_ensemble.json` chose w_bag=1.0). This is
+the standard rare-event reporting (cumulative gain, PR-AUC with the base rate
+stated, recall@k, Brier). CSVs: `model/out/universe_metrics_per_spell.csv`,
+`universe_gain_curve.csv`, `universe_metrics_summary.csv`.
+
+**Cumulative gain** (mean over the 8 spells — "the top X% of the ranked list
+captures Y% of all spell failures"):
+
+| top % of list | ~buildings | % of failures captured |
+|---|---|---|
+| 0.1% | ~62 | 4.3% |
+| 0.5% | ~309 | 16.5% |
+| 1% | ~618 | 25.7% |
+| 2% | ~1,237 | 38.3% |
+| 5% | ~3,092 | 59.2% |
+| 10% | ~6,183 | 75.3% |
+
+Random inspection captures X% at X%, so the top 1% is a ~26× lift and the
+top 10% a ~7.5× lift.
+
+**PR-AUC:** mean 0.434 against a mean base rate of 3.1% (per spell: 0.337 on
+the mild Feb 12 spell, base 1.1%, up to 0.574 on the Jan 23 monster, base
+9.9%) — roughly 14× the no-skill PR-AUC, which equals the base rate.
+
+**Recall@k** (mean share of ALL spell failures caught, ~1,910 failures per
+spell on average): 6.8% @100, 22.6% @500, 33.9% @1000, 54.3% @2500.
+
+**Brier score** of the probabilities: raw ensemble 0.0235, isotonic-calibrated
+0.0235, climatology reference (predict the base rate for everyone) 0.0293 —
+about 20% below climatology. Caveat stated in the script: the isotonic fit
+uses the 2024-25 validation spells, which the bag members saw in their refit,
+so the calibrated figure is slightly optimistic by construction; per-spell
+calibrated probabilities were not a frozen artifact, so Brier is reported on
+these three variants rather than on a shipped calibration.
+
 ## Rules unchanged
 
 The frozen submission numbers (69.1 / 86.1 / 96.6 / 99, 6 of 6 winters,

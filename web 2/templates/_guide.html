@@ -1,0 +1,19 @@
+<button id="hg-launcher" class="hg-launcher" type="button" aria-expanded="false" aria-controls="hg-dialog" hidden>
+  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2V6a2 2 0 0 1 3-2Z"/><path d="M7 9h10M7 13h7"/></svg>
+  Ask HeatAhead
+</button>
+<section id="hg-dialog" class="hg-dialog" role="dialog" aria-modal="false" aria-labelledby="hg-title" hidden>
+  <header class="hg-header"><div><h2 id="hg-title">Ask HeatAhead</h2><p id="hg-mode">Help with the site</p></div>
+    <button id="hg-close" class="hg-icon-button" type="button" aria-label="Close site guide">×</button></header>
+  <p class="hg-intro">Ask a question or choose one below.</p>
+  <div id="hg-log" class="hg-log" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversation with the HeatAhead guide"></div>
+  <p id="hg-status" class="hg-status" role="status" aria-live="polite"></p>
+  <form id="hg-form" class="hg-form">
+    <label for="hg-input">What do you need help with?</label>
+    <div class="hg-input-row"><input id="hg-input" type="text" maxlength="400" autocomplete="off" placeholder="How can I check my building?">
+      <button id="hg-send" type="submit" aria-label="Ask your question">Ask</button></div>
+  </form>
+  <p id="hg-privacy" class="hg-privacy">Please leave out passwords, email addresses, phone numbers and apartment numbers.</p>
+  <div class="hg-footer"><a href="/faq">All FAQs</a><a href="/learn-more">Learn more</a><button id="hg-clear" type="button">Clear chat</button></div>
+</section>
+<script type="application/json" id="hg-content">{{ guide_bootstrap | tojson }}</script>
