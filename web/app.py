@@ -232,7 +232,7 @@ def forward(method, path, **kw):
         body = (json.dumps(kw.pop("json"), separators=(",", ":"), ensure_ascii=False).encode()
                 if "json" in kw else b"")
         target, headers, nonce = account_auth.signed_forward(
-            method, path, account_auth.user(), body, kw.pop("params", None))
+            method, path, kw.pop("actor", None) or account_auth.user(), body, kw.pop("params", None))
         if body:
             headers["Content-Type"] = "application/json"
         r = requests.request(method, f"{FORWARD_URL}{target}", data=body or None,
@@ -245,14 +245,45 @@ def forward(method, path, **kw):
         return None
 
 
-def consume_account_nonce(nonce):
+def consume_account_nonce(nonce, ttl=90):
     con = db()
     now = int(time.time())
     con.execute("DELETE FROM account_request_nonces WHERE expires < ?", (now,))
     cur = con.execute("INSERT OR IGNORE INTO account_request_nonces(nonce, expires) VALUES (?, ?)",
-                      (nonce, now + 90))
+                      (nonce, now + ttl))
     con.commit()
     return cur.rowcount == 1
+
+
+# ------------------------------------------------------- email sign-in (T14)
+# The website signs a one-use 15-minute link; only the durable backend sends
+# the email (instance SMTP) and consumes the link's nonce. No passwords exist.
+def send_sign_in_link(email, link):
+    if FORWARD_URL:
+        sent = forward("POST", "/api/account/email_link", json=dict(link=link),
+                       actor=account_auth.email_identity(email))
+        return sent is not None and sent[1] == 200
+    if ON_VERCEL:
+        return False
+    msg = mailer.sign_in_email(email, link)
+    threading.Thread(target=mailer.send, args=(msg,), daemon=True).start()
+    return True
+
+
+def consume_sign_in_nonce(nonce, email):
+    """True = fresh, False = already used, None = backend unavailable (fail closed)."""
+    if FORWARD_URL:
+        sent = forward("POST", "/api/account/email_consume", json=dict(nonce=nonce),
+                       actor=account_auth.email_identity(email))
+        if sent is None or sent[1] != 200:
+            return None
+        try:
+            return bool(json.loads(sent[0]).get("fresh"))
+        except (ValueError, TypeError, AttributeError):
+            return None
+    if ON_VERCEL:
+        return None
+    return consume_account_nonce("email-link:" + nonce, ttl=account_auth.EMAIL_LINK_MAX_AGE)
 
 
 # ------------------------------------------------------------------ helpers
@@ -440,6 +471,7 @@ def api_health():
                built_at=META.get("built_at"),
                account_protocol=1 if len(app.secret_key or "") >= 32 else None,
                google_sign_in=account_auth.configured(),
+               email_sign_in=account_auth.email_configured(),
                registrations_to="linuxone" if FORWARD_URL else
                ("unavailable (configure REGISTER_FORWARD_URL)" if ON_VERCEL else f"sqlite on {HOST}"))
     if MODE == "full" or not FORWARD_URL:
@@ -589,11 +621,13 @@ def api_live_start():
 def unsubscribe():
     actor = account_auth.user()
     if not actor:
-        return redirect("/api/auth/google?" + requests.compat.urlencode({"next": request.full_path.rstrip("?")}))
+        if account_auth.configured():
+            return redirect("/api/auth/google?" + requests.compat.urlencode({"next": request.full_path.rstrip("?")}))
+        return redirect("/")     # sign in (Google or email link) from the home page first
     email = (request.args.get("email") or actor["email"]).strip().lower()
     if email != actor["email"]:
         return render_template("auth_message.html", title="Unsubscribe",
-                               message="Sign in with the Google account that received this alert."), 403
+                               message="Sign in with the account that received this alert."), 403
     raw = request.args.get("bbl")
     bbl = clean_bbl(raw) if raw else None
     if raw and bbl is None:
@@ -627,6 +661,34 @@ def api_remove_registration():
     if request.form:
         return redirect("/")
     return jsonify(ok=True, removed=cur.rowcount)
+
+
+@app.post("/api/account/email_link")
+def api_account_email_link():
+    """Instance side of email sign-in: mail the website's signed link. Only the
+    signed website-to-backend protocol may call this, never a browser session."""
+    if not getattr(g, "account_proxy_nonce", None):
+        return jsonify(error="This endpoint accepts only signed website requests."), 403
+    b = request.get_json(silent=True) or {}
+    link = str(b.get("link") or "")
+    if len(link) > 2000 or not link.startswith(mailer.SITE_URL + "/api/auth/email/callback?"):
+        return jsonify(error="invalid sign-in link"), 400
+    msg = mailer.sign_in_email(account_auth.user()["email"], link)
+    threading.Thread(target=mailer.send, args=(msg,), daemon=True).start()
+    return jsonify(ok=True)
+
+
+@app.post("/api/account/email_consume")
+def api_account_email_consume():
+    """Instance side of email sign-in: one-use consumption of a link's nonce."""
+    if not getattr(g, "account_proxy_nonce", None):
+        return jsonify(error="This endpoint accepts only signed website requests."), 403
+    b = request.get_json(silent=True) or {}
+    nonce = b.get("nonce")
+    if not isinstance(nonce, str) or not 20 <= len(nonce) <= 100:
+        return jsonify(error="invalid nonce"), 400
+    return jsonify(ok=True, fresh=consume_account_nonce(
+        "email-link:" + nonce, ttl=account_auth.EMAIL_LINK_MAX_AGE))
 
 
 @app.get("/api/my_buildings")
@@ -780,7 +842,9 @@ def api_draft_message(bbl):
     return jsonify(draft_message(p, role, address))
 
 
-account_auth.init_app(app, consume_account_nonce)
+account_auth.init_app(app, consume_account_nonce, email_backend=dict(
+    ready=lambda: not ON_VERCEL or bool(FORWARD_URL),
+    send_link=send_sign_in_link, consume=consume_sign_in_nonce))
 site_guide.init_app(app)
 
 

@@ -19,7 +19,7 @@ your PRs. Roles doc: `docs/roles-endgame.md`.
 | [T11](T11-robustness-audit.md) | leave-one-borough-out CV, drift PSI, pytest leakage suite | 11c done: 9 leakage tests green (caught and fixed an eval-clobber bug); 11a/11b open | Emerson (11c) |
 | [T12](T12-policy-simulator.md) | inspector dispatch simulator: violations caught and cold-days averted per policy | done: calibrated to the real total AND lag; +7.8% violations, cold-days −50.2% vs FCFS, ranking stable across 9-cell sensitivity grid — see docs/experiments-report.md | Emerson |
 | [T13](T13-ui-overhaul.md) | UI overhaul to the Opendoor standard (reskin, features frozen) | new | — |
-| [T14](T14-account-platform.md) | clean sign-in/profile; roles → customizable dashboard panels | new | — |
+| [T14](T14-account-platform.md) | clean sign-in/profile; roles → customizable dashboard panels | partial: passwordless email sign-in built (one-use 15-min links via the instance mailer); needs `FLASK_SECRET_KEY` in Vercel + instance restart to go live; Google needs its env vars (docs/GOOGLE_LOGIN.md); dashboard panels open | Emerson (sign-in) |
 | [T15](T15-live-data.md) | live polling: NYC Open Data complaints/violations/buildings + weather | new | — |
 | [T16](T16-info-methods.md) | public About/Methods section: models, bootstrap ranges, open source | copy drafted (docs/about-copy.md, numbers from frozen docs); build + open-source sign-off open | Emerson (copy) |
 | [T17](T17-address-search.md) | address search with autocomplete, map-free path to building pages | built: GeoSearch autocomplete in nav + landing + building page, `/map?bbl=` focus, embedded map panel | Emerson |

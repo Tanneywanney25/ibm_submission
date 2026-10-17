@@ -62,6 +62,20 @@ def send(msg, dry=False):
         return False
 
 
+def sign_in_email(email, link):
+    """T14 passwordless sign-in: the link is signed, one-use and 15 minutes."""
+    body = "\n".join([
+        "Click this link to sign in to HeatAhead:",
+        "",
+        link,
+        "",
+        "The link works once and expires in 15 minutes.",
+        "If you did not request it, you can ignore this email - nothing happens",
+        "without the link, and no password exists on your account.",
+    ])
+    return make_msg(email, "Your HeatAhead sign-in link", body)
+
+
 def band(p):
     """Display rule: exact below 20%, a band at 20% and up, never above 99%."""
     p = min(p, 0.99)

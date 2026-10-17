@@ -28,6 +28,12 @@ form .row input[type=text] { width:100%; }
 .btnlink.ghost { background:transparent; color:var(--ink); border:1px solid var(--line); }
 .google-button { display:inline-flex; align-items:center; justify-content:center; gap:.7rem; background:#fff; color:#1f1f1f; border:1px solid #747775; padding:.7rem 1rem; font-weight:500; border-radius:7px; min-height:44px; }
 .google-button img { width:20px; height:20px; }
+/* a sign-in method that is not configured yet is unavailable, not "loading" */
+.google-button:disabled, .email-signin button:disabled { cursor:not-allowed; }
+.signin-or { display:flex; align-items:center; gap:.8rem; color:var(--muted); font-size:.8rem; margin:1rem 0; }
+.signin-or::before, .signin-or::after { content:""; flex:1; border-top:1px solid var(--line); }
+.email-signin { display:flex; gap:.5rem; flex-wrap:wrap; }
+.email-signin input { flex:1; min-width:180px; }
 .remember { display:flex; align-items:center; gap:.5rem; color:var(--muted); font-size:.83rem; margin:1rem 0; }
 .account-email { overflow-wrap:anywhere; }
 .saved-row { border-top:1px solid var(--line); padding:.9rem 0; }
@@ -78,7 +84,9 @@ skyline(document.getElementById('heroSky'),
   <div class="card" id="account">
     {% if account_user %}
     <h2>Your account</h2>
-    <p class="muted account-email">Signed in with Google as <b>{{ account_user.email }}</b>.</p>
+    <p class="muted account-email">Signed in
+    {{- ' with Google' if not account_user.sub.startswith('email:') }} as
+    <b>{{ account_user.email }}</b>.</p>
     <h3>Register a building</h3>
     <form id="reg" onsubmit="return register(event)" novalidate>
       <div class="roles" id="roles">
@@ -108,20 +116,34 @@ skyline(document.getElementById('heroSky'),
     sign in again. You can stop alerts from your account or any alert email.</p>
     {% else %}
     <h2>Welcome to HeatAhead</h2>
-    <p class="muted">Sign in with Google to save your building, manage heat alerts, and
-    pick up where you left off.</p>
+    <p class="muted">Sign in to save your building, manage heat alerts, and
+    pick up where you left off — with Google, or with just your email.</p>
     <form action="/api/auth/google" method="get">
       <input type="hidden" name="remember" value="0">
       <label class="remember"><input type="checkbox" name="remember" value="1" checked>
         Keep me signed in for 30 days on this device</label>
-      <button class="google-button" type="submit" {% if not google_ready %}disabled{% endif %}>
+      <button class="google-button" type="submit" {% if not google_ready %}disabled
+        title="Google sign-in is not available yet"{% endif %}>
         <img src="/static/google-g.png" alt="" width="20" height="20">Continue with Google
       </button>
     </form>
-    {% if not google_ready %}<p class="muted" role="status">Google sign-in is being set up.
-    You can explore the map and check a building while we finish.</p>{% endif %}
-    <p class="muted" style="font-size:.8rem">New here? Your first Google sign-in creates
-    your account. Returning? Use the same button. HeatAhead never receives your Google password.</p>
+    {% if not google_ready %}<p class="muted" role="status">Google sign-in is not available
+    yet{% if email_ready %} — use the email link below instead{% endif %}. You can explore
+    the map and check a building without an account.</p>{% endif %}
+    <div class="signin-or" aria-hidden="true">or</div>
+    <form class="email-signin" id="email_signin_form" novalidate>
+      <input id="email_signin" type="email" placeholder="you@example.com"
+             autocomplete="email" aria-label="Email address for a sign-in link"
+             {% if not email_ready %}disabled{% endif %}>
+      <button type="submit" {% if not email_ready %}disabled
+        title="Email sign-in is not available yet"{% endif %}>Email me a sign-in link</button>
+    </form>
+    <p id="email_signin_status" class="muted" role="status" aria-live="polite"
+       style="font-size:.85rem; min-height:1.1rem">{% if not email_ready %}Email sign-in is
+       being set up. You can explore the map and check a building while we finish.{% endif %}</p>
+    <p class="muted" style="font-size:.8rem">New here? Your first sign-in creates your
+    account; the same button signs you back in. There are no passwords: HeatAhead never
+    receives your Google password, and an email sign-in link works once for 15 minutes.</p>
     <a class="btnlink ghost" href="/map">Explore the risk map</a>
     {% endif %}
   </div>
@@ -267,5 +289,27 @@ async function removeBuilding(button){
   } catch (error) { $('saved-status').textContent = error.message; button.disabled = false; }
 }
 if (signedInAccount) loadAccount();
+
+// T14: passwordless email sign-in - request a one-use 15-minute link
+const emailForm = $('email_signin_form');
+if (emailForm) emailForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = $('email_signin').value.trim();
+  const status = $('email_signin_status');
+  if (!email) { status.textContent = 'Type your email address first.'; return; }
+  const remember = document.querySelector('#account input[name=remember][value="1"]');
+  const button = emailForm.querySelector('button');
+  button.disabled = true;
+  status.textContent = 'Sending your sign-in link…';
+  try {
+    const r = await fetch('/api/auth/email', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email, remember: remember && remember.checked ? 1 : 0})});
+    const j = await r.json();
+    status.textContent = r.ok ? (j.message || 'Check your inbox for the sign-in link.')
+                              : (j.error || 'The sign-in email could not be sent. Please try again.');
+  } catch { status.textContent = 'Could not reach the server — please try again.'; }
+  button.disabled = false;
+});
 </script>
 {% endblock %}

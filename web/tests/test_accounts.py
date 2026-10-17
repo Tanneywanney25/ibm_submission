@@ -75,6 +75,7 @@ class AccountTests(unittest.TestCase):
         self.mail_patch = patch("mailer.send", return_value=True)
         self.mail_patch.start()
         self.addCleanup(self.mail_patch.stop)
+        auth._EMAIL_SENDS.clear()
 
     def get(self, path, client=None, **kw):
         return (client or self.client).get(path, base_url=ORIGIN, **kw)
@@ -274,6 +275,116 @@ class AccountTests(unittest.TestCase):
             self.assertEqual(self.get(path, client=client).status_code, 200)
         self.assertEqual(self.get("/api/auth/google", client=client).status_code, 503)
         self.assertEqual(self.get("/api/my_buildings", client=client).status_code, 503)
+
+    def request_email_link(self, client=None, email="link@example.test", remember=1):
+        """POST /api/auth/email and return (response, same-origin link path or None)."""
+        captured = {}
+
+        def record(to, link):
+            captured.update(to=to, link=link)
+            return object()
+
+        with patch("mailer.sign_in_email", side_effect=record):
+            response = self.post("/api/auth/email", dict(email=email, remember=remember),
+                                 client=client)
+        link = captured.get("link")
+        if link:
+            self.assertTrue(link.startswith(ORIGIN + "/api/auth/email/callback?token="))
+            self.assertEqual(captured["to"], email)
+            link = link[len(ORIGIN):]
+        return response, link
+
+    def test_email_link_signs_in_once_and_registers(self):
+        self.assertEqual(self.post("/api/auth/email", dict(email="not-an-email")).status_code, 400)
+        response, link = self.request_email_link()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json["ok"])
+        signed_in = self.get(link)
+        self.assertEqual(signed_in.status_code, 302)
+        self.assertEqual(signed_in.location, "/")
+        with self.client.session_transaction(base_url=ORIGIN) as session:
+            self.assertEqual(session["auth_user"]["email"], "link@example.test")
+            self.assertTrue(session["auth_user"]["sub"].startswith("email:"))
+            self.assertGreater(session["auth_expires"], time.time() + 29 * 86400)
+            csrf = session["auth_csrf"]
+        state = self.get("/api/auth/session")
+        self.assertEqual(state.json["user"]["email"], "link@example.test")
+        self.assertTrue(state.json["email_ready"])
+        replay = self.get(link)
+        self.assertEqual(replay.status_code, 400)
+        self.assertIn(b"already used", replay.data)
+        saved = self.post("/api/register", dict(role="tenant", bbl="3000410007"), csrf=csrf)
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(self.get("/api/my_buildings").json["total"], 1)
+        tampered = self.get(link[:-4] + "zzzz")
+        self.assertEqual(tampered.status_code, 400)
+        self.assertIn(b"expired or is not valid", tampered.data)
+
+    def test_email_link_short_session_and_rate_limit(self):
+        response, link = self.request_email_link(remember=0)
+        self.assertEqual(response.status_code, 200)
+        signed_in = self.get(link)
+        self.assertEqual(signed_in.status_code, 302)
+        self.assertNotIn("Expires=", signed_in.headers["Set-Cookie"])
+        with self.client.session_transaction(base_url=ORIGIN) as session:
+            self.assertLess(session["auth_expires"], time.time() + 13 * 3600)
+        for _ in range(2):
+            self.assertEqual(self.request_email_link()[0].status_code, 200)
+        self.assertEqual(self.request_email_link()[0].status_code, 429)
+
+    def test_email_link_unconfigured_fails_closed(self):
+        missing = application(self.db, secret="", google=False)
+        client = missing.app.test_client()
+        self.assertEqual(self.post("/api/auth/email", dict(email="a@example.test"),
+                                   client=client).status_code, 503)
+        self.assertEqual(self.get("/api/auth/email/callback?token=x", client=client).status_code, 503)
+        lone = application(self.db, vercel=True)
+        client = lone.app.test_client()
+        self.assertEqual(self.post("/api/auth/email", dict(email="a@example.test"),
+                                   client=client).status_code, 503)
+        page = self.get("/", client=client)
+        self.assertIn(b"Email sign-in is", page.data)
+
+    def test_email_link_forwards_send_and_consume_to_backend(self):
+        backend = self.module.app.test_client()
+        website = application(Path(self.directory.name) / "ephemeral.db",
+                              forward="https://backend.test", vercel=True)
+        client = website.app.test_client()
+
+        def transport(method, url, **kwargs):
+            parts = urlsplit(url)
+            result = backend.open(parts.path + ("?" + parts.query if parts.query else ""),
+                                  method=method, base_url="https://backend.test",
+                                  data=kwargs.get("data"), headers=kwargs.get("headers"))
+            response = requests.Response()
+            response.status_code = result.status_code
+            response._content = result.data
+            response.headers.update(result.headers)
+            return response
+
+        captured = {}
+
+        def record(to, link):
+            captured.update(to=to, link=link)
+            return object()
+
+        with patch.object(website.requests, "request", side_effect=transport), \
+             patch("mailer.sign_in_email", side_effect=record), \
+             patch("mailer.SITE_URL", ORIGIN):
+            response = self.post("/api/auth/email", dict(email="far@example.test"), client=client)
+            self.assertEqual(response.status_code, 200)
+            link = captured["link"][len(ORIGIN):]
+            with patch.object(website.requests, "request", side_effect=requests.Timeout):
+                closed = self.get(link, client=client)
+            self.assertEqual(closed.status_code, 503)
+            signed_in = self.get(link, client=client)
+            self.assertEqual(signed_in.status_code, 302)
+            with client.session_transaction(base_url=ORIGIN) as session:
+                self.assertEqual(session["auth_user"]["email"], "far@example.test")
+            replay = self.get(link, client=client)
+            self.assertEqual(replay.status_code, 400)
+            self.assertIn(b"already used", replay.data)
+        self.assertFalse(website.DB.exists(), "the website side must stay stateless")
 
     def test_forwarded_requests_are_bound_signed_and_one_use(self):
         self.actor()
