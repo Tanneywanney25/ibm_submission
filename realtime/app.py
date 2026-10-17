@@ -7,24 +7,32 @@ from pathlib import Path
 import tempfile
 import threading
 import time
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from replay_model import ModelReplay
 
 import numpy as np
 import pandas as pd
 from flask import Flask, jsonify, request
 
-MODE = "temporary_demo_priority"
-VERSION = 1
+MODE = ModelReplay.mode
+VERSION = 2
 
 
-def create_app(data_dir=None, checkpoint_every=100):
+def create_app(data_dir=None, checkpoint_every=100, model_dir=None):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
     data = Path(data_dir) if data_dir else Path(__file__).resolve().parents[1] / "data"
-    checkpoint = data / "realtime_checkpoint.json"
+    out = Path(model_dir) if model_dir else data.parent / "model/out"
+    checkpoint = data / "realtime_model_checkpoint.json"
     event_path = data / "replay_feb7_9.csv"
     building_path = data / "buildings.csv"
     fingerprint = hashlib.sha256()
-    for path in (event_path, building_path):
+    for path in (event_path, building_path, data/"days.csv",
+                 *(out/name for name in ("heat_model_final.json", "feature_schema.json",
+                 "calibration.csv", "building_features.csv", "building_day_counts.csv",
+                 "building_day_counts_bw.csv"))):
         fingerprint.update(path.name.encode())
         with path.open("rb") as src:
             for block in iter(lambda: src.read(1024 * 1024), b""):
@@ -42,7 +50,13 @@ def create_app(data_dir=None, checkpoint_every=100):
     if events.received_date.isna().any() or events.complaint_id.duplicated().any():
         raise ValueError("Replay needs valid timestamps and unique complaint IDs")
     events = events.sort_values(["received_date", "complaint_id"]).reset_index(drop=True)
+    if "minor_category" not in events:
+        raise ValueError("Replay CSV requires minor_category for whole-building history")
     rows = list(events.itertuples(index=False))
+    if not rows:
+        raise ValueError("Replay file is empty")
+    engine = ModelReplay(data, out, rows[0].received_date)
+    print(f"Model ready: {len(engine.ids):,} buildings, {len(engine.features)} features", flush=True)
     buildings = pd.read_csv(building_path, usecols=["bbl", "latitude", "longitude", "unitsres"])
     buildings["bbl"] = bbls(buildings["bbl"])
     buildings = buildings.drop_duplicates("bbl").set_index("bbl")
@@ -57,7 +71,8 @@ def create_app(data_dir=None, checkpoint_every=100):
     def snapshot():
         return dict(version=VERSION, fingerprint=fingerprint, scoring_mode=MODE,
                     processed=state["processed"], counts=dict(counts),
-                    latencies_ms=list(latencies), elapsed_seconds=state["elapsed_seconds"])
+                    latencies_ms=list(latencies), elapsed_seconds=state["elapsed_seconds"],
+                    predicted_rows=engine.predictions, batch_timings=engine.batch_timings)
 
     def save():
         # Caller holds lock. Same-directory rename preserves the previous complete
@@ -82,31 +97,37 @@ def create_app(data_dir=None, checkpoint_every=100):
             if temporary is not None:
                 Path(temporary).unlink(missing_ok=True)
 
+    def require(condition):
+        if not condition:
+            raise ValueError("Invalid checkpoint state")
+
     if checkpoint.exists():
         try:
             saved = json.loads(checkpoint.read_text())
             n = saved["processed"]
-            assert saved["version"] == VERSION and saved["fingerprint"] == fingerprint
-            assert saved["scoring_mode"] == MODE
-            assert type(n) is int and 0 <= n <= len(rows)
+            require(saved["version"] == VERSION and saved["fingerprint"] == fingerprint)
+            require(saved["scoring_mode"] == MODE)
+            require(type(n) is int and 0 <= n <= len(rows))
             expected = {}
             for ev in rows[:n]:
                 expected[ev.bbl] = expected.get(ev.bbl, 0) + 1
-            assert saved["counts"] == expected
+            require(saved["counts"] == expected)
             samples = saved["latencies_ms"]
-            assert len(samples) == n
-            assert all(type(v) in (int, float) and math.isfinite(v) and v >= 0 for v in samples)
+            require(len(samples) == n)
+            require(all(type(v) in (int, float) and math.isfinite(v) and v >= 0 for v in samples))
             elapsed = saved["elapsed_seconds"]
-            assert type(elapsed) in (int, float) and math.isfinite(elapsed) and elapsed >= 0
+            require(type(elapsed) in (int, float) and math.isfinite(elapsed) and elapsed >= 0)
             counts.update(expected)
-            scores.update({b: c / (c + 5.0) for b, c in counts.items()})
+            engine.restore_prefix(rows,n)
+            engine.predictions = saved["predicted_rows"]
+            engine.batch_timings = saved["batch_timings"]
             latencies.extend(samples)
             state.update(processed=n, checkpoint_processed=n, elapsed_seconds=elapsed,
                          replay_clock=rows[n-1].received_date.isoformat() if n else None,
                          status="completed" if n == len(rows) else "paused",
                          restored_from_checkpoint=True)
         except (ValueError, KeyError, TypeError, AssertionError) as exc:
-            raise ValueError("Checkpoint invalid or inputs changed. Rename data/realtime_checkpoint.json before starting fresh.") from exc
+            raise ValueError("Checkpoint invalid or inputs changed. Rename data/realtime_model_checkpoint.json before starting fresh.") from exc
 
     def replay(speedup, start_index):
         started = time.perf_counter()
@@ -121,7 +142,7 @@ def create_app(data_dir=None, checkpoint_every=100):
                 with lock:
                     b = ev.bbl
                     counts[b] = counts.get(b, 0) + 1
-                    scores[b] = counts[b] / (counts[b] + 5.0)
+                    engine.event(ev)
                     state["processed"] += 1
                     state["replay_clock"] = ev.received_date.isoformat()
                     latencies.append((time.perf_counter() - t0) * 1000)
@@ -147,12 +168,11 @@ def create_app(data_dir=None, checkpoint_every=100):
                 raise ValueError()
         except ValueError:
             return error("k must be an integer between 1 and 1000")
-        if request.args.get("sort", "risk") != "risk":
-            return error("Only sort=risk is available with temporary scoring")
+        sort = request.args.get("sort", "risk")
+        if sort not in ("risk", "tenants"):
+            return error("sort must be risk or tenants")
         with lock:
-            ranked = sorted(scores, key=lambda b: (-scores[b], b))[:k]
-            return jsonify(scoring_mode=MODE, buildings=[dict(bbl=b, score=scores[b],
-                           replay_complaints=counts[b], **metadata.get(b, {})) for b in ranked])
+            return jsonify(scoring_mode=MODE, buildings=engine.queue(k,sort,metadata))
 
     @app.get("/stats")
     def stats():
@@ -162,7 +182,18 @@ def create_app(data_dir=None, checkpoint_every=100):
             result["replay_events_per_second"] = result["processed"] / elapsed if elapsed else 0
             for p in (50, 99):
                 result[f"processing_latency_ms_p{p}"] = float(np.percentile(latencies, p)) if latencies else None
-            result["latency_scope"] = "lock wait, counter update, temporary scoring; excludes checkpoint I/O and HTTP"
+            result["latency_scope"] = "lock wait, feature updates, affected-block inference and calibration; includes day-rollover work; excludes checkpoint I/O and HTTP"
+            result["processing_events_per_second"] = len(latencies)/(sum(latencies)/1000) if sum(latencies) else None
+            result["ranked_buildings"] = len(engine.ids)
+            result["model_features"] = len(engine.features)
+            result["predicted_building_rows"] = engine.predictions
+            result["unranked_events"] = engine.skipped
+            result["batch_inference"] = engine.batch_timings
+            result["backend"] = "xgboost_native_cpu"
+            result["feature_policy"] = "prior calendar-day windows plus observed intraday replay complaints"
+            result["weather_source"] = "historical daily observations; not archived forecasts"
+            result["evaluation_scope"] = "deployment-model simulation; not held-out accuracy evaluation"
+            result["calibration_note"] = "supplied isotonic mapping; intraday update policy not separately validated"
             return jsonify(result)
 
     @app.post("/replay/start")
@@ -193,6 +224,7 @@ def create_app(data_dir=None, checkpoint_every=100):
                 if state["status"] != "paused":
                     return error("Resume requires a paused/restored replay", 409)
             else:
+                engine.reset()
                 counts.clear()
                 scores.clear()
                 latencies.clear()
