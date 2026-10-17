@@ -224,13 +224,25 @@ All six steps were done on October 17, 2026.
 | systemd unit | what | where |
 |---|---|---|
 | `heatahead-web` | `web/app.py` in FULL mode under waitress, `0.0.0.0:8080` | `~/heatahead/site` (a clone of `main`; `data` and `model/out` are symlinks into `~/heatahead/ibm_submission`), log `~/heatahead/logs/web.log`, SQLite `~/heatahead/site/web/heatahead.db` |
-| `heatahead-realtime` | `realtime/app.py` replaying `data/replay_feb7_9.csv` on `127.0.0.1:5000`: the model's own complaint filter (`problem_code` NO HEAT or NO HEAT AND NO HOT WATER, as in `model/01_build_panel.py`), columns `received_date, complaint_id, bbl` only, 13,186 complaints at 6,133 tax lots (`docs/SUBMISSION.md` counts 13,222 at 6,382 HPD building ids; 36 of those complaints carry no BBL) | same clone, log `~/heatahead/logs/realtime.log`, checkpoint `data/realtime_checkpoint.json` |
+| `heatahead-realtime` | `realtime/app.py` replaying `data/replay_feb7_9.csv` on `127.0.0.1:5000` and scoring every complaint with the frozen model (`scoring_mode: xgboost_final_isotonic_cpu`, 36 features, 62,716 ranked buildings). The replay file uses the model's own complaint filter (`problem_code` NO HEAT or NO HEAT AND NO HOT WATER, as in `model/01_build_panel.py`) with columns `received_date, complaint_id, bbl, minor_category`: 13,186 complaints at 6,133 tax lots, 8,252 of them ENTIRE BUILDING (`docs/SUBMISSION.md` counts 13,222 at 6,382 HPD building ids; 36 of those complaints carry no BBL). Startup also needs `model/out/feature_schema.json` and `model/out/building_features.csv`, which git does not carry: make them with `python model/10_export_replay_assets.py 2026-02-06` and copy `model/out/replay/features_schema.json` and `static_features.csv` to those two names | same clone, log `~/heatahead/logs/realtime.log`, checkpoint `data/realtime_model_checkpoint.json` |
 | `heatahead-jupyter` | JupyterLab on `127.0.0.1:8888`, reached through an SSH tunnel. Pick the `datathon-env` kernel (the project venv, registered October 17, 2026); the default `python3` kernel is the system interpreter, which has no Flask. `web/jupyter/run_in_jupyter.py <notebook>` executes a notebook inside this server from an SSH shell | token in `~/.config/heatahead/jupyter.env` (mode 600); read it in your own terminal with `ssh linux1@148.100.77.112 cat ~/.config/heatahead/jupyter.env` and never paste it into a chat |
 | cron, minute 7 of every hour | `web/alerts.py` against the same SQLite | log `~/heatahead/logs/alerts_cron.log` |
 
 After a push that changes `web/`: `cd ~/heatahead/site && git pull --rebase origin main &&
-sudo systemctl restart heatahead-web`. Port 8080 is the only port open besides 22
-(`sudo iptables -S INPUT`; persisted in `/etc/iptables/rules.v4`).
+sudo systemctl restart heatahead-web`; after one that changes `realtime/`, restart
+`heatahead-realtime` too and check `curl -s localhost:5000/stats` reports the model scoring mode
+(a failed start loops under `Restart=always`, so read `~/heatahead/logs/realtime.log`). Port 8080
+is the only port open besides 22 (`sudo iptables -S INPUT`; persisted in `/etc/iptables/rules.v4`).
+
+This instance is production: `REALTIME_URL` and `REGISTER_FORWARD_URL` in Vercel point here,
+and its `model/out` holds the frozen model files the published site was built from
+(`public/data/meta.json` lists them). Other team LinuxONE guests are development machines; a copy
+of `model/out` taken from the shared Drive before the 17:42 UTC rebuild on October 17, 2026 is an
+older model (its `heat_model_final.json` hashes differently), so compare `sha256sum` before
+quoting numbers measured there. On October 17, 2026 the replay service crash-looped from about
+20:16 to 20:27 UTC after the model-scoring code was pulled without those two files, then stayed
+stopped until 22:07 UTC, when the files above were generated here and a full replay passed
+(p50 0.40 ms and p99 0.99 ms per complaint; 62,716 buildings rescored in 0.55 s).
 
 ## 9. Checking a deploy without the dashboard
 
