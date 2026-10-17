@@ -1,0 +1,113 @@
+# Model catalog — every model in HeatAhead
+
+One entry per model (and baseline): what it predicts, what it eats, where it
+lives, its measured numbers, and how to load it. Companion to
+`model-iterations.md` (how we got here) and `engineering-log.md` (what happened).
+
+All metrics are on the held-out 2025-26 winter unless marked otherwise.
+
+---
+
+## M1 — The cold-day ranker (the headline model)
+
+- **Predicts:** P(building has 2+ distinct heat complaints within the next 48h),
+  for one building on the eve of a freezing day.
+- **Type:** ensemble — XGBoost 3.4.1 + sklearn HistGradientBoosting, probabilities
+  averaged. 400 trees each, depth 6, lr 0.08.
+- **Features (31):** building (units, floors, area, year built + 1900 flag,
+  altered, CD, boiler defects, oil fuel, landlord portfolio size + portfolio
+  complaints), history (2 prior seasons of complaints/violations, chronic,
+  band reaction rates frigid/freezing/cold, days-since complaint/violation,
+  whole-building outages last season), live (trailing 2/7/14/30-day counts,
+  whole-building 14d, same-block 48h neighbors), weather (TMIN, TMAX, lag,
+  3-day roll min, drop, snow, wind, weekday, days into cold season).
+- **Trained on:** 622,362 building-days, seasons 2018-19 → 2024-25 (panel:
+  positives + 2× sampled negatives, history universe).
+- **Files:** `model/out/heat_model.json` (XGBoost, portable) +
+  `heat_model.joblib` (sklearn, same-machine only). Built by `model/02_train.py`;
+  loaded by 03/07 via the ensemble `predict()`.
+- **Numbers @100:** 69.1% exact 48h · 86.1% per spell · 96.6% within 30d ·
+  AUC-PR 0.981 on the panel. 6-fold forward-chaining CV: 6/6 winters won
+  (mean 0.673 vs 0.634). Top features: days_since_c, c_last2, c_prev30,
+  days_into_cold.
+- **Serving speed (s390x, 3 cores):** 358,629 buildings/sec (p99 0.71 ms).
+
+## M2 — The deployment twin (final scores for the demo)
+
+- Same recipe as M1 but **trained on all eight seasons including 2025-26** —
+  the model you'd actually ship this winter. Never used for any reported metric
+  (it has seen the test winter by design).
+- **Files:** `model/out/heat_model_final.json`; produced by `model/06_final_scores.py`,
+  which also writes the demo artifact `ranked_inspection_list.csv` (67,125
+  buildings: rank, score, p_calibrated, tenants_at_risk, lat/lon, history chips)
+  under replayed Feb 8, 2026 weather.
+
+## M3 — The daily calibrator
+
+- **Maps M1's raw score → honest 48h probability.** Isotonic regression fit on
+  142,000 full-universe (score, outcome) pairs sampled across the 71 test days
+  (2,000/day) — full-universe pairs, because panel pairs carry a sampled base
+  rate (~70%) that would inflate displayed probabilities ~60-fold.
+- **File:** `model/out/calibration.csv` (pairs; 06 refits the isotonic at load).
+- **Verified:** predicted matches observed in every bin across 9 splits (random,
+  day-wise, mild→coldest). Below 20% predicted: within ~1pp everywhere. Display
+  rule: exact % under 20, bands above; monotone, so ranking is unchanged.
+
+## M4 — The season-risk model (the tenant number)
+
+- **Predicts:** P(building loses heat at least once this winter), one row per
+  building per season, features as of Oct 1 (21 features — M1's set minus live
+  trailing counts and weather, since none exist at season start).
+- **Type:** HistGradientBoosting (400 iters, depth 6) + its own isotonic
+  calibrator (fit on half the held-out winter, verified on the other half).
+- **Trained on:** 305,413 building-seasons, 2018 → 2024 (18.5% fail a season).
+- **Files:** `model/09_season_risk.py` → `model/out/season_risk_2026.csv`
+  (63,727 buildings: p_season capped at 0.99, rank, raw_score, history chips)
+  and `season_reliability.csv` (the accuracy table for the app).
+- **Verified:** bin-by-bin on 2025-26 — e.g. predicted 89–91% → actual 89–91%;
+  every bin within ~2pp. For winter 2026-27: ~3,700 buildings ≥80%, ~8,000 ≥50%,
+  median building ~8%.
+
+## M5 — The Snap ML twin (IBM Z benchmark)
+
+- Snap ML BoostingMachineClassifier (200 rounds, depth 6) **trained natively on
+  the instance** on the M1 panel (XGBoost-3.x JSON import is incompatible with
+  snapml's importer — "no objective defined"; NaNs imputed to −1 since its tree
+  builder asserts on NaN).
+- **Purpose:** measured s390x serving numbers, not accuracy claims:
+  **481,356 buildings/sec batch, p99 0.51 ms** — 1.34× XGBoost on the same guest.
+  Built/benchmarked by `model/04_snapml_bench.py`; not persisted to disk.
+
+## M6 — The backtest fleet (validation only)
+
+- Six single-backend XGBoost models, one per test winter 2020-21 → 2025-26, each
+  trained only on the seasons before its test winter (`model/05_backtest.py`).
+  Same features and hyperparameters as M1, no per-fold tuning; discarded after
+  scoring. Results: `model/out/backtest_by_season.csv` — model ahead of the
+  14-day baseline in all six winters.
+
+## B1–B3 — The baselines (every eval runs them under the identical protocol)
+
+- **B1 last-season complaints:** rank by prior season's distinct complaints.
+  43.5% @100 (48h). The prior-art standard — what every earlier paper amounts to.
+- **B2 trailing-14-day complaints:** the strong one. 61.7% @100 (48h), 77.1% per
+  spell, 91.0% @100 30d. Recomputed per ranking day.
+- **B3 last-season violations:** 14.7% @100 — violations alone are too sparse to
+  rank with, which is also why the Heat Sensors Program's selection rule is weak.
+
+## Lineage and reproduction
+
+```
+00_second_tier.py -> landlord + boiler tables
+01_build_panel.py -> panel.csv (features + labels, leak-asserted)
+02_train.py       -> M1 (heat_model.json/.joblib) + feature_importance.csv
+03_evaluate.py    -> M1 metrics + M3 pairs (calibration.csv)
+04_snapml_bench   -> M5 numbers        05_backtest.py -> M6 fleet + CV table
+06_final_scores   -> M2 + ranked list  07_spell_eval  -> spell/season metrics
+09_season_risk    -> M4 + season_risk_2026.csv
+```
+
+Rules that apply to every model here: features strictly pre-date the prediction
+moment; distinct `complaint_id` only; models cross machines as JSON, never
+pickles (s390x is big-endian); displayed probabilities are calibrated and capped
+at 99%; nothing below building level is ever shown.
