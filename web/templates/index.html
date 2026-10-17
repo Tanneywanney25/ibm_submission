@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Know before the cold hits.</h1>
+<p class="muted">New Yorkers filed 300,000+ no-heat complaints last winter.
+HeatAhead predicts which buildings fail <em>before</em> the cold snap —
+verified on every freezing day of last winter.</p>
+
+<div class="grid2">
+  <div class="card">
+    <h2>Sign up for alerts</h2>
+    <p class="muted">When a cold snap approaches and your building is at risk,
+    we tell you first — one email per cold spell, never spam.</p>
+    <form id="reg" onsubmit="return register(event)">
+      <p><select id="role" required>
+        {% for r in roles %}<option value="{{r}}">{{ r.capitalize() }}</option>{% endfor %}
+      </select></p>
+      <p><input id="email" type="email" placeholder="email" required style="width:100%"></p>
+      <p><input id="phone" type="tel" placeholder="phone (optional)" style="width:100%"></p>
+      <p><input id="address" placeholder="building address (tenant / landlord)" style="width:100%"></p>
+      <p><button>Sign up</button></p>
+    </form>
+    <div id="reg_out" class="muted"></div>
+  </div>
+  <div class="card">
+    <h2>What you get</h2>
+    <div class="chips">
+      <span class="chip">Tenant — your building's winter risk + alerts</span>
+      <span class="chip">Landlord — portfolio watch + inspection nudges</span>
+      <span class="chip">Government — the ranked inspection queue</span>
+      <span class="chip">Viewer — the citywide risk map</span>
+    </div>
+    <p>Of the 100 buildings our model flags before a cold snap,
+    <b class="accent">86 lose heat during that snap</b> and
+    <b class="accent">99 lose heat that winter</b> — measured on the held-out
+    2025-26 winter, validated across six winters.</p>
+    <p class="muted">Built on IBM LinuxONE: the whole city re-scores in 0.36 s.</p>
+  </div>
+</div>
+<script>
+async function register(e){
+  e.preventDefault();
+  const out = document.getElementById('reg_out');
+  out.textContent = 'registering...';
+  const body = { role: role.value, email: email.value,
+                 phone: phone.value, address: address.value };
+  const r = await fetch('/api/register', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const j = await r.json();
+  if (!r.ok) { out.textContent = j.error; return false; }
+  out.innerHTML = 'Registered.' + (j.p_season !== undefined ?
+    ` Your building's winter risk: <b>${(j.p_season*100).toFixed(0)}%</b> — ` +
+    `<a href="/building?bbl=${j.bbl}">see the full picture</a>` : '');
+  return false;
+}
+</script>
+{% endblock %}
