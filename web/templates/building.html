@@ -1,5 +1,5 @@
-{% extends "base.html" %}
-{% block title %}Check a building — HeatAhead{% endblock %}
+﻿{% extends "base.html" %}
+{% block title %}Check a building â€” HeatAhead{% endblock %}
 {% block body %}
 <h1>Check a building</h1>
 <div class="card">
@@ -14,15 +14,15 @@
     <div class="card">
       <h2>This winter</h2>
       <div class="big"><span id="p_season"></span></div>
-      <p class="muted">chance of at least one heat outage this winter —
-        <span id="vs_median"></span>× the citywide median,
+      <p class="muted">chance of at least one heat outage this winter â€”
+        <span id="vs_median"></span>Ã— the citywide median,
         rank <span id="rank"></span></p>
       <p id="coldday" class="muted"></p>
       <div class="chips" id="chips"></div>
       <p><a href="#" onclick="return draft()">Draft an owner notice</a>
          <span class="muted">(nothing is sent)</span></p>
       <pre id="draft_out" style="display:none; white-space:pre-wrap;
-           background:#0b0e13; padding:1rem; border-radius:8px"></pre>
+           background:var(--well); padding:1rem; border-radius:8px"></pre>
     </div>
     <div class="card">
       <h2>History</h2>
@@ -31,7 +31,7 @@
       <h3 class="muted" style="margin:1.6rem 0 .4rem">Heat violations per season</h3>
       <div class="bars" id="vbars"></div>
       <p class="muted" style="margin-top:1.6rem">
-        last complaint: <span id="lastc"></span> · last violation: <span id="lastv"></span></p>
+        last complaint: <span id="lastc"></span> Â· last violation: <span id="lastv"></span></p>
       <div id="landlord" class="muted"></div>
     </div>
   </div>
@@ -45,7 +45,7 @@
   </div>
   <div class="card">
     <details><summary>How accurate is this number?</summary>
-      <p class="muted">Verified on last winter, which the model never trained on —
+      <p class="muted">Verified on last winter, which the model never trained on â€”
       grouped by what we predicted vs what happened:</p>
       <table id="rel"><tr><th>we said</th><th>buildings</th><th>actually failed</th></tr></table>
     </details>
@@ -65,7 +65,7 @@ async function lookup(e){
       const r = await fetch('/api/lookup?address=' + encodeURIComponent(q));
       const j = await r.json();
       if (!r.ok) { $('status').textContent = j.error; return false; }
-      bbl = j.bbl; $('status').textContent = j.normalized + ' · BBL ' + bbl;
+      bbl = j.bbl; $('status').textContent = j.normalized + ' Â· BBL ' + bbl;
     } else $('status').textContent = 'BBL ' + bbl;
     const r = await fetch('/api/building/' + bbl);
     b = await r.json();

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block head %}
 <style>
 .hero p { max-width:760px; }
@@ -9,7 +9,7 @@
 @media (max-width:760px){ .stats { grid-template-columns:1fr 1fr; } }
 .roles { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin:.4rem 0 .9rem; }
 .roles label { border:1px solid var(--line); border-radius:8px; padding:.55rem .7rem;
-               cursor:pointer; background:#0b0e13; font-size:.9rem; }
+               cursor:pointer; background:var(--well); font-size:.9rem; }
 .roles label:has(input:checked) { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
 .roles input { accent-color:var(--accent); margin-right:.35rem; }
 .roles small { display:block; color:var(--muted); font-size:.78rem; margin-left:1.3rem; }
@@ -23,7 +23,7 @@ form .row input[type=text] { width:100%; }
 .steps { display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; }
 .steps .card { margin:0; } .steps b { color:var(--accent); }
 @media (max-width:760px){ .steps { grid-template-columns:1fr; } }
-.btnlink { display:inline-block; background:var(--accent); color:#111; font-weight:600;
+.btnlink { display:inline-block; background:var(--accent); color:var(--on-accent); font-weight:600;
            text-decoration:none; padding:.5rem .9rem; border-radius:7px; margin:.3rem .4rem .3rem 0; }
 .btnlink.ghost { background:transparent; color:var(--ink); border:1px solid var(--line); }
 </style>
@@ -133,7 +133,7 @@ async function register(e){
   const body = { role, email, phone: $('phone').value.trim() };
   if (needs) { if (/^\d{10}$/.test(addr)) body.bbl = addr; else body.address = addr; }
   $('submit').disabled = true;
-  $('reg_out').textContent = needs ? 'finding your building and registering…' : 'registering…';
+  $('reg_out').textContent = needs ? 'finding your building and registeringâ€¦' : 'registeringâ€¦';
   let r, j;
   try {
     r = await fetch('/api/register', {method:'POST',
@@ -163,7 +163,7 @@ async function landing(j, email){
   if (j.role === 'tenant') {
     h = '<h2>You\'re signed up, tenant' + again + '</h2>';
     h += '<p class="muted" style="margin:.2rem 0">' + esc(j.normalized || ('BBL ' + j.bbl)) +
-         (j.normalized ? ' · BBL ' + esc(j.bbl) : '') + '</p>';
+         (j.normalized ? ' Â· BBL ' + esc(j.bbl) : '') + '</p>';
     if (j.p_season !== undefined) {
       h += '<div class="big accent">' + riskHTML(j.p_season) + '</div>' +
            '<p class="muted" style="margin-top:0">chance this building has at least one heat outage this winter</p>';
@@ -176,7 +176,7 @@ async function landing(j, email){
          '<p class="muted">When the 7-day forecast shows two or more freezing days in a row and your ' +
          'building is over the alert threshold, you get one email for that cold spell.</p>';
   } else if (j.role === 'landlord') {
-    h = '<h2>You\'re signed up, landlord' + again + '</h2><div id="portfolio" class="muted">loading your buildings…</div>';
+    h = '<h2>You\'re signed up, landlord' + again + '</h2><div id="portfolio" class="muted">loading your buildingsâ€¦</div>';
   } else if (j.role === 'government') {
     h = '<h2>You\'re signed up, government' + again + '</h2>' +
         '<p class="muted">The inspector queue re-sorts live as complaints arrive during a cold snap.</p>' +
@@ -205,7 +205,7 @@ async function portfolio(email, bbl){
     const rows = d.buildings || [];
     if (!rows.length) { P.textContent = 'No buildings on record for this email yet.'; return; }
     const owner = (rows.find(x => x.landlord) || {}).landlord;
-    let h = owner ? '<p style="margin:.2rem 0">Registered owner on file: <b>' + esc(owner) + '</b> · ' +
+    let h = owner ? '<p style="margin:.2rem 0">Registered owner on file: <b>' + esc(owner) + '</b> Â· ' +
         d.total.toLocaleString() + ' building(s), riskiest first</p>' : '';
     h += '<table><tr><th>BBL</th><th>winter risk</th><th>rank</th><th>units</th><th>complaints last season</th></tr>' +
       rows.slice(0, 25).map(b => '<tr><td><a href="/building?bbl=' + b.bbl + '">' + b.bbl + '</a>' +

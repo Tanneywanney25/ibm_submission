@@ -6,8 +6,8 @@
 <script src="https://unpkg.com/deck.gl@8.9.36/dist.min.js"></script>
 <style>#mapwrap{position:relative;height:72vh;border-radius:10px;overflow:hidden;
 border:1px solid var(--line)} #legend{position:absolute;bottom:14px;left:14px;
-background:rgba(14,17,22,.9);padding:.6rem .9rem;border-radius:8px;font-size:.8rem;z-index:5}
-#tip{position:absolute;pointer-events:none;background:#0b0e13;border:1px solid var(--line);
+background:rgba(16,19,23,.92);padding:.6rem .9rem;border-radius:8px;font-size:.8rem;z-index:5}
+#tip{position:absolute;pointer-events:none;background:var(--well);border:1px solid var(--line);
 padding:.4rem .7rem;border-radius:7px;font-size:.82rem;z-index:6;display:none}</style>
 {% endblock %}
 {% block body %}
@@ -15,8 +15,9 @@ padding:.4rem .7rem;border-radius:7px;font-size:.82rem;z-index:6;display:none}</
 <p class="muted">Column height = complaints last season · color = this winter's risk.
 Click a column to open that building.</p>
 <div id="mapwrap"><div id="tip"></div>
-  <div id="legend">risk: <span style="color:#ffd9a0">low</span> →
-    <span style="color:#ff6b35">high</span> · drag to rotate (right-drag/ctrl)</div>
+  <div id="legend">risk: <span style="color:#5c636d">low</span> →
+    <span style="color:#b65c3f">mid</span> →
+    <span style="color:#ffc46b">high</span> · drag to rotate (right-drag/ctrl)</div>
 </div>
 <script>
 (async () => {
@@ -26,7 +27,10 @@ Click a column to open that building.</p>
   const idx = Object.fromEntries(d.columns.map((c,i)=>[c,i]));
   const rows = d.rows.map((r,i) => ({lon:r[idx.lon], lat:r[idx.lat],
     p:r[idx.p_season], c:r[idx.c_last1], u:r[idx.units], bbl:d.bbls[i]}));
-  const color = p => [255, Math.max(40, 217-180*p), Math.max(20, 160-140*p)];
+  // design-language ramp: slate (cold masonry) -> weathered brick -> lit window
+  const SLATE=[92,99,109], BRICK=[182,92,63], WINDOW=[255,196,107];
+  const mix = (a,b,t) => a.map((v,i) => Math.round(v + (b[i]-v)*t));
+  const color = p => p < 0.5 ? mix(SLATE, BRICK, p*2) : mix(BRICK, WINDOW, (p-0.5)*2);
   new deck.DeckGL({
     container: 'mapwrap',
     mapStyle: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
