@@ -18,6 +18,11 @@ your PRs. Roles doc: `docs/roles-endgame.md`.
 | [T10](T10-time-to-failure.md) | M10 discrete-time hazard: predict WHEN, survival curves | new (first to drop) | — |
 | [T11](T11-robustness-audit.md) | leave-one-borough-out CV, drift PSI, pytest leakage suite | 11c done: 9 leakage tests green (caught and fixed an eval-clobber bug); 11a/11b open | Emerson (11c) |
 | [T12](T12-policy-simulator.md) | inspector dispatch simulator: violations caught and cold-days averted per policy | done: calibrated to the real total AND lag; +7.8% violations, cold-days −50.2% vs FCFS, ranking stable across 9-cell sensitivity grid — see docs/experiments-report.md | Emerson |
+| [T13](T13-ui-overhaul.md) | UI overhaul to the Opendoor standard (reskin, features frozen) | new | — |
+| [T14](T14-account-platform.md) | clean sign-in/profile; roles → customizable dashboard panels | new | — |
+| [T15](T15-live-data.md) | live polling: NYC Open Data complaints/violations/buildings + weather | new | — |
+| [T16](T16-info-methods.md) | public About/Methods section: models, bootstrap ranges, open source | new | — |
+| [T17](T17-address-search.md) | address search with autocomplete, map-free path to building pages | new | — |
 
 Build order: T1–T6 are landed or owned; the rigor sprint runs **T11c (leakage
 tests) → T7 → T9 ∥ T12 → T8 → T10**. The submission needs T1–T3 for the video;
