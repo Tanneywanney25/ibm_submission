@@ -35,12 +35,21 @@ xgb.load_model(OUT / "heat_model.json")
 bench("xgboost", lambda a: xgb.predict_proba(a))
 
 try:
-    # tree_format="auto" logs whether the on-chip accelerator (nnpa/zdnn) was detected
     from snapml import BoostingMachineClassifier
     snap = BoostingMachineClassifier()
-    snap.import_model(str(OUT / "heat_model.json"), input_type="xgb_json",
-                      tree_format="auto")
-    snap.set_params(verbose=True)
+    try:
+        # tree_format="auto" logs whether the on-chip accelerator (nnpa/zdnn) was detected
+        snap.import_model(str(OUT / "heat_model.json"), input_type="xgb_json",
+                          tree_format="auto")
+        print("snapml: imported the XGBoost model")
+    except Exception as e:
+        # XGBoost 3.x JSON sometimes won't import - train Snap ML natively instead
+        print(f"snapml import failed ({e}); training natively on the panel")
+        y = panel["failed48"].to_numpy()[:len(X) * 4]
+        Xt = panel[FEATS].to_numpy(dtype=np.float32)[:len(y)]
+        snap = BoostingMachineClassifier(num_round=200, max_depth=6, n_jobs=3)
+        snap.fit(Xt, y)
+    snap.set_params(verbose=True)                        # logs zDNN/NNPA use on predict
     bench("snapml", lambda a: snap.predict_proba(a))
 except Exception as e:                                   # measured numbers still count
     print(f"snapml unavailable ({e}) - report the plain XGBoost numbers and say so")
