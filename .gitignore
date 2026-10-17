@@ -17,3 +17,6 @@ R/*.html
 # Python
 __pycache__/
 .ipynb_checkpoints/
+
+# model outputs (panel.csv is ~250 MB; results CSVs are regenerated)
+model/out/
