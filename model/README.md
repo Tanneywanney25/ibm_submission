@@ -25,14 +25,17 @@ python model/04_snapml_bench.py     # phase 6, LinuxONE only
 
 `03_evaluate.py 10` scores only the 10 coldest test days (fast smoke run); no argument = every 2025-26 day with TMIN < 32. Uses XGBoost when installed (the LinuxONE container has it), else sklearn's HistGradientBoostingClassifier.
 
-## First results (laptop, sklearn backend, 10 coldest 2025-26 days)
+## First results (laptop, sklearn backend, all 71 cold days of 2025-26)
 
-Full-universe precision@k (all 172,485 buildings ranked per day):
+Full-universe precision@k (all 172,485 buildings ranked per TMIN<32 day), mean over days:
 
-| k | model | 14-day baseline | last-season baseline |
-|---|---|---|---|
-| 100 | 0.697 | 0.699 | 0.515 |
-| 500 | 0.515 | 0.515 | 0.372 |
-| 2500 | **0.276** | 0.269 | 0.205 |
+| k | model | 14-day baseline | last-season baseline | violations baseline |
+|---|---|---|---|---|
+| 100 | **0.658** | 0.618 | 0.433 | 0.149 |
+| 500 | **0.406** | 0.392 | 0.271 | 0.092 |
+| 1000 | **0.294** | 0.286 | 0.198 | 0.084 |
+| 2500 | **0.176** (recall 0.639) | 0.169 (0.612) | 0.126 | 0.062 |
 
-Headline ties the strongest (recency) baseline — expected, 70% of chronic buildings stay chronic. The pitch number is the **new-to-list cut**: among the model's top-100 picks that the 14-day baseline *missed*, **64.8% still failed** — those are the failures recency cannot see coming (precision 0.648/0.368/0.161 at k=100/500/2500).
+The model beats all three baselines at every k. On only the 10 coldest days it ties the 14-day baseline (everyone chronic is already complaining); the edge comes from ordinary freezing days, where recency is a weaker signal. **New-to-list cut:** among the model's top-100 picks the 14-day baseline missed, **56.3% still failed** — the failures recency cannot see coming.
+
+Numbers to beat on LinuxONE with real XGBoost. Next feature to try: per-building reaction rates by weather band (stream 1 handoff).
