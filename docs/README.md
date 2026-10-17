@@ -5,6 +5,7 @@ Planning documents for the build. Start with the brief.
 - `heat-project-brief.md` — the full project brief: idea, data inventory, label/feature/model design, LinuxONE constraints, pitch numbers, prior art
 - `team-split.md` — who owns which workstream, sync points, shared traps
 - `model-plan.md` — phase-by-phase plan for the model workstream (stream 5)
+- `VERCEL.md` — how the public site deploys to Vercel and the rules every web/realtime change must follow (the root `CLAUDE.md` points every Claude session here)
 
 ## Data location (not in git)
 
