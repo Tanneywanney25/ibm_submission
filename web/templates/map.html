@@ -1,53 +1,495 @@
 {% extends "base.html" %}
-{% block title %}Risk map — HeatAhead{% endblock %}
+{% block title %}Winter risk map — HeatAhead{% endblock %}
 {% block head %}
-<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
 <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
-<script src="https://unpkg.com/deck.gl@8.9.36/dist.min.js"></script>
-<style>#mapwrap{position:relative;height:72vh;border-radius:10px;overflow:hidden;
-border:1px solid var(--line)} #legend{position:absolute;bottom:14px;left:14px;
-background:rgba(14,17,22,.9);padding:.6rem .9rem;border-radius:8px;font-size:.8rem;z-index:5}
-#tip{position:absolute;pointer-events:none;background:#0b0e13;border:1px solid var(--line);
-padding:.4rem .7rem;border-radius:7px;font-size:.82rem;z-index:6;display:none}</style>
+<script defer src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+<script defer src="https://unpkg.com/deck.gl@8.9.36/dist.min.js"></script>
+<style>
+main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
+.hm-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
+.hm-eyebrow { color:var(--accent); font-size:.7rem; font-weight:700; letter-spacing:.15em; text-transform:uppercase; margin:0 0 .35rem; }
+.hm-heading h1 { font-size:clamp(1.65rem,2.8vw,2.3rem); line-height:1.15; letter-spacing:-.035em; margin:0 0 .4rem; }
+.hm-subtitle { color:var(--muted); margin:0; font-size:.9rem; }
+.hm-status { display:flex; align-items:center; gap:.5rem; color:var(--muted); font-size:.8rem; white-space:nowrap; padding-bottom:.2rem; }
+.hm-status::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--accent); }
+.hm-status[data-state="ready"]::before { background:var(--ok); }
+.hm-status[data-state="error"]::before { background:#e8a06f; }
+.hm-shell { display:grid; grid-template-columns:265px minmax(0,1fr); border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--panel); }
+.hm-sidebar { padding:1.3rem 1.2rem; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:1.3rem; }
+.hm-field { display:flex; flex-direction:column; gap:.55rem; margin:0; padding:0; border:0; min-width:0; }
+.hm-label, .hm-field legend { color:var(--muted); font-size:.72rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; padding:0; }
+.hm-field legend { margin-bottom:.55rem; }
+.hm-tabs { display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--line); border-radius:8px; padding:3px; gap:3px; background:var(--bg); }
+.hm-tabs button { background:transparent; color:var(--muted); padding:.55rem .3rem; font-size:.82rem; border-radius:5px; }
+.hm-tabs button[aria-pressed="true"] { background:var(--accent); color:#16100b; }
+.hm-filter-title { display:flex; justify-content:space-between; gap:.4rem; align-items:center; }
+.hm-filter-title output { color:var(--ink); font-size:.83rem; font-weight:600; }
+#hm-risk-filter { width:100%; padding:0; accent-color:var(--accent); cursor:pointer; height:20px; background:transparent; }
+.hm-ticks { display:flex; justify-content:space-between; color:var(--muted); font-size:.68rem; margin-top:-.2rem; }
+.hm-sidebar select { width:100%; padding:.6rem .7rem; font-size:.85rem; }
+.hm-counts { display:grid; grid-template-columns:1fr 1fr; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:.95rem 0; gap:.7rem; }
+.hm-counts strong { display:block; font-size:1.65rem; line-height:1.3; letter-spacing:-.045em; font-variant-numeric:tabular-nums; }
+.hm-counts span { color:var(--muted); font-size:.7rem; }
+.hm-reading h2 { font-size:.85rem; margin:0 0 .4rem; font-weight:600; }
+.hm-reading p { color:var(--muted); font-size:.78rem; margin:.35rem 0; line-height:1.65; }
+.hm-reading b { color:var(--ink); font-weight:500; }
+.hm-secondary { background:transparent; color:var(--ink); border:1px solid var(--line); font-size:.8rem; padding:.55rem .8rem; }
+.hm-sidebar :disabled, .hm-zoom :disabled { opacity:.45; cursor:wait; }
+.hm-footnote { margin:auto 0 0; color:var(--muted); font-size:.7rem; line-height:1.6; }
+.hm-view { position:relative; height:calc(100svh - 205px); min-height:560px; max-height:860px; background:#0b1118; isolation:isolate; }
+#hm-map { position:absolute; inset:0; }
+.hm-map-toolbar { position:absolute; z-index:2; top:14px; right:14px; display:flex; align-items:center; gap:.6rem; }
+.hm-view-label { color:#dbe1e7; background:rgba(14,17,22,.92); border:1px solid var(--line); border-radius:6px; padding:.4rem .6rem; font-size:.7rem; }
+.hm-zoom { display:flex; flex-direction:column; gap:1px; border:1px solid var(--line); border-radius:7px; overflow:hidden; }
+.hm-zoom button { width:34px; height:32px; padding:0; background:#161b23; color:var(--ink); font-size:1.2rem; border-radius:0; }
+.hm-legend { position:absolute; left:14px; bottom:38px; z-index:2; width:300px; max-width:calc(100% - 28px); background:rgba(14,17,22,.94); border:1px solid #303741; border-radius:9px; padding:.75rem .85rem; pointer-events:none; }
+.hm-legend-title { display:flex; justify-content:space-between; gap:.5rem; font-size:.72rem; margin-bottom:.55rem; }
+.hm-legend-title span:last-child { color:var(--muted); }
+.hm-scale { display:flex; height:8px; border-radius:3px; overflow:hidden; }
+.hm-scale span { flex:1; }
+.hm-scale span:nth-child(1) { background:rgb(255,226,207); }
+.hm-scale span:nth-child(2) { background:rgb(255,187,143); }
+.hm-scale span:nth-child(3) { background:rgb(255,142,82); }
+.hm-scale span:nth-child(4) { background:rgb(235,98,38); }
+.hm-scale span:nth-child(5) { background:rgb(178,65,19); }
+.hm-scale-labels { display:flex; justify-content:space-between; color:#c3cbd4; font-size:.64rem; margin-top:.3rem; }
+.hm-legend-note { color:var(--muted); font-size:.66rem; line-height:1.45; margin:.45rem 0 0; }
+.hm-message { position:absolute; z-index:4; inset:0; display:flex; align-items:center; justify-content:center; padding:1.4rem; background:rgba(11,17,24,.68); }
+.hm-message[hidden], #hm-tip[hidden], #hm-data-note[hidden], #hm-tile-note[hidden], #hm-render-note[hidden] { display:none; }
+.hm-message-box { max-width:350px; text-align:center; background:#161b23; border:1px solid var(--line); border-radius:12px; padding:1.4rem; box-shadow:0 16px 50px #0004; }
+.hm-message-box h2 { margin:0 0 .4rem; font-size:1rem; }
+.hm-message-box p { margin:.3rem 0 1rem; color:var(--muted); font-size:.84rem; }
+.hm-message-box button[hidden] { display:none; }
+.hm-loader { width:23px; height:23px; border:2px solid #414752; border-top-color:var(--accent); border-radius:50%; margin:0 auto 1rem; animation:hm-spin .9s linear infinite; }
+@keyframes hm-spin { to { transform:rotate(360deg); } }
+#hm-tip { position:absolute; pointer-events:none; z-index:5; width:260px; max-width:calc(100% - 24px); background:#12171f; border:1px solid #414955; border-radius:9px; padding:.8rem .9rem; box-shadow:0 8px 24px #0006; font-size:.8rem; }
+.hm-tip-kicker { color:var(--muted); font-size:.65rem; letter-spacing:.06em; text-transform:uppercase; }
+.hm-tip-risk { font-size:1.35rem; font-weight:700; color:#ffbb8f; margin:.15rem 0 .35rem; letter-spacing:-.025em; }
+.hm-tip-row { display:flex; justify-content:space-between; gap:1rem; color:#bbc3ce; font-size:.74rem; }
+.hm-tip-row b { color:var(--ink); font-weight:500; }
+.hm-tip-action { color:var(--muted); margin:.55rem 0 0; padding-top:.5rem; border-top:1px solid var(--line); font-size:.68rem; }
+.hm-note { font-size:.76rem; color:#c9b398; margin:.65rem 0 0; }
+.hm-footer { display:flex; justify-content:space-between; flex-wrap:wrap; gap:.4rem 1rem; margin-top:.65rem; color:var(--muted); font-size:.7rem; }
+.hm-sidebar button:focus-visible, .hm-sidebar input:focus-visible, .hm-sidebar select:focus-visible, .hm-view button:focus-visible { outline:2px solid #ffbb8f; outline-offset:3px; }
+@media(max-width:900px) { .hm-shell { grid-template-columns:225px minmax(0,1fr); } .hm-sidebar { padding:1rem; } .hm-view { min-height:540px; } }
+@media(max-width:680px) {
+  main { padding:1rem .7rem; } nav { gap:.6rem 1rem; padding:.7rem; flex-wrap:wrap; font-size:.82rem; }
+  .hm-heading { align-items:flex-start; flex-direction:column; gap:.5rem; } .hm-heading h1 { font-size:1.7rem; }
+  .hm-shell { display:flex; flex-direction:column; } .hm-sidebar { border-right:0; border-bottom:1px solid var(--line); display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  .hm-counts { padding:.4rem 0; border-bottom:0; } .hm-counts strong { font-size:1.35rem; }
+  .hm-reading { grid-column:1 / -1; } .hm-reading p { margin:.15rem 0; }
+  .hm-footnote { display:none; } .hm-view { height:65svh; min-height:470px; }
+  .hm-map-toolbar { gap:.4rem; top:10px; right:10px; } .hm-view-label { font-size:.65rem; }
+}
+@media(prefers-reduced-motion:reduce) { .hm-loader { animation:none; } }
+</style>
 {% endblock %}
 {% block body %}
-<h1>Where the heat fails</h1>
-<p class="muted">Column height = complaints last season · color = this winter's risk.
-Click a column to open that building.</p>
-<div id="mapwrap"><div id="tip"></div>
-  <div id="legend">risk: <span style="color:#ffd9a0">low</span> →
-    <span style="color:#ff6b35">high</span> · drag to rotate (right-drag/ctrl)</div>
-</div>
+<section id="hm-page" aria-labelledby="hm-title">
+  <header class="hm-heading">
+    <div>
+      <p class="hm-eyebrow">HeatAhead / Winter planning</p>
+      <h1 id="hm-title">Where winter risk concentrates.</h1>
+      <p class="hm-subtitle">Explore modeled risk across all five boroughs.</p>
+    </div>
+    <div id="hm-status" class="hm-status" role="status" aria-live="polite" data-state="loading">Loading property data…</div>
+  </header>
+
+  <div class="hm-shell">
+    <aside class="hm-sidebar" aria-label="Map controls">
+      <fieldset class="hm-field">
+        <legend>Map view</legend>
+        <div class="hm-tabs">
+          <button id="hm-flat" type="button" aria-pressed="true" disabled>Flat map</button>
+          <button id="hm-3d" type="button" aria-pressed="false" disabled>3D hexagons</button>
+        </div>
+      </fieldset>
+      <div class="hm-field">
+        <div class="hm-filter-title">
+          <label class="hm-label" for="hm-risk-filter">Minimum risk</label>
+          <output id="hm-filter-value" for="hm-risk-filter">All risks</output>
+        </div>
+        <input id="hm-risk-filter" type="range" min="0" max="99" step="1" value="0" aria-valuetext="All modeled risks" disabled>
+        <div class="hm-ticks" aria-hidden="true"><span>0%</span><span>50%</span><span>99%</span></div>
+      </div>
+      <div class="hm-field">
+        <label class="hm-label" for="hm-area">Jump to an area</label>
+        <select id="hm-area" disabled>
+          <option value="city">All five boroughs</option>
+          <option value="bronx">Bronx</option>
+          <option value="brooklyn">Brooklyn</option>
+          <option value="manhattan">Manhattan</option>
+          <option value="queens">Queens</option>
+          <option value="staten">Staten Island</option>
+        </select>
+      </div>
+      <div class="hm-counts" aria-live="polite" aria-atomic="true">
+        <div><strong id="hm-count">—</strong><span>properties in filter</span></div>
+        <div><strong id="hm-units">—</strong><span>residential units</span></div>
+      </div>
+      <div class="hm-reading">
+        <h2>What am I seeing?</h2>
+        <p><b>Color shows modeled winter risk.</b> Hexagons show the mean risk of nearby properties; dots show individual properties.</p>
+        <p>In 3D, <b>height shows last season’s complaint volume</b>, summed within each hexagon.</p>
+        <p>Zoom in for individual properties. Click a dot to open its record; a hexagon opens its highest-risk property.</p>
+      </div>
+      <button id="hm-reset" type="button" class="hm-secondary" disabled>Reset view &amp; filter</button>
+      <p class="hm-footnote">Model estimates, not confirmed outages. BBL-level property records only; a property may contain multiple buildings.</p>
+    </aside>
+
+    <div id="hm-view" class="hm-view">
+      <div id="hm-map" role="region" aria-label="Interactive map of modeled winter heating risk in New York City"></div>
+      <div class="hm-map-toolbar">
+        <span id="hm-view-label" class="hm-view-label">120 m hexagons</span>
+        <div class="hm-zoom" aria-label="Map zoom">
+          <button id="hm-zoom-in" type="button" aria-label="Zoom in" disabled>+</button>
+          <button id="hm-zoom-out" type="button" aria-label="Zoom out" disabled>−</button>
+        </div>
+      </div>
+      <div class="hm-legend" aria-label="Winter risk color legend, from 0 to 99 percent">
+        <div class="hm-legend-title"><span>Modeled winter risk</span><span>Lower → Higher</span></div>
+        <div class="hm-scale" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="hm-scale-labels" aria-hidden="true"><span>0%</span><span>20</span><span>40</span><span>60</span><span>80</span><span>99%</span></div>
+        <p id="hm-legend-note" class="hm-legend-note">Color = mean property risk in each hexagon.</p>
+      </div>
+      <div id="hm-tip" role="tooltip" hidden></div>
+      <div id="hm-message" class="hm-message">
+        <div class="hm-message-box">
+          <div id="hm-loader" class="hm-loader" aria-hidden="true"></div>
+          <h2 id="hm-message-title">Bringing the city into view</h2>
+          <p id="hm-message-text">Loading ranked properties and their winter risk estimates.</p>
+          <button id="hm-retry" type="button" hidden>Reload map</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p id="hm-data-note" class="hm-note" hidden></p>
+  <p id="hm-render-note" class="hm-note" hidden></p>
+  <p id="hm-tile-note" class="hm-note" hidden>Street-map tiles are unavailable. Property risk data is still shown.</p>
+  <footer class="hm-footer"><span id="hm-coverage">Ranked properties with mapped coordinates.</span><span>Risk estimates of 20% or higher are shown as bands in tooltips.</span></footer>
+</section>
+
 <script>
-(async () => {
-  let d;
-  try { d = await (await fetch('/api/map_data')).json(); }
-  catch { document.getElementById('legend').textContent = 'map data unavailable right now'; return; }
-  const idx = Object.fromEntries(d.columns.map((c,i)=>[c,i]));
-  const rows = d.rows.map((r,i) => ({lon:r[idx.lon], lat:r[idx.lat],
-    p:r[idx.p_season], c:r[idx.c_last1], u:r[idx.units], bbl:d.bbls[i]}));
-  const color = p => [255, Math.max(40, 217-180*p), Math.max(20, 160-140*p)];
-  new deck.DeckGL({
-    container: 'mapwrap',
-    mapStyle: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-    initialViewState: {longitude:-73.93, latitude:40.78, zoom:10.4, pitch:50, bearing:-15},
-    controller: true,
-    layers: [new deck.ColumnLayer({
-      id:'risk', data:rows, diskResolution:6, radius:28, extruded:true,
-      elevationScale:6, pickable:true,
-      getPosition:r=>[r.lon,r.lat], getElevation:r=>Math.min(r.c,400),
-      getFillColor:r=>color(r.p),
-    })],
-    onClick: info => { if (info.object) location.href='/building?bbl='+info.object.bbl; },
-    onHover: info => {
-      const t = document.getElementById('tip');
-      if (!info.object) { t.style.display='none'; return; }
-      t.style.display='block'; t.style.left=(info.x+12)+'px'; t.style.top=(info.y+12)+'px';
-      const o=info.object;
-      t.innerHTML = `BBL ${o.bbl}<br>winter risk <b>${fmtRisk(o.p)}</b>` +
-        `<br>${o.c} complaints last season · ${o.u} units`;
-    },
-  });
+(() => {
+  'use strict';
+
+  // FULL mode returns JSON here; Vercel LITE may redirect to /data/map_data.json.
+  // Keep both paths on this site's origin and fetch once while libraries download.
+  // Convert rejection into a result immediately so failed requests stay handled.
+  const started = performance.now();
+  const abort = new AbortController();
+  const timeout = setTimeout(() => abort.abort(), 15000);
+  const dataResult = fetch('/api/map_data', {
+    headers: {'Accept': 'application/json'}, credentials: 'same-origin',
+    mode: 'same-origin', redirect: 'follow', signal: abort.signal
+  }).then(async response => {
+    if (!response.ok) throw new Error('The property data is temporarily unavailable.');
+    const contentType = (response.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
+    if (contentType !== 'application/json' && !/^application\/.+\+json$/.test(contentType)) {
+      throw new Error('The map data is not ready yet. Please reload in a moment.');
+    }
+    try {
+      return await response.json();
+    } catch (error) {
+      if (error.name === 'AbortError') throw error;
+      throw new Error('The property data could not be read. Please reload the map.');
+    }
+  }).then(data => ({data}), error => ({error})).finally(() => clearTimeout(timeout));
+
+  const COLORS = [[255,226,207],[255,187,143],[255,142,82],[235,98,38],[178,65,19]];
+  const AREAS = {
+    city: {longitude:-73.97, latitude:40.715, zoom:10.05, bearing:0},
+    bronx: {longitude:-73.901, latitude:40.851, zoom:12.35, bearing:-15},
+    brooklyn: {longitude:-73.951, latitude:40.650, zoom:11.55, bearing:0},
+    manhattan: {longitude:-73.973, latitude:40.775, zoom:12.0, bearing:-20},
+    queens: {longitude:-73.822, latitude:40.721, zoom:11.25, bearing:0},
+    staten: {longitude:-74.146, latitude:40.582, zoom:11.2, bearing:0}
+  };
+  const state = {mode:'flat', rows:[], filtered:[], totalComplaints:0,
+    view:{...AREAS.city, pitch:0, minZoom:8, maxZoom:18, maxPitch:60},
+    individual:false, ready:false, failed:false, fallbackUsed:false, areaBounds:{}};
+  const number = new Intl.NumberFormat('en-US');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let viewer = null;
+  let filterTimer;
+  const el = id => document.getElementById(id);
+  const hideTip = () => { el('hm-tip').hidden = true; };
+
+  // Display rules affect labels/colors only; they never rewrite model values.
+  function riskLabel(raw) {
+    const p = Math.max(0, Math.min(0.99, raw));
+    if (p < 0.20) return `${Number((p * 100).toFixed(1))}%`;
+    if (p < 0.40) return '20–39%';
+    if (p < 0.60) return '40–59%';
+    if (p < 0.80) return '60–79%';
+    return '80–99%';
+  }
+  function riskColor(p) {
+    return COLORS[Math.min(4, Math.floor(Math.max(0, Math.min(0.99, p)) * 5))];
+  }
+  function buildingURL(row) {
+    return '/building?bbl=' + encodeURIComponent(row.bbl);
+  }
+  function collectAreaBounds(rows) {
+    const names = {'1':'manhattan','2':'bronx','3':'brooklyn','4':'queens','5':'staten'};
+    const bounds = {};
+    for (const row of rows) {
+      const [lon,lat] = row.position;
+      for (const area of ['city',names[row.bbl[0]]]) {
+        if (!bounds[area]) bounds[area] = [[lon,lat],[lon,lat]];
+        else {
+          bounds[area][0][0] = Math.min(bounds[area][0][0],lon);
+          bounds[area][0][1] = Math.min(bounds[area][0][1],lat);
+          bounds[area][1][0] = Math.max(bounds[area][1][0],lon);
+          bounds[area][1][1] = Math.max(bounds[area][1][1],lat);
+        }
+      }
+    }
+    return bounds;
+  }
+  function areaView(area) {
+    const bounds = state.areaBounds[area];
+    if (!bounds) return AREAS[area];
+    const container = el('hm-map');
+    const fit = new deck.WebMercatorViewport({
+      width:Math.max(260,container.clientWidth), height:Math.max(300,container.clientHeight)
+    }).fitBounds(bounds,{padding:42,minExtent:.01,maxZoom:14});
+    return {...AREAS[area],longitude:fit.longitude,latitude:fit.latitude,zoom:Math.max(8,Math.min(14,fit.zoom))};
+  }
+  function parseRows(payload) {
+    if (!payload || !Array.isArray(payload.columns) || !Array.isArray(payload.rows) ||
+        !Array.isArray(payload.bbls) || payload.rows.length !== payload.bbls.length) {
+      throw new Error('The property data has an unexpected format. Please ask the app team to check it.');
+    }
+    const index = Object.fromEntries(payload.columns.map((name, i) => [name, i]));
+    for (const key of ['lon','lat','p_season','c_last1','units']) {
+      if (!Object.prototype.hasOwnProperty.call(index, key)) throw new Error('Required property data is missing.');
+    }
+    let skipped = 0;
+    const rows = [];
+    const seen = new Set();
+    for (let i = 0; i < payload.rows.length; i++) {
+      const values = payload.rows[i];
+      const bbl = String(payload.bbls[i]);
+      if (!Array.isArray(values)) { skipped++; continue; }
+      const lon = values[index.lon], lat = values[index.lat], p = values[index.p_season];
+      const complaints = values[index.c_last1], units = values[index.units];
+      if (![lon,lat,p,complaints,units].every(v => typeof v === 'number' && Number.isFinite(v)) ||
+          lon < -74.35 || lon > -73.60 || lat < 40.45 || lat > 40.96 || p < 0 || p > 1 ||
+          complaints < 0 || units < 0 || !Number.isInteger(complaints) || !Number.isInteger(units) ||
+          !/^[1-5]\d{9}$/.test(bbl) || seen.has(bbl)) {
+        skipped++; continue;
+      }
+      seen.add(bbl);
+      rows.push({position:[lon,lat], p, c:complaints, u:units, bbl});
+    }
+    if (!rows.length) throw new Error('There are no valid mapped properties available yet.');
+    return {rows, skipped};
+  }
+
+  // deck.gl 8 returns source records in the picked hexagon's points array.
+  function sourceRows(object) {
+    if (object && object.bbl) return [object];
+    return ((object && object.points) || []).map(point => {
+      if (point && point.bbl) return point;
+      if (point && point.source && point.source.bbl) return point.source;
+      const index = typeof point === 'number' ? point : point && point.index;
+      return Number.isInteger(index) ? state.filtered[index] : null;
+    }).filter(Boolean);
+  }
+  function summarize(object) {
+    const rows = sourceRows(object);
+    if (!rows.length) return null;
+    let risk = 0, complaints = 0, units = 0, highest = rows[0];
+    for (const row of rows) {
+      risk += row.p; complaints += row.c; units += row.u;
+      if (row.p > highest.p || (row.p === highest.p && row.bbl < highest.bbl)) highest = row;
+    }
+    return {count:rows.length, risk:risk / rows.length, complaints, units, highest, individual:!!object.bbl};
+  }
+  function onHover(info) {
+    const summary = info.object && summarize(info.object);
+    if (!summary) { hideTip(); return; }
+    const tip = el('hm-tip');
+    // Dynamic content is restricted to validated numeric fields and digit-only BBLs.
+    tip.innerHTML = `<div class="hm-tip-kicker">${summary.individual ? 'Property · BBL ' + summary.highest.bbl : number.format(summary.count) + ' properties in this hexagon'}</div>` +
+      `<div class="hm-tip-risk">${riskLabel(summary.risk)}</div>` +
+      `<div class="hm-tip-row"><span>${summary.individual ? 'Modeled winter risk' : 'Mean modeled winter risk'}</span></div>` +
+      `<div class="hm-tip-row"><span>Complaints last season</span><b>${number.format(summary.complaints)}</b></div>` +
+      `<div class="hm-tip-row"><span>Residential units</span><b>${number.format(summary.units)}</b></div>` +
+      `<p class="hm-tip-action">${summary.individual ? 'Click to open this property.' : 'Click to open highest-risk BBL ' + summary.highest.bbl + '.'}</p>`;
+    tip.hidden = false;
+    const bounds = el('hm-view').getBoundingClientRect();
+    tip.style.left = Math.max(12, Math.min(info.x + 15, bounds.width - tip.offsetWidth - 12)) + 'px';
+    tip.style.top = Math.max(12, Math.min(info.y + 15, bounds.height - tip.offsetHeight - 12)) + 'px';
+  }
+  function onClick(info) {
+    const summary = info.object && summarize(info.object);
+    if (summary) window.location.assign(buildingURL(summary.highest));
+  }
+  function makeLayers() {
+    if (state.individual) {
+      return [new deck.ScatterplotLayer({
+        id:'winter-risk-properties', data:state.filtered, pickable:true,
+        getPosition:row => row.position, getFillColor:row => riskColor(row.p),
+        getRadius:9, radiusMinPixels:3, radiusMaxPixels:15,
+        stroked:true, getLineColor:[14,17,22,150], lineWidthMinPixels:.5,
+        opacity:.95, autoHighlight:true, highlightColor:[255,255,255,100]
+      })];
+    }
+    return [new deck.HexagonLayer({
+      id:'winter-risk-hexagons', data:state.filtered, pickable:true,
+      getPosition:row => row.position, radius:120, coverage:.94,
+      getColorWeight:row => row.p, colorAggregation:'MEAN',
+      colorDomain:[0,1], colorRange:COLORS, colorScaleType:'quantize',
+      getElevationWeight:row => row.c, elevationAggregation:'SUM',
+      // Fixed scale: one complaint = 1.5 display meters; filters do not rescale heights.
+      elevationDomain:[0,Math.max(1,state.totalComplaints)],
+      elevationRange:[0,Math.max(1,state.totalComplaints)], elevationScale:1.5,
+      extruded:state.mode === '3d', opacity:.95,
+      autoHighlight:true, highlightColor:[255,255,255,90],
+      material:{ambient:.65, diffuse:.55, shininess:15}
+    })];
+  }
+  function refreshLayers() {
+    if (!viewer) return;
+    hideTip();
+    viewer.setProps({layers:makeLayers()});
+    el('hm-view-label').textContent = state.individual ? 'Individual properties' : '120 m hexagons';
+    el('hm-legend-note').textContent = state.individual ? 'Color = modeled risk for each property.' : 'Color = mean property risk in each hexagon.';
+  }
+  function moveCamera(changes, duration=700) {
+    if (!viewer) return;
+    viewer.setProps({initialViewState:{...state.view, ...changes,
+      transitionDuration:reducedMotion ? 0 : duration,
+      transitionInterpolator:new deck.FlyToInterpolator()}});
+  }
+  function setMode(mode) {
+    state.mode = mode;
+    el('hm-flat').setAttribute('aria-pressed', String(mode === 'flat'));
+    el('hm-3d').setAttribute('aria-pressed', String(mode === '3d'));
+    if (!viewer) return;
+    viewer.setProps({controller:{dragRotate:mode === '3d', touchRotate:mode === '3d'}});
+    refreshLayers();
+    moveCamera({pitch:mode === '3d' ? 45 : 0});
+  }
+  function applyFilter() {
+    clearTimeout(filterTimer);
+    const threshold = Number(el('hm-risk-filter').value) / 100;
+    state.filtered = state.rows.filter(row => row.p >= threshold);
+    el('hm-count').textContent = number.format(state.filtered.length);
+    el('hm-units').textContent = number.format(state.filtered.reduce((sum,row) => sum + row.u, 0));
+    refreshLayers();
+    if (!state.failed) {
+      if (state.ready || !state.filtered.length) el('hm-message').hidden = state.filtered.length > 0;
+      if (!state.filtered.length) {
+        el('hm-loader').hidden = true;
+        el('hm-message-title').textContent = 'No properties match this filter';
+        el('hm-message-text').textContent = 'Lower the minimum risk or reset the filter to see the city again.';
+        el('hm-retry').hidden = true;
+      }
+    }
+  }
+  function updateFilterLabel() {
+    const value = Number(el('hm-risk-filter').value);
+    el('hm-filter-value').textContent = value ? '≥ ' + value + '%' : 'All risks';
+    el('hm-risk-filter').setAttribute('aria-valuetext', value ? 'At least ' + value + ' percent modeled risk' : 'All modeled risks');
+  }
+  function fail(message) {
+    state.failed = true;
+    hideTip();
+    el('hm-status').dataset.state = 'error';
+    el('hm-status').textContent = 'Map unavailable';
+    el('hm-message').hidden = false;
+    el('hm-loader').hidden = true;
+    el('hm-message-title').textContent = 'The map could not load';
+    el('hm-message-text').textContent = message;
+    el('hm-retry').hidden = false;
+  }
+
+  async function start() {
+    document.querySelectorAll('nav a').forEach(link => {
+      if (link.getAttribute('href') === '/map') { link.classList.add('active'); link.setAttribute('aria-current','page'); }
+    });
+    el('hm-flat').addEventListener('click', () => setMode('flat'));
+    el('hm-3d').addEventListener('click', () => setMode('3d'));
+    el('hm-risk-filter').addEventListener('input', () => {
+      updateFilterLabel(); clearTimeout(filterTimer); filterTimer = setTimeout(applyFilter, 120);
+    });
+    el('hm-risk-filter').addEventListener('change', applyFilter);
+    el('hm-area').addEventListener('change', () => moveCamera({...areaView(el('hm-area').value), pitch:state.mode === '3d' ? 45 : 0}, 1100));
+    el('hm-reset').addEventListener('click', () => {
+      el('hm-risk-filter').value = '0'; el('hm-area').value = 'city';
+      updateFilterLabel(); applyFilter(); moveCamera({...areaView('city'), pitch:state.mode === '3d' ? 45 : 0});
+    });
+    el('hm-zoom-in').addEventListener('click', () => moveCamera({zoom:Math.min(18,state.view.zoom + 1)}, 350));
+    el('hm-zoom-out').addEventListener('click', () => moveCamera({zoom:Math.max(8,state.view.zoom - 1)}, 350));
+    el('hm-retry').addEventListener('click', () => window.location.reload());
+
+    try {
+      if (!window.deck || !window.maplibregl) throw new Error('A map library did not download. Check your connection and reload the map.');
+      const result = await dataResult;
+      if (result.error) throw result.error;
+      const parsed = parseRows(result.data);
+      state.rows = parsed.rows;
+      state.filtered = state.rows;
+      state.totalComplaints = state.rows.reduce((sum,row) => sum + row.c, 0);
+      state.areaBounds = collectAreaBounds(state.rows);
+      state.view = {...state.view,...areaView('city')};
+      el('hm-coverage').textContent = number.format(state.rows.length) + ' ranked properties with mapped coordinates.';
+      if (parsed.skipped) {
+        el('hm-data-note').hidden = false;
+        el('hm-data-note').textContent = number.format(parsed.skipped) + ' incomplete, duplicate, or invalid property records could not be mapped.';
+      }
+      viewer = new deck.DeckGL({
+        container:'hm-map', map:maplibregl,
+        mapStyle:'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+        mapOptions:{attributionControl:true},
+        initialViewState:{...state.view, minZoom:8, maxZoom:18, maxPitch:60},
+        controller:{dragRotate:false, touchRotate:false},
+        useDevicePixels:Math.min(window.devicePixelRatio || 1, 1.5),
+        layers:makeLayers(), onHover, onClick,
+        getCursor:({isHovering,isDragging}) => isDragging ? 'grabbing' : isHovering ? 'pointer' : 'grab',
+        onViewStateChange:({viewState}) => {
+          state.view = {...viewState};
+          const individual = viewState.zoom >= 14;
+          hideTip();
+          if (individual !== state.individual) { state.individual = individual; refreshLayers(); }
+        },
+        onAfterRender:() => {
+          if (state.ready || state.failed) return;
+          state.ready = true;
+          el('hm-message').hidden = true;
+          for (const id of ['hm-flat','hm-3d','hm-risk-filter','hm-area','hm-reset','hm-zoom-in','hm-zoom-out']) el(id).disabled = false;
+          el('hm-status').dataset.state = 'ready';
+          el('hm-status').textContent = 'Citywide snapshot ready';
+          el('hm-status').title = 'First map render: ' + ((performance.now() - started)/1000).toFixed(2) + ' seconds';
+        },
+        onError:error => {
+          console.warn('HeatAhead map:', error);
+          if (viewer && state.ready && state.mode === '3d' && !state.fallbackUsed) {
+            state.fallbackUsed = true;
+            state.mode = 'flat';
+            el('hm-render-note').hidden = false;
+            el('hm-render-note').textContent = '3D is unavailable in this browser. Showing the flat map.';
+            setTimeout(() => { setMode('flat'); el('hm-3d').disabled = true; }, 0);
+            return;
+          }
+          fail('The interactive map could not render. Try reloading, or enable hardware acceleration in your browser.');
+        }
+      });
+      const baseMap = viewer.getMapboxMap();
+      if (baseMap) baseMap.on('error', () => { el('hm-tile-note').hidden = false; });
+      el('hm-map').addEventListener('webglcontextlost', event => {
+        event.preventDefault(); fail('The browser reset its graphics session. Reload to restore the map.');
+      }, true);
+      applyFilter();
+    } catch (error) {
+      fail(error.name === 'AbortError' ? 'Loading property data took too long. Check that the app is running, then reload.' : error.message);
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once:true});
+  else start();
 })();
 </script>
 {% endblock %}
