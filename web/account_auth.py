@@ -100,7 +100,7 @@ def safe_next(value):
         parts = urlsplit(value)
     except ValueError:
         return "/"
-    if parts.scheme or parts.netloc or parts.path not in {"/", "/map", "/building", "/monitor", "/unsubscribe", "/learn-more", "/faq"}:
+    if parts.scheme or parts.netloc or parts.path not in {"/", "/map", "/building", "/monitor", "/unsubscribe", "/learn-more", "/faq", "/about"}:
         return "/"
     return value
 

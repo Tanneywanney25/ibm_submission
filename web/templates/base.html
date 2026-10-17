@@ -131,6 +131,7 @@ function skyline(el, specs, cell, gap, pad){
   <a href="/monitor" class="{{ 'active' if page == 'monitor' }}">Live monitor</a>
   <a href="/learn-more" class="{{ 'active' if page == 'learn' }}">Learn more</a>
   <a href="/faq" class="{{ 'active' if page == 'faq' }}">FAQs</a>
+  <a href="/about" class="{{ 'active' if page == 'about' }}">About</a>
   {% if account_user %}
   <div class="account-nav">
     <span title="{{ account_user.email }}">{{ account_user.name or account_user.email }}</span>

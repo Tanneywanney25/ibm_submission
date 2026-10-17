@@ -83,6 +83,24 @@ moment of prediction:
   itself: no forbidden columns, no same-day information, no future dates,
   no apartment-level data in anything we ship.
 
+### Why "top 100"? (and why not "accuracy")
+
+About 1–2% of buildings fail in a given cold spell. A model that predicts
+"no failure" for every building in New York would score over 98% *accuracy*
+while being completely useless — with rare events, accuracy rewards doing
+nothing, so we don't report it. **Precision@100** answers the question the
+product actually exists for: the city has limited inspectors, so if we hand
+them a ranked list, how good is the top of it? "90 at the top 100" means
+that of the first 100 buildings the list says to visit, about 90 genuinely
+lose heat during the spell — the hit rate of roughly the first day of
+inspections. And we never report the top 100 alone: every evaluation shows
+the top 100, 500, 1,000 and 2,500, so no single flattering cutoff can carry
+the story. (That discipline has teeth — we rejected a model that *won* at
+the top 100 because it lost at the depths where the city actually inspects.)
+Ranking quality and per-building percentages are two different promises:
+the list is graded by precision at depth, and the percentages are graded by
+calibration — checked bin by bin, as described below.
+
 ### Why we show ranges, not just numbers
 
 A single number can be lucky. Every headline above carries a **bootstrap
