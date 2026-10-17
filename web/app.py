@@ -244,10 +244,16 @@ ABBREV = {"ST", "RD", "DR", "LN", "CT", "PL", "PKWY", "BLVD", "FT", "MT", "JR", 
           "MRS", "MS", "MGMT", "MGT", "BKLYN", "BX"}
 
 
+# "apt.# 11", "#3", "Unit 4B": a few filers typed an address into the name field
+UNIT_NUMBER = re.compile(r"\s*(?:#\s*\d\w*|\b(?:apt|apartment|unit)\b\.?\s*#?\s*\d\w*)", re.I)
+
+
 def display_name(s):
     """'HSC MANAGEMENT CORP., AMO' -> 'HSC Management Corp., AMO'; None when empty.
-    A name filed in mixed case is kept as filed."""
+    A name filed in mixed case is kept as filed. Any unit number is cut, which also
+    drops a company's own numbering ('Realty #1 LLC' -> 'Realty LLC')."""
     s = re.sub(r"^\s*C/O\s+", "", str(s or "").strip(), flags=re.I)
+    s = re.sub(r"\s+,", ",", " ".join(UNIT_NUMBER.sub("", s).split())).strip(" ,")
     if not s:
         return None
     if s != s.upper():
