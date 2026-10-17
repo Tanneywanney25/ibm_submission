@@ -20,6 +20,14 @@ Start with `deliverables/02_stream2_report.md`. It is written so Stream 4 can li
 | `code/s2_05_boiler_join.py` | Deliverable 4: DOB boiler inspections (`52dp-yji6`) and DEP boiler fuel (`f4rp-2kvy`) joined on BIN, leak-free features and lift |
 | `code/pull_open_data.sh` | pulls the five Open Data tables onto the server with `curl` in `$limit=50000` pages |
 | `code/run_all.sh` | runs the six steps in order and executes the notebook |
+| `code/make_bundle.py` | zips the deliverables on the server (never raw/ or work/) |
+| `../model/08_stream2_ablation.py` | the ablation that tests the Stream 2 features inside Stream 5's pipeline without touching its schema (five variants, 71 test cold days); verdicts in `docs/model-iterations.md`, Iteration 5 |
+| `deliverables/ablation/` | the ablation tables (per day, per k, per variant, paired per-day deltas, XGBoost gains), the baseline `03_evaluate.py` results from this guest, and `bbl_boiler_by_season.csv`, the leak-free (bbl, season) boiler table that replaces the all-time snapshot |
+| `code/boiler_by_season.py` | builds `bbl_boiler_by_season.csv` from the DOB and DEP tables with a per-season October 1 cutoff |
+
+## The ablation in one paragraph
+
+Merging the two Stream 2 CSVs into the model panel would have been wrong twice over: their training-window columns are fixed to 2018-19 through 2024-25, so a 2019 panel row would see 2020-2025 complaints, and aggregating building-level rates to the tax lot with a max under-states the lot-level rate by a third on the 2,022 shared lots. So the same quantities were re-derived at the lot level inside Stream 5's pipeline with an expanding window of prior seasons, and the boiler columns were recomputed from reports dated before October 1 of each season. Measured on the 71 test cold days with the committed ensemble: the leak-free boiler swap costs nothing (precision@100 69.2% against 69.4%, paired t = -0.3) and is adopted; the richer boiler set is worse (-0.86 points, t = -2.5); the long-window reaction rates and group flags add nothing at any k; all five variants sit within one point of each other. The Forecast-Only group is a long tail for the map and the tenant lookup, not a top-100 feature.
 
 ## How to reproduce on the LinuxONE server
 

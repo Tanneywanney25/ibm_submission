@@ -94,9 +94,91 @@ over the recency baseline at 48h, and the rolling backtest wins **all six season
 | 2 cold-sensitivity + history cut | 67.8% | — |
 | 3 whole-building + horizons | 67.7% | 96.3% |
 | **4 landlord + boiler + ensemble** | **68.7%** | **96.5%** |
+| 5 Stream 2 ablation (leak-free boiler swap adopted) | 69.2% on this guest (V0 69.4%) | 96.9% |
 
 Snapshot caveat: landlord and boiler tables are current-day snapshots, so past
-seasons inherit today's owner/boiler state in the backtest.
+seasons inherit today's owner/boiler state in the backtest. Iteration 5 below measures
+what that costs for the boiler columns and ships the leak-free replacement.
+
+## Iteration 5 — the Stream 2 ablation: leak-free boiler columns, long-window reaction rates (tested, mostly kept out)
+
+Stream 2 (`task 2/`) produced two building-level feature files built strictly from
+data dated before October 1, 2025: `forecast_only_buildings.csv` (seven-season reaction
+rates by weather band, the widened <25 F rate, cold-sensitivity multipliers, the
+Chronic / Forecast-Only group flags) and `bin_boiler_features.csv` (DOB boiler defects,
+inspection recency, late-filing fees, DEP fuel grade). Before merging anything we asked
+whether each piece makes sense for this model, then measured it with
+`model/08_stream2_ablation.py`: the committed `panel.csv` is read unchanged, candidate
+columns are merged per (bbl, season), every variant is trained exactly as `02_train.py`
+trains (XGBoost 2.0.3 + HistGBC averaged) and scored with `03_evaluate.py`'s protocol on
+the same 71 cold days. Run on the team's LinuxONE guest (s390x, 3 cores) on Oct 17, 2026;
+the whole ablation (five variants trained and scored) took 579 s.
+
+**1. The building_id -> bbl mapping trap: do not merge the CSVs, re-derive at the lot.**
+This pipeline labels and counts at `bbl`. The Stream 2 files are keyed by HPD
+`building_id` (and `bin`), and 2,022 of the 58,150 lots present in both tables carry two
+or more complaining building ids. On those shared lots the lot-level reaction rate
+(share of sub-freezing days on which *any* building on the lot complained, which is what
+a bbl label means) averages 0.0413, the max over the lot's buildings 0.0270 and the mean
+0.0153: a max-aggregation would under-state exactly the lots that produce 10.3% of the
+2025-26 failures by a third, a mean-aggregation by two thirds. The bigger problem is
+leakage: the CSV's training-window columns are fixed to 2018-19 through 2024-25, so
+merged onto a 2019 panel row they would carry 2020-2025 complaints. Both problems vanish
+if the same quantities are computed inside this pipeline from `building_day_counts.csv`
+per season, with an expanding window of all prior seasons, which is what the ablation
+does (correlation with the building-max version 0.97, no mapping step at all). Verdict:
+the Stream 2 CSVs are the right handoff for the website and the report, not for the
+panel; the features are re-derived at the lot, leak-free by construction.
+
+**2. Seven-season vs two-season reaction rates: NO as an addition.** The committed
+`rate_frigid2 / rate_freezing2 / rate_cold2` use the two prior seasons. The expanding
+window adds the five earlier seasons, the <25 F band, the sub-freezing rate, the cold
+multiplier and the zero-mild / forecast-only flags (V2). The model does use them
+(`rate_cold_all` ranks 10th and `rate_subfreezing_all` 12th by gain in the combined
+variant), but they displace equivalent information rather than add to it: precision@100
+moves by -0.5 points (paired over 71 days: 28 days better, 35 worse, t = -1.1), +0.2 at
+k = 500, and nothing at k = 1,000 or 2,500. On the three Feb 7-9, 2026 days the variant
+scores 75.0% against 71.7%, and on the 19 frigid days 74.4% against 74.6%; three days of
+100 picks is a +/- 5-point measurement, so the February number is not evidence. The
+Forecast-Only group itself is real (18,814 buildings that react eleven times harder on
+frigid days than on mild days out of sample) but it is a long tail: none of its buildings
+that failed on Feb 7-9 is inside the top 2,500 of any ranking, so a feature describing it
+cannot move precision at k <= 2,500. It belongs on the map and in the tenant lookup, not
+in the top-100 list.
+
+**3. Boiler columns: YES to the leak-free swap, NO to the richer set.** The committed
+`boiler_defects` counts every DOB defect report on the lot regardless of date: 7,137 of
+its 70,378 defect reports (10.1%) are inspections dated on or after October 1, 2025,
+inside the test season, and for a 2019 training row roughly 85% of the count comes from
+later years. Recomputing both boiler columns from reports dated before October 1 of the
+row's season (V1a) changes precision@100 by -0.15 points (29 days better, 31 worse,
+t = -0.3) and the 30-day number by +0.03: the leak was contributing nothing, and the
+honest columns cost nothing, so they replace the snapshot. The richer set from Stream 2
+(heavy No. 4 / No. 6 oil, days since the last inspection, overdue flag, late-filing count,
+defects in the last three years; V1b) is measurably worse at 48 hours: -0.86 points
+(22 better, 35 worse, t = -2.5) with the 30-day number flat (+0.08). The marginal lifts
+in the Stream 2 report (prior defect 31.9% vs 24.9% failure, heavy oil 44-46% vs 31%)
+are real but already explained by the complaint history the model sees; conditional on
+`days_since_c` and the trailing counts they add variance, not signal.
+
+| variant (71 test cold days, ensemble) | p@100 48h | p@100 30d | p@500 48h | p@2500 48h | paired delta p@100 vs V0 (t) | verdict |
+|---|---|---|---|---|---|---|
+| V0 current (36 features) | 69.4% | 96.8% | 42.3% | 18.0% | - | keep |
+| V1a boiler columns recomputed pre-season | 69.2% | 96.9% | 42.1% | 17.9% | -0.15 (-0.3) | **adopt** (same precision, no leak) |
+| V1b + heavy oil, inspection recency, overdue, late filings, 3-year defects | 68.5% | 96.9% | 42.1% | 18.0% | -0.86 (-2.5) | reject |
+| V2 + expanding-window reaction rates, <25 F, multiplier, group flags | 68.9% | 96.9% | 42.4% | 18.0% | -0.46 (-1.1) | reject |
+| V3 = V1b + V2 (51 features) | 69.6% | 97.1% | 42.4% | 18.0% | +0.25 (+0.8) | not worth 15 columns |
+| recency baseline, same days | 61.7% | 91.0% | 39.3% | 16.9% | | |
+
+Noise floor: the HistGBC half of the ensemble draws a random early-stopping split, so two
+identical trainings differ by about 0.3 points at k = 100; only V1b's drop clears it.
+Reading: no feature in this set moves precision@100 by more than one point in either
+direction, which is the same message as the spell-level autopsy. The model's remaining
+misses are timing, not missing covariates. What iteration 5 changes is honesty, not
+accuracy: the boiler columns are now computed only from reports the model could have
+seen, and the snapshot caveat for boilers is closed (the landlord columns still carry
+it). Full tables: `task 2/deliverables/ablation/` (per day, per k, per variant, with the
+new-to-list cut and the XGBoost gains of every candidate column).
 
 ## Iteration 5 — velocity, neighbor heat, season clock (final feature set)
 
@@ -174,6 +256,40 @@ The gains above came from features and the target definition, not the algorithm.
 The whole city re-ranks in ~0.4 s. `nnpa` (Telum accelerator) is present on the
 guest; the Snap ML gain shown is its CPU tree engine — we do not claim accelerator
 offload.
+
+## What Stream 2 established about the label, the geography and the machine (cross-reference)
+
+Full detail in `task 2/deliverables/02_stream2_report.md`; every number below is also in
+`task 2/deliverables/numbers_*.json`.
+
+- **Label credibility (1.87x).** Across 1,027,559 heat-season complaint clusters
+  (2017-18 to 2025-26), a single isolated complaint is followed by a verified HPD heat
+  violation (orders 666/966/674) within 7 days 4.78% of the time; the 2+ label 8.93%
+  (1.87x); 3+ 10.61% (2.22x); 5+ 12.31%. The multiplier is stable: 1.88x on the
+  training seasons, 1.83x on the 2025-26 holdout (6.37% -> 11.62%). Counted on this
+  model's calendar-day grid, 590,941 positives, 9.16% confirmed within 7 days (12.09% in
+  2025-26), and every one of them sits inside a 48-hour cluster.
+- **Inspector saturation (why 48h precision has a ceiling).** Feb 8, 2026 was the busiest
+  day in the file: 5,751 heat-only complaints, 958 new 2+ clusters, and only 9.8% of them
+  confirmed within 7 days, the lowest of any sub-freezing day with 500+ clusters. On the
+  six 2025-26 days with 4,000+ complaints the inspections completed per 100 complaints
+  fell by a third (36.8 -> 25.1) and the median lag rose from 3 to 4 days; 57.6% of rows
+  were closed as duplicates. The verified tier is therefore a measure of inspector
+  capacity as much as of boilers, which is why we train on the complaint label and report
+  the verified tier alongside.
+- **Where the tenants are (community impact).** Bronx Community Districts 7, 4 and 5 hold
+  171,925 apartments (about 438,000 tenants at 2.55 per unit) and produced 44,107 heat
+  complaints in 2025-26: 14.6% of the city's complaints from 4.6% of its units, 3.9x the
+  rest of the city. CD 7 is the densest district in the city at 29.5 complaints per 100
+  units; CD 4 is second at 26.0; Manhattan CD 12 third at 25.0. During Feb 7-9 the three
+  Bronx districts logged 1,829 complaints from 745 buildings holding 53,969 apartments.
+- **IBM z17 hardware, measured on the real 361 MB complaint table** (`task 2/deliverables/z17_hardware_log.md`):
+  on-chip deflate (DFLTCC) compresses it at 2,077 MB/s vs 33 MB/s with `DFLTCC=0`
+  (63x, 0.17 s vs 10.5 s); AES-256-GCM through OpenSSL on CPACF runs at 728 MB/s on the
+  file vs 106 MB/s with the cipher instructions masked, and 14.2 GB/s vs 0.13 GB/s in
+  `openssl speed`; SHA-256 at 1,396 vs 260 MB/s. 2.2 million apartment identifiers were
+  pseudonymized with HMAC-SHA256 in 5.85 s before any table was built, so nothing below
+  building level exists outside `raw/`.
 
 ## Honest limitations (say out loud)
 

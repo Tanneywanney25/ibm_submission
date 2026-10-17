@@ -1,0 +1,164 @@
+ABL_START Sat Oct 17 04:01:09 PM UTC 2026
+[     4 s] panel 759,593 rows, 8 seasons
+[     5 s] long-window reaction features: 347,919 (bbl, season) rows
+[    10 s] per-season boiler features: 474,637 (bbl, season) rows; bbls with a pre-2025-10-01 defect 20,156 vs all-time snapshot 21,448
+[    10 s] training 5 variants on 622,362 rows (xgboost=yes)
+[    50 s]   trained V0 current (36 features)
+[    90 s]   trained V1a boiler-clean (36 features)
+[   134 s]   trained V1b boiler-rich (41 features)
+[   185 s]   trained V2 long-window (46 features)
+[   244 s]   trained V3 both (51 features)
+[   246 s] 71 test cold days
+[   252 s]   2026-02-08 TMIN   3 failures  1565 | p@100 V0=75 V1a=72 V1b=73 V2=79 V3=74 base14=66
+[   257 s]   2026-02-07 TMIN   6 failures  1533 | p@100 V0=71 V1a=68 V1b=67 V2=79 V3=77 base14=69
+[   262 s]   2026-01-24 TMIN   9 failures  1742 | p@100 V0=82 V1a=82 V1b=83 V2=79 V3=81 base14=76
+[   266 s]   2026-01-30 TMIN   9 failures  1505 | p@100 V0=81 V1a=80 V1b=78 V2=81 V3=82 base14=72
+[   271 s]   2026-01-25 TMIN  10 failures  1502 | p@100 V0=65 V1a=61 V1b=65 V2=64 V3=63 base14=73
+[   276 s]   2026-02-09 TMIN  10 failures   962 | p@100 V0=69 V1a=64 V1b=64 V2=67 V3=68 base14=61
+[   280 s]   2026-01-31 TMIN  10 failures  1362 | p@100 V0=72 V1a=76 V1b=74 V2=76 V3=76 base14=69
+[   285 s]   2026-02-01 TMIN  10 failures  1198 | p@100 V0=69 V1a=72 V1b=70 V2=70 V3=73 base14=73
+[   290 s]   2026-01-29 TMIN  11 failures  1553 | p@100 V0=85 V1a=82 V1b=81 V2=79 V3=85 base14=73
+[   295 s]   2026-01-23 TMIN  14 failures  1209 | p@100 V0=77 V1a=77 V1b=73 V2=73 V3=77 base14=71
+[   299 s]   2026-01-28 TMIN  14 failures  1366 | p@100 V0=81 V1a=60 V1b=81 V2=75 V3=81 base14=68
+[   304 s]   2026-02-02 TMIN  14 failures   860 | p@100 V0=70 V1a=69 V1b=66 V2=66 V3=72 base14=67
+[   309 s]   2026-01-27 TMIN  15 failures  1283 | p@100 V0=74 V1a=74 V1b=75 V2=69 V3=69 base14=68
+[   313 s]   2026-01-20 TMIN  16 failures  1039 | p@100 V0=73 V1a=77 V1b=78 V2=79 V3=79 base14=67
+[   318 s]   2026-01-26 TMIN  17 failures  1265 | p@100 V0=78 V1a=78 V1b=78 V2=79 V3=78 base14=76
+[   322 s]   2026-01-21 TMIN  17 failures   733 | p@100 V0=70 V1a=75 V1b=71 V2=74 V3=73 base14=67
+[   327 s]   2025-12-09 TMIN  19 failures   829 | p@100 V0=77 V1a=73 V1b=77 V2=72 V3=74 base14=69
+[   331 s]   2025-12-14 TMIN  19 failures   918 | p@100 V0=80 V1a=86 V1b=79 V2=82 V3=85 base14=68
+[   336 s]   2025-12-15 TMIN  19 failures   936 | p@100 V0=69 V1a=71 V1b=72 V2=71 V3=73 base14=63
+[   341 s]   2026-02-05 TMIN  20 failures   592 | p@100 V0=67 V1a=68 V1b=67 V2=68 V3=67 base14=55
+[   345 s]   2025-12-05 TMIN  20 failures   860 | p@100 V0=70 V1a=73 V1b=70 V2=73 V3=72 base14=60
+[   350 s]   2026-01-02 TMIN  20 failures   720 | p@100 V0=81 V1a=80 V1b=77 V2=79 V3=77 base14=71
+[   354 s]   2025-12-26 TMIN  20 failures   724 | p@100 V0=73 V1a=73 V1b=73 V2=79 V3=70 base14=63
+[   359 s]   2026-03-02 TMIN  21 failures   462 | p@100 V0=76 V1a=74 V1b=77 V2=76 V3=75 base14=62
+[   363 s]   2026-01-01 TMIN  22 failures   708 | p@100 V0=82 V1a=79 V1b=82 V2=75 V3=77 base14=71
+[   368 s]   2025-12-28 TMIN  22 failures   540 | p@100 V0=76 V1a=77 V1b=76 V2=73 V3=77 base14=63
+[   372 s]   2025-12-08 TMIN  22 failures  1009 | p@100 V0=79 V1a=79 V1b=77 V2=78 V3=80 base14=75
+[   376 s]   2026-01-19 TMIN  22 failures   868 | p@100 V0=73 V1a=74 V1b=72 V2=73 V3=75 base14=63
+[   381 s]   2026-01-16 TMIN  22 failures   538 | p@100 V0=70 V1a=70 V1b=73 V2=69 V3=69 base14=60
+[   386 s]   2026-02-13 TMIN  22 failures   369 | p@100 V0=59 V1a=57 V1b=54 V2=57 V3=58 base14=40
+[   390 s]   2026-02-03 TMIN  23 failures   632 | p@100 V0=60 V1a=66 V1b=60 V2=58 V3=64 base14=58
+[   395 s]   2026-02-06 TMIN  23 failures   850 | p@100 V0=71 V1a=75 V1b=68 V2=73 V3=73 base14=58
+[   399 s]   2026-02-24 TMIN  23 failures   420 | p@100 V0=66 V1a=67 V1b=66 V2=66 V3=65 base14=59
+[   404 s]   2026-01-03 TMIN  23 failures   617 | p@100 V0=80 V1a=80 V1b=77 V2=76 V3=78 base14=70
+[   409 s]   2026-02-10 TMIN  24 failures   565 | p@100 V0=59 V1a=63 V1b=63 V2=60 V3=57 base14=54
+[   413 s]   2026-01-15 TMIN  24 failures   555 | p@100 V0=65 V1a=66 V1b=63 V2=63 V3=64 base14=60
+[   418 s]   2025-12-04 TMIN  24 failures   959 | p@100 V0=75 V1a=77 V1b=76 V2=78 V3=78 base14=64
+[   423 s]   2025-12-16 TMIN  24 failures   661 | p@100 V0=54 V1a=56 V1b=59 V2=63 V3=61 base14=63
+[   427 s]   2025-12-27 TMIN  25 failures   682 | p@100 V0=71 V1a=73 V1b=72 V2=70 V3=70 base14=61
+[   432 s]   2026-03-18 TMIN  25 failures   367 | p@100 V0=65 V1a=64 V1b=64 V2=69 V3=67 base14=63
+[   437 s]   2025-12-12 TMIN  25 failures   587 | p@100 V0=70 V1a=64 V1b=62 V2=63 V3=64 base14=56
+[   443 s]   2026-01-04 TMIN  26 failures   602 | p@100 V0=69 V1a=71 V1b=71 V2=69 V3=69 base14=71
+[   448 s]   2026-02-25 TMIN  26 failures   328 | p@100 V0=58 V1a=56 V1b=56 V2=57 V3=56 base14=53
+[   453 s]   2026-02-04 TMIN  26 failures   567 | p@100 V0=65 V1a=67 V1b=62 V2=65 V3=61 base14=58
+[   457 s]   2026-02-12 TMIN  27 failures   438 | p@100 V0=61 V1a=59 V1b=55 V2=58 V3=59 base14=46
+[   462 s]   2025-12-31 TMIN  27 failures   596 | p@100 V0=71 V1a=74 V1b=76 V2=75 V3=74 base14=61
+[   466 s]   2025-12-30 TMIN  27 failures   605 | p@100 V0=64 V1a=64 V1b=68 V2=64 V3=64 base14=53
+[   471 s]   2025-12-13 TMIN  27 failures   631 | p@100 V0=76 V1a=79 V1b=76 V2=78 V3=79 base14=64
+[   476 s]   2026-02-23 TMIN  28 failures   556 | p@100 V0=65 V1a=69 V1b=62 V2=67 V3=63 base14=59
+[   480 s]   2025-12-22 TMIN  28 failures   437 | p@100 V0=57 V1a=60 V1b=59 V2=60 V3=58 base14=53
+[   485 s]   2025-12-11 TMIN  28 failures   623 | p@100 V0=66 V1a=73 V1b=66 V2=68 V3=66 base14=65
+[   490 s]   2026-02-14 TMIN  29 failures   309 | p@100 V0=66 V1a=64 V1b=61 V2=62 V3=65 base14=42
+[   495 s]   2026-02-27 TMIN  29 failures   258 | p@100 V0=55 V1a=55 V1b=52 V2=49 V3=54 base14=47
+[   499 s]   2025-12-21 TMIN  29 failures   442 | p@100 V0=64 V1a=64 V1b=60 V2=63 V3=64 base14=55
+[   504 s]   2025-12-25 TMIN  29 failures   490 | p@100 V0=72 V1a=71 V1b=68 V2=67 V3=73 base14=56
+[   509 s]   2026-01-05 TMIN  29 failures   529 | p@100 V0=66 V1a=64 V1b=68 V2=67 V3=67 base14=65
+[   513 s]   2026-02-16 TMIN  29 failures   354 | p@100 V0=69 V1a=67 V1b=66 V2=68 V3=65 base14=52
+[   518 s]   2026-03-17 TMIN  29 failures   379 | p@100 V0=65 V1a=60 V1b=57 V2=63 V3=69 base14=57
+[   523 s]   2026-03-03 TMIN  29 failures   328 | p@100 V0=64 V1a=61 V1b=63 V2=65 V3=64 base14=59
+[   528 s]   2026-03-01 TMIN  30 failures   419 | p@100 V0=76 V1a=75 V1b=77 V2=72 V3=77 base14=66
+[   533 s]   2026-04-08 TMIN  30 failures   330 | p@100 V0=68 V1a=66 V1b=67 V2=66 V3=67 base14=65
+[   538 s]   2026-01-18 TMIN  30 failures   502 | p@100 V0=70 V1a=67 V1b=66 V2=60 V3=68 base14=60
+[   542 s]   2025-12-20 TMIN  30 failures   398 | p@100 V0=61 V1a=65 V1b=64 V2=63 V3=65 base14=53
+[   547 s]   2025-12-17 TMIN  30 failures   397 | p@100 V0=49 V1a=48 V1b=49 V2=51 V3=49 base14=49
+[   551 s]   2025-12-06 TMIN  30 failures   522 | p@100 V0=72 V1a=64 V1b=68 V2=67 V3=69 base14=63
+[   556 s]   2026-02-22 TMIN  30 failures   631 | p@100 V0=69 V1a=68 V1b=70 V2=71 V3=72 base14=53
+[   560 s]   2026-03-28 TMIN  31 failures   292 | p@100 V0=65 V1a=62 V1b=64 V2=65 V3=62 base14=57
+[   565 s]   2026-01-17 TMIN  31 failures   404 | p@100 V0=61 V1a=63 V1b=62 V2=64 V3=63 base14=61
+[   569 s]   2026-01-12 TMIN  31 failures   376 | p@100 V0=60 V1a=63 V1b=59 V2=57 V3=60 base14=56
+[   574 s]   2025-12-29 TMIN  31 failures   556 | p@100 V0=67 V1a=71 V1b=66 V2=65 V3=68 base14=58
+[   578 s]   2025-12-03 TMIN  31 failures   686 | p@100 V0=75 V1a=73 V1b=74 V2=74 V3=76 base14=61
+
+mean over test days (precision@k, 48 h and 30 d):
+                       precision  precision_30d  recall  verified_precision  delta_p_vs_V0  delta_p30_vs_V0
+method           k                                                                                         
+V0 current       100      0.6938         0.9683  0.1156              0.1406         0.0000           0.0000
+                 500      0.4228         0.8627  0.3303              0.1266         0.0000           0.0000
+                 1000     0.3073         0.7713  0.4652              0.1111         0.0000           0.0000
+                 2500     0.1800         0.6107  0.6554              0.0826         0.0000           0.0000
+V1a boiler-clean 100      0.6923         0.9686  0.1153              0.1432        -0.0015           0.0003
+                 500      0.4210         0.8624  0.3297              0.1267        -0.0018          -0.0003
+                 1000     0.3057         0.7701  0.4640              0.1107        -0.0016          -0.0012
+                 2500     0.1794         0.6107  0.6542              0.0823        -0.0005          -0.0000
+V1b boiler-rich  100      0.6852         0.9692  0.1138              0.1473        -0.0086           0.0008
+                 500      0.4206         0.8616  0.3292              0.1262        -0.0021          -0.0011
+                 1000     0.3068         0.7706  0.4646              0.1102        -0.0005          -0.0007
+                 2500     0.1796         0.6103  0.6539              0.0826        -0.0004          -0.0004
+V2 long-window   100      0.6892         0.9685  0.1144              0.1424        -0.0046           0.0001
+                 500      0.4243         0.8638  0.3313              0.1277         0.0016           0.0012
+                 1000     0.3074         0.7716  0.4647              0.1115         0.0001           0.0003
+                 2500     0.1801         0.6123  0.6551              0.0829         0.0001           0.0016
+V3 both          100      0.6963         0.9711  0.1156              0.1442         0.0025           0.0028
+                 500      0.4242         0.8657  0.3314              0.1273         0.0014           0.0030
+                 1000     0.3078         0.7738  0.4653              0.1108         0.0005           0.0025
+                 2500     0.1802         0.6123  0.6557              0.0828         0.0002           0.0016
+base_14d         100      0.6173         0.9096  0.1017              0.1479        -0.0765          -0.0587
+                 500      0.3926         0.8034  0.3054              0.1219        -0.0302          -0.0593
+                 1000     0.2855         0.7166  0.4322              0.1040        -0.0219          -0.0547
+                 2500     0.1689         0.5549  0.6162              0.0792        -0.0110          -0.0558
+
+precision@100 by subset:
+subset            Feb 7-9 2026  all 71 cold days  frigid days (TMIN < 20)
+method                                                                   
+V0 current              0.7167            0.6938                   0.7463
+V1a boiler-clean        0.6800            0.6923                   0.7353
+V1b boiler-rich         0.6800            0.6852                   0.7395
+V2 long-window          0.7500            0.6892                   0.7442
+V3 both                 0.7300            0.6963                   0.7579
+base_14d                0.6533            0.6173                   0.6926
+
+precision@100 (30 d) by subset:
+subset            Feb 7-9 2026  all 71 cold days  frigid days (TMIN < 20)
+method                                                                   
+V0 current              0.9433            0.9683                   0.9711
+V1a boiler-clean        0.9267            0.9686                   0.9721
+V1b boiler-rich         0.9400            0.9692                   0.9689
+V2 long-window          0.9433            0.9685                   0.9716
+V3 both                 0.9367            0.9711                   0.9700
+base_14d                0.8800            0.9096                   0.9253
+
+paired per-day differences vs V0 at k=100:
+         variant  mean_delta_p100     se  t_stat  days_better  days_worse  days_tied  mean_delta_p100_30d  se_30d
+V1a boiler-clean          -0.0015 0.0046 -0.3334           29          31         11               0.0003  0.0018
+ V1b boiler-rich          -0.0086 0.0034 -2.5180           22          35         14               0.0008  0.0015
+  V2 long-window          -0.0046 0.0043 -1.0793           28          35          8               0.0001  0.0015
+         V3 both           0.0025 0.0033  0.7797           30          29         12               0.0028  0.0017
+
+XGBoost importance of the candidate columns (V3 both):
+variant                feature  importance  rank
+V3 both          rate_cold_all      0.0146    10
+V3 both   rate_subfreezing_all      0.0104    12
+V3 both   seasons_active_prior      0.0072    17
+V3 both          rate_mild_all      0.0071    18
+V3 both boiler_days_since_insp      0.0029    24
+V3 both      rate_frigid25_all      0.0025    27
+V3 both        rate_frigid_all      0.0024    28
+V3 both     boiler_defects_pre      0.0024    30
+V3 both      rate_freezing_all      0.0020    39
+V3 both         boiler_overdue      0.0020    40
+V3 both              cold_mult      0.0020    41
+V3 both      boiler_defects_3y      0.0019    42
+V3 both    forecast_only_prior      0.0019    44
+V3 both           fuel_oil_pre      0.0019    46
+V3 both        boiler_late_pre      0.0017    48
+V3 both        zero_mild_prior      0.0015    50
+V3 both         fuel_heavy_pre      0.0015    51
+
+mapping diagnostic on 58,150 lots in both tables (2,022 with 2+ complaining building ids):
+  corr(bbl-level expanding rate, max of building rates) = 0.9724; corr with mean of building rates = 0.9458
+  on shared lots: bbl-level rate mean 0.0413 | building max 0.0270 | building mean 0.0153 (max under-states the lot union by 34.6%, mean by 63.1%)
+[   579 s] done
+ABL_EXIT=0
+ABL_DONE
