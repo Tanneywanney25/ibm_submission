@@ -116,6 +116,25 @@ All metrics are on the held-out 2025-26 winter unless marked otherwise.
   Stream 2's confirmation analysis is its validation story. Not part of the
   frozen headline; reported as its own entry.
 
+## M9 — The graph neural network (trained on LinuxONE; NOT adopted)
+
+- Two-layer mean-aggregation **GraphSAGE in pure PyTorch on the s390x guest**
+  (the IBM container ships torch — a GNN trained on the mainframe). Graph:
+  63k ever-active buildings linked through landlord hubs (one per
+  multi-building owner) and tax-block hubs; 54 per-spell snapshots with the
+  same 31 features and the same eve-of-spell time discipline as every model.
+  `model/13_build_graph_dataset.py` + `model/14_graph_train.py`;
+  results in `model/out/graph/m9_results.csv`.
+- **Result (same 8 held-out spells):** p@100 **84.9** vs M1's 86.1 ·
+  p@500 63.0 vs 64.6 · p@1000 49.4 vs 51.4 · p@2500 33.8 vs 34.8 —
+  consistently 1–2 points below the frozen model at every k (val peaked
+  epoch 2, early-stopped at 7).
+- **Decision: not adopted.** The graph relations it would learn (landlord
+  portfolios, block contagion) are already in M1 as explicit features
+  (`lord_c_other_last1`, `nb_block_2d`), so message passing added smoothing,
+  not signal. Kept as the measured answer to "why not deep learning / GNNs?"
+  — tried, on IBM Z, under the frozen protocol; the disciplined GBM held.
+
 ## B1–B3 — The baselines (every eval runs them under the identical protocol)
 
 - **B1 last-season complaints:** rank by prior season's distinct complaints.
