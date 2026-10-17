@@ -22,6 +22,7 @@ import re
 import sqlite3
 import sys
 import threading
+from decimal import ROUND_HALF_UP, Decimal
 from functools import lru_cache
 from pathlib import Path
 
@@ -47,10 +48,16 @@ HOST = "vercel" if ON_VERCEL else ("linuxone" if ARCH == "s390x" else "local")
 GEOSEARCH = "https://geosearch.planninglabs.nyc/v2/search"
 ROLES = ("tenant", "landlord", "government", "viewer")
 SHARDS = 128
-# one building record; build_assets.py writes these as positional lists in public/data/b/
+# one building record; build_assets.py writes these as positional lists in public/data/b/.
+# New fields go at the end: a shard built before them still reads (missing ones are None).
 FIELDS = ("p", "rank", "units", "cd", "chronic", "c_last1", "v_last1", "complaints",
           "violations", "last_c", "last_v", "cold_p", "cold_rank", "lon", "lat",
-          "lord", "lord_n")
+          "lord", "lord_n",
+          # T5a, from web/build_contacts.py (public HPD registration, business addresses)
+          "agent", "agent_co", "agent_addr", "lord_addr", "hpd_id", "reg_last")
+LAST_SEASON = 2025               # c_last1 and v_last1 count the 2025-26 heat season
+DRAFT_ROLES = ("tenant", "landlord")
+HPD_ONLINE = "https://hpdonline.nyc.gov/hpdonline/building/"
 QUEUE_COLS = ["rank", "p_calibrated", "tenants_at_risk", "unitsres", "cd",
               "latitude", "longitude", "c_last1", "v_last1", "chronic"]
 
@@ -88,6 +95,11 @@ if MODE == "full":
     lord = pd.read_csv(DATA / "second_tier/bbl_landlord.csv")
     lord["portfolio"] = lord.groupby("landlord").bbl.transform("nunique")
     lord = lord.drop_duplicates("bbl").set_index("bbl")
+
+    # T5a: managing agent and business addresses; optional, the site runs without it
+    f = DATA / "second_tier/bbl_contacts.csv"
+    contacts = (pd.read_csv(f, keep_default_na=False, na_values={"hpd_id": [""]})
+                .set_index("bbl") if f.exists() else None)
 
     # per-building history as plain dicts: one record costs a few dict lookups
     C_BY = {}
@@ -135,7 +147,11 @@ def building_record(bbl):
     bbl = int(bbl)
     if MODE != "full":
         row = _shard(bbl % SHARDS).get(str(bbl))
-        return dict(zip(FIELDS, row)) if row else None
+        if not row:
+            return None
+        rec = dict.fromkeys(FIELDS)
+        rec.update(zip(FIELDS, row))
+        return rec
     if bbl not in season_risk.index:
         return None
     sr = season_risk.loc[bbl]
@@ -152,7 +168,12 @@ def building_record(bbl):
             rec.update(lon=round(float(r.longitude), 5), lat=round(float(r.latitude), 5))
     if bbl in lord.index:
         lo = lord.loc[bbl]
-        rec.update(lord=str(lo.landlord).title(), lord_n=int(lo.portfolio))
+        rec.update(lord=display_name(lo.landlord), lord_n=int(lo.portfolio))
+    if contacts is not None and bbl in contacts.index:
+        ct = contacts.loc[bbl]
+        rec.update(agent=display_name(ct.agent), agent_co=int(ct.agent_co),
+                   agent_addr=ct.agent_addr or None, lord_addr=ct.owner_addr or None,
+                   hpd_id=_int(ct.hpd_id), reg_last=ct.reg_last or None)
     return rec
 
 
@@ -215,6 +236,49 @@ def seasons_label(s):
     return f"{s}-{str(s + 1)[2:]}"
 
 
+# filed names are mostly upper case; these stay upper when the rest is title-cased
+UPPER = {"LLC", "LP", "LLP", "HDFC", "HFDC", "NY", "NYC", "USA", "II", "III", "IV",
+         "AMO", "PC", "CPA", "JV", "NYCHA", "HUD", "YMCA", "YWCA"}
+# short vowel-less words that are abbreviations, not acronyms: title-cased
+ABBREV = {"ST", "RD", "DR", "LN", "CT", "PL", "PKWY", "BLVD", "FT", "MT", "JR", "SR", "MR",
+          "MRS", "MS", "MGMT", "MGT", "BKLYN", "BX"}
+
+
+def display_name(s):
+    """'HSC MANAGEMENT CORP., AMO' -> 'HSC Management Corp., AMO'; None when empty.
+    A name filed in mixed case is kept as filed."""
+    s = re.sub(r"^\s*C/O\s+", "", str(s or "").strip(), flags=re.I)
+    if not s:
+        return None
+    if s != s.upper():
+        return s
+    out = []
+    for w in s.split():
+        bare = w.strip(".,&()")
+        if bare in UPPER or (bare.isalpha() and 2 <= len(bare) <= 4 and bare not in ABBREV
+                             and not re.search(r"[AEIOUY]", bare)):
+            out.append(w)                          # an acronym: HSC, TZM, LLC
+        else:                                      # 59TH -> 59th, O'BRIEN -> O'Brien
+            out.append(re.sub(r"(\d)([A-Z]+)", lambda m: m.group(1) + m.group(2).lower(),
+                              w.title()))
+    return " ".join(out)
+
+
+def _round_js(x, places=0):
+    """Rounds like JS Math.round and toFixed: halves go up (Python's round() goes to even)."""
+    return Decimal(x).quantize(Decimal(1).scaleb(-places), ROUND_HALF_UP)
+
+
+def fmt_risk(p):
+    """The same text as fmtRisk() in base.html, so a draft quotes what the page shows."""
+    p = min(float(p), 0.99)
+    if p < 0.2:
+        return f"{_round_js(p * 100, 1 if p < 0.1 else 0)}%"
+    mid = min(99, int(_round_js(p * 20)) * 5)
+    return (f"{'very high' if p >= 0.5 else 'high'} (roughly "
+            f"{max(20, mid - 5)}–{min(99, mid + 5)}%)")
+
+
 def building_payload(bbl):
     rec = building_record(bbl)
     if rec is None:
@@ -230,6 +294,8 @@ def building_payload(bbl):
         complaints={seasons_label(s): n for s, n in rec["complaints"]},
         violations={seasons_label(s): n for s, n in rec["violations"]},
         last_complaint=rec["last_c"], last_violation=rec["last_v"],
+        last_season=dict(season=seasons_label(LAST_SEASON), complaints=rec["c_last1"] or 0,
+                         violations=rec["v_last1"] or 0),
         units=rec["units"], cd=rec["cd"], chronic=bool(rec["chronic"]),
     )
     if rec["cold_p"] is not None:
@@ -241,6 +307,15 @@ def building_payload(bbl):
         out["landlord"] = dict(name=rec["lord"], portfolio=rec["lord_n"],
                                note=f"owns {other} other registered building(s)" if other else
                                "single-building owner")
+        if rec["lord_addr"]:                     # corporate owners only (build_contacts.py)
+            out["landlord"]["address"] = rec["lord_addr"]
+    if rec["agent"]:
+        # a company agent carries its business street address; a person, city only
+        out["agent"] = dict(name=rec["agent"], company=bool(rec["agent_co"]),
+                            address=rec["agent_addr"])
+    if rec["hpd_id"]:
+        out["registration"] = dict(hpd_building_id=rec["hpd_id"], last_filed=rec["reg_last"],
+                                   record_url=f"{HPD_ONLINE}{rec['hpd_id']}")
     return out
 
 
@@ -531,29 +606,103 @@ def api_queue_csv():
                         "Content-Disposition": f"attachment; filename=heatahead_top{k}.csv"})
 
 
+# a unit in a user-supplied address is cut: drafts are building-level like everything else
+UNIT_IN_ADDRESS = re.compile(r"\s*(?:#|\b(?:apt|apartment|unit)\b\.?)\s*[\w-]*", re.I)
+HEAT_LAW = ("From October 1 to May 31, city law requires at least 68°F indoors between "
+            "6 a.m. and 10 p.m. whenever it is below 55°F outside, and at least 62°F "
+            "indoors overnight.")
+
+
+def _n(k, word):
+    return f"{k:,} {word}{'' if k == 1 else 's'}"
+
+
+def draft_message(p, role, address=""):
+    """T5b: a notice the user sends from their own mail client, built only from the
+    building payload. tenant: a resident's request to the registered owner, care of the
+    managing agent. landlord: the owner's own pre-winter self-audit. Every number is
+    one the building page shows; the model's estimate is framed as an estimate."""
+    bbl, s, last = p["bbl"], p["season"], p["last_season"]
+    owner, agent = p.get("landlord") or {}, p.get("agent") or {}
+    where = f"{address} (BBL {bbl})" if address else f"the building at BBL {bbl}"
+    times = (f", about {s['vs_median']:g} times the citywide median"
+             if s.get("vs_median") and s["vs_median"] >= 1.5 else "")
+    record = (f"{_n(last['complaints'], 'heat complaint')} and "
+              f"{_n(last['violations'], 'heat violation')} in the {last['season']} heat season")
+    if p.get("last_complaint") not in (None, "never"):
+        record += f"; the most recent complaint on record was filed on {p['last_complaint']}"
+    estimate = (f"a {fmt_risk(s['p'])} modeled chance of at least one heat outage this "
+                f"winter, rank {s['rank']:,} of {s['of']:,} buildings citywide{times}")
+    recipients = []
+    if owner:
+        recipients.append(", ".join(x for x in (owner["name"], "registered owner",
+                                                 owner.get("address")) if x))
+    if agent:
+        recipients.append(", ".join(x for x in ((("c/o " if role == "tenant" else "") +
+                                                  agent["name"]), "managing agent",
+                                                 agent.get("address")) if x))
+    label = address or f"BBL {bbl}"
+
+    if role == "tenant":
+        to = owner.get("name") or "Building owner"
+        subject = f"Request for a heating check before winter: {label}"
+        body = (f"Dear {to},\n\n"
+                f"I am a resident of {where}, and I am writing before the cold weather to "
+                f"ask that the building's heating system be inspected and serviced.\n\n"
+                f"HeatAhead, a public model built from New York City heat complaint and "
+                f"violation records, gives this building {estimate}. City records show "
+                f"{record}.\n\n"
+                f"This is a statistical estimate, not a finding about the building's "
+                f"equipment. I would still appreciate a boiler inspection before the first "
+                f"cold spell, and a notice in the lobby saying whom residents should contact "
+                f"if the heat goes out.\n\n"
+                f"{HEAT_LAW}\n\n"
+                f"Thank you,\n[Your name]")
+    else:
+        to = agent.get("name") or owner.get("name") or "Building file"
+        others = (owner.get("portfolio") or 1) - 1
+        portfolio = (f"\n\nThe same registered owner holds {_n(others, 'other registered building')}"
+                     f"; the landlord view on HeatAhead lists them riskiest first."
+                     if others else "")
+        subject = f"Pre-winter heating self-audit: {label}"
+        body = (f"Self-audit note for {where}"
+                f"{', registered to ' + owner['name'] if owner else ''}.\n\n"
+                f"HeatAhead's model, built from New York City heat complaint and violation "
+                f"records, gives this building {estimate}. The public record behind that "
+                f"estimate: {record}.{portfolio}\n\n"
+                f"Before the first cold spell:\n"
+                f"1. Have a licensed contractor service the boiler and burner and test the "
+                f"low-water cutoff.\n"
+                f"2. Confirm the fuel supply or gas account, and that this year's DOB boiler "
+                f"inspection is filed.\n"
+                f"3. Check heat on the top floors and at the far ends of the building, and "
+                f"bleed radiators where needed.\n"
+                f"4. Post a 24-hour heat contact in the lobby so residents can reach someone "
+                f"before they call 311.\n\n"
+                f"{HEAT_LAW}\n\n"
+                f"This is a modeled estimate for planning, not a violation or a finding by HPD.")
+    return dict(to=to, recipients=recipients, subject=subject, body=body, framing=role,
+                note="draft only - nothing is sent")
+
+
 @app.get("/api/draft_message/<int:bbl>")
 def api_draft_message(bbl):
-    """Template a message to the building's registered owner (the later
-    'Claude-drafted email' feature slots in here)."""
-    p = building_payload(bbl)
+    """?as=tenant (default) or landlord; ?address= names the building in the text (the
+    page passes the looked-up street address). Nothing is ever sent from here: the user
+    copies the draft or opens it in their own mail client (T5c, an AI-written draft,
+    would swap in behind this same response shape)."""
+    role = (request.args.get("as") or "tenant").strip().lower()
+    if role not in DRAFT_ROLES:
+        return jsonify(error=f"as must be one of {', '.join(DRAFT_ROLES)}"), 400
+    try:
+        p = building_payload(bbl)
+    except (requests.RequestException, ValueError, OSError):
+        return jsonify(error="building data unavailable right now"), 503
     if not p.get("ranked"):
         return jsonify(error="building not ranked"), 404
-    name = p.get("landlord", {}).get("name", "Building owner")
-    seasons = sorted(p["complaints"].keys())[-1:]
-    recent = p["complaints"].get(seasons[0], 0) if seasons else 0
-    risk = p["season"]["p"]
-    risk_txt = (f"{risk:.0%}" if risk < 0.2 else
-                f"{'very high' if risk >= 0.5 else 'high'} (roughly {min(99, round(risk * 20) * 5)}%)")
-    body = (f"Dear {name},\n\n"
-            f"Our records show this building (BBL {bbl}) has a "
-            f"{risk_txt} modeled chance of a heat outage this "
-            f"winter (citywide rank {p['season']['rank']:,} of "
-            f"{p['season']['of']:,}), with {recent} heat complaints last "
-            f"season. NYC heat season requires 68F by day and 62F overnight "
-            f"from October 1 to May 31. We encourage a boiler inspection "
-            f"before the first cold spell.\n\nHeatAhead")
-    return jsonify(to=name, subject=f"Heat-risk notice for BBL {bbl}", body=body,
-                   note="draft only - nothing is sent")
+    address = UNIT_IN_ADDRESS.sub("", request.args.get("address") or "")
+    address = " ".join(address.split()).strip(" ,")[:120]
+    return jsonify(draft_message(p, role, address))
 
 
 if __name__ == "__main__":

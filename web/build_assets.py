@@ -1,6 +1,7 @@
 """Precompute public/data/ for the Vercel (LITE) site from the FULL data.
 
 Run on the LinuxONE instance, from the repo root, where model/out/ and data/ exist:
+    ~/datathon-env/bin/python web/build_contacts.py --pull   # T5a owner/agent table
     ~/datathon-env/bin/python web/build_assets.py
 
 Writes (docs/VERCEL.md section 2):
@@ -65,6 +66,15 @@ def main():
             st = f.stat()
             models[name] = dict(bytes=st.st_size, modified=datetime.fromtimestamp(
                 st.st_mtime, timezone.utc).isoformat(timespec="seconds"))
+    contacts = web.DATA / "second_tier/bbl_contacts.csv"
+    if contacts.exists():
+        st = contacts.stat()
+        models[contacts.name] = dict(bytes=st.st_size, modified=datetime.fromtimestamp(
+            st.st_mtime, timezone.utc).isoformat(timespec="seconds"),
+            source="HPD registration contacts, NYC Open Data feu5-w2e2")
+    else:
+        print("no data/second_tier/bbl_contacts.csv: run web/build_contacts.py first "
+              "for the owner and managing-agent fields")
     sr = web.season_risk.p_season
     meta = dict(median=round(float(sr.median()), 4), ranked=len(web.season_risk),
                 cold_ranked=len(web.ranked), at_least_80=int((sr >= 0.8).sum()),

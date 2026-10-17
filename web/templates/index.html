@@ -214,14 +214,17 @@ async function portfolio(email, bbl){
     const owner = (rows.find(x => x.landlord) || {}).landlord;
     let h = owner ? '<p style="margin:.2rem 0">Registered owner on file: <b>' + esc(owner) + '</b> · ' +
         d.total.toLocaleString() + ' building(s), riskiest first</p>' : '';
-    h += '<table><tr><th>BBL</th><th>winter risk</th><th>rank</th><th>units</th><th>complaints last season</th></tr>' +
-      rows.slice(0, 25).map(b => '<tr><td><a href="/building?bbl=' + b.bbl + '">' + b.bbl + '</a>' +
+    // every row opens the building page with the draft framed as the owner's self-audit
+    const audit = b => '/building?bbl=' + encodeURIComponent(b) + '&as=landlord#draft';
+    h += '<table><tr><th>BBL</th><th>winter risk</th><th>rank</th><th>units</th><th>complaints last season</th><th></th></tr>' +
+      rows.slice(0, 25).map(b => '<tr><td><a href="/building?bbl=' + b.bbl + '&as=landlord">' + b.bbl + '</a>' +
         (b.registered ? ' <span class="chip" style="padding:0 .45rem">yours</span>' : '') + '</td><td>' +
         (b.ranked === false ? 'not ranked' : esc(fmtRisk(b.p_season))) + '</td><td>' +
         (b.rank ? b.rank.toLocaleString() : '') + '</td><td>' + (b.units ?? '') + '</td><td>' +
-        (b.c_last1 ?? '') + '</td></tr>').join('') + '</table>';
+        (b.c_last1 ?? '') + '</td><td>' + (b.ranked === false ? '' :
+        '<a href="' + audit(b.bbl) + '">self-audit</a>') + '</td></tr>').join('') + '</table>';
     if (rows.length > 25) h += '<p class="muted">showing the 25 riskiest of ' + d.total.toLocaleString() + '</p>';
-    h += '<a class="btnlink" href="/building?bbl=' + encodeURIComponent(bbl) + '">Open your building</a>';
+    h += '<a class="btnlink" href="' + audit(bbl) + '">Draft a self-audit for your building</a>';
     P.innerHTML = h;
   } catch (err) { P.textContent = 'Could not load your buildings right now.'; }
 }

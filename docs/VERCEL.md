@@ -3,7 +3,9 @@
 Read this before touching anything in `web/`, `api/`, `public/`, `realtime/`, `vercel.json`,
 `requirements.txt` or `.vercelignore`. The root `CLAUDE.md` points here; this is the full
 contract. The production site is **https://ibmsubmission.vercel.app** and it deploys
-automatically from every push to `main` of `emersoncortazar/ibm_submission`.
+automatically from every push to `main` of `Tanneywanney25/ibm_submission` (the repo moved
+from `emersoncortazar/ibm_submission` on October 17, 2026; GitHub redirects the old URL and
+the Vercel project followed the move).
 
 ## 1. Where things stand (updated October 17, 2026, evening)
 
@@ -45,6 +47,7 @@ requirements.txt         flask, requests, nothing else (pandas is NOT installed 
 api/index.py             adds the repo root to sys.path and exposes `app` from web/app.py (WSGI)
 public/data/             the precomputed assets below, committed to git (total must stay under 60 MB)
 web/build_assets.py      run on the instance (where model/out and data exist) to regenerate public/data/
+web/build_contacts.py    run on the instance before it: owner and managing-agent table (T5a)
 ```
 
 `vercel.json` (static files in `public/` are matched before rewrites, so assets never hit the
@@ -68,7 +71,7 @@ returned 503).
 | file | contents | size |
 |---|---|---|
 | `map_data.json` | `{columns:[lon,lat,p_season,c_last1,units], rows:[...], bbls:[...]}`, exactly what `/api/map_data` returns today | about 4 MB |
-| `b/<n>.json` for n = `bbl % 128` (0 to 127) | `{bbl: [record]}` where the record is a positional list over `FIELDS` in `web/app.py` (season risk and rank, units, community district, chronic flag, complaints and violations by season, last dates, cold-day risk and rank, coordinates, landlord name and portfolio size); `building_payload()` turns a record into the `/api/building` JSON in both modes | about 78 KB each, 10.0 MB total |
+| `b/<n>.json` for n = `bbl % 128` (0 to 127) | `{bbl: [record]}` where the record is a positional list over `FIELDS` in `web/app.py` (season risk and rank, units, community district, chronic flag, complaints and violations by season, last dates, cold-day risk and rank, coordinates, landlord name and portfolio size, then the T5a fields: managing agent, whether it files as a company, its address, the corporate owner's business address, HPD building id and last registration date); `building_payload()` turns a record into the `/api/building` JSON in both modes. New fields go at the end of `FIELDS`, so a shard built before them still reads (the missing ones are None) | about 78 KB each before T5a; see `meta.json` for the current total |
 | `reliability.json` | the calibration table (`/api/reliability`) | tiny |
 | `top500.csv` | the government export (`/api/queue.csv?k=500`) | small |
 | `meta.json` | citywide median season risk, ranked count, build timestamp, git sha, model file names | tiny |
@@ -84,6 +87,7 @@ To rebuild after the model outputs change, on the instance:
 
 ```
 cd ~/heatahead/site && git pull --rebase origin main
+~/datathon-env/bin/python web/build_contacts.py --pull   # HPD contacts feu5-w2e2, about 35 s
 ~/datathon-env/bin/python web/build_assets.py     # about 11 s on the s390x guest
 ```
 
@@ -110,7 +114,7 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/api/health` | GET | `{mode, host, arch, ranked, built_at, registrations_to, linuxone?}`; the footer of every page shows it | adds the instance's own `/api/health` under `linuxone` (3 s timeout, `{offline:true}` when down) |
 | `/data/<path>` | GET | the files in `public/data/` | Vercel's CDN serves them before any rewrite; Flask serves them for local runs |
 | `/api/queue.csv?k=` | GET | top-k CSV | `public/data/top500.csv` (k capped at 500 in LITE) |
-| `/api/draft_message/<bbl>` | GET | templated notice, never sent | computed from the shard |
+| `/api/draft_message/<bbl>?as=&address=` | GET | `{to, recipients, subject, body, framing, note}`: a notice the user copies or opens in their own mail client, never sent. `as=tenant` (default) is a resident's request to the registered owner care of the managing agent; `as=landlord` is the owner's pre-winter self-audit; `address` names the building in the text (units are cut). 400 for another `as`, 404 for an unranked building | computed from the shard |
 | `/api/live/stats`, `/api/live/queue?k=` | GET | proxy to the realtime service | `REALTIME_URL` env var; 503 `{offline:true}` when unreachable |
 | `/api/live/replay/start` | POST | proxy | same |
 
@@ -201,7 +205,7 @@ All six steps were done on October 17, 2026.
 |---|---|---|
 | `heatahead-web` | `web/app.py` in FULL mode under waitress, `0.0.0.0:8080` | `~/heatahead/site` (a clone of `main`; `data` and `model/out` are symlinks into `~/heatahead/ibm_submission`), log `~/heatahead/logs/web.log`, SQLite `~/heatahead/site/web/heatahead.db` |
 | `heatahead-realtime` | `realtime/app.py` replaying `data/replay_feb7_9.csv` on `127.0.0.1:5000`: the model's own complaint filter (`problem_code` NO HEAT or NO HEAT AND NO HOT WATER, as in `model/01_build_panel.py`), columns `received_date, complaint_id, bbl` only, 13,186 complaints at 6,133 tax lots (`docs/SUBMISSION.md` counts 13,222 at 6,382 HPD building ids; 36 of those complaints carry no BBL) | same clone, log `~/heatahead/logs/realtime.log`, checkpoint `data/realtime_checkpoint.json` |
-| `heatahead-jupyter` | JupyterLab on `127.0.0.1:8888`, reached through an SSH tunnel | token in `~/.config/heatahead/jupyter.env` (mode 600); read it in your own terminal with `ssh linux1@148.100.77.112 cat ~/.config/heatahead/jupyter.env` and never paste it into a chat |
+| `heatahead-jupyter` | JupyterLab on `127.0.0.1:8888`, reached through an SSH tunnel. Pick the `datathon-env` kernel (the project venv, registered October 17, 2026); the default `python3` kernel is the system interpreter, which has no Flask. `web/jupyter/run_in_jupyter.py <notebook>` executes a notebook inside this server from an SSH shell | token in `~/.config/heatahead/jupyter.env` (mode 600); read it in your own terminal with `ssh linux1@148.100.77.112 cat ~/.config/heatahead/jupyter.env` and never paste it into a chat |
 | cron, minute 7 of every hour | `web/alerts.py` against the same SQLite | log `~/heatahead/logs/alerts_cron.log` |
 
 After a push that changes `web/`: `cd ~/heatahead/site && git pull --rebase origin main &&

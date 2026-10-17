@@ -1,5 +1,26 @@
 {% extends "base.html" %}
 {% block title %}Check a building — HeatAhead{% endblock %}
+{% block head %}
+<style>
+.who th { width:10.5rem; vertical-align:top; }
+.who td b { font-weight:600; }
+.frame { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin:.6rem 0 .9rem; }
+.frame label { border:1px solid var(--line); border-radius:8px; padding:.55rem .7rem;
+               cursor:pointer; background:var(--well); font-size:.9rem; }
+.frame label:has(input:checked) { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+.frame input { accent-color:var(--accent); margin-right:.35rem; }
+.frame small { display:block; color:var(--muted); font-size:.78rem; margin-left:1.3rem; }
+@media (max-width:560px){ .frame { grid-template-columns:1fr; } }
+#draftbox textarea, #draftbox input { width:100%; }
+#draftbox textarea { font:inherit; font-size:.92rem; line-height:1.5; border-radius:7px;
+  border:1px solid var(--line); background:var(--well); color:var(--ink); padding:.8rem;
+  resize:vertical; min-height:18rem; }
+#draftbox textarea:focus { outline:2px solid var(--accent); outline-offset:-1px; }
+.btnlink { display:inline-block; background:var(--accent); color:var(--on-accent); font-weight:600;
+           text-decoration:none; padding:.55rem .9rem; border-radius:7px; margin:.3rem .4rem .3rem 0; }
+.btnlink.ghost { background:transparent; color:var(--ink); border:1px solid var(--line); }
+</style>
+{% endblock %}
 {% block body %}
 <h1>Check a building</h1>
 <div class="card">
@@ -25,10 +46,8 @@
       </div>
       <p class="muted" id="elevcap" style="font-size:.8rem"></p>
       <div class="chips" id="chips"></div>
-      <p><a href="#" onclick="return draft()">Draft an owner notice</a>
+      <p style="margin-bottom:0"><a href="#draft">Draft a notice to the owner</a>
          <span class="muted">(nothing is sent)</span></p>
-      <pre id="draft_out" style="display:none; white-space:pre-wrap;
-           background:var(--well); padding:1rem; border-radius:8px"></pre>
     </div>
     <div class="card">
       <h2>History</h2>
@@ -38,7 +57,33 @@
       <div class="bars" id="vbars"></div>
       <p class="muted" style="margin-top:1.6rem">
         last complaint: <span id="lastc"></span> · last violation: <span id="lastv"></span></p>
-      <div id="landlord" class="muted"></div>
+    </div>
+  </div>
+  <div class="card" id="who"></div>
+  <div class="card" id="draft">
+    <h2>Draft a notice</h2>
+    <p class="muted" style="margin-top:0">A starting point built from the numbers on this
+    page. You edit it and send it yourself: nothing is sent from this site.</p>
+    <div class="frame" id="frame">
+      <label><input type="radio" name="as" value="tenant" checked>I live here
+        <small>a request to the owner for a heating check</small></label>
+      <label><input type="radio" name="as" value="landlord">I own or manage it
+        <small>a pre-winter self-audit for your own building</small></label>
+    </div>
+    <button id="draftbtn" onclick="draft()">Draft the notice</button>
+    <span id="draftstatus" class="muted"></span>
+    <div id="draftbox" style="display:none; margin-top:1rem">
+      <p class="muted" id="draft_to" style="margin:.2rem 0 .6rem; white-space:pre-line"></p>
+      <label class="muted" for="draft_subj" style="font-size:.85rem">Subject</label>
+      <input id="draft_subj" style="margin:.2rem 0 .7rem">
+      <label class="muted" for="draft_out" style="font-size:.85rem">Message (edit freely;
+        replace [Your name] before sending)</label>
+      <textarea id="draft_out" style="margin-top:.2rem"></textarea>
+      <div style="margin-top:.5rem">
+        <button id="copybtn" onclick="copyDraft()">Copy subject and message</button>
+        <a class="btnlink ghost" id="mailto" href="#" onclick="return openMail()">Open in my email app</a>
+        <span id="copied" class="muted"></span>
+      </div>
     </div>
   </div>
   <div class="card">
@@ -66,12 +111,14 @@ async function lookup(e){
   if (!q) { $('status').textContent = 'type a street address or a 10-digit BBL'; return false; }
   $('status').textContent = 'looking up...';
   let bbl = /^\d{10}$/.test(q) ? q : null, b;
+  window._addr = '';
   try {
     if (!bbl) {
       const r = await fetch('/api/lookup?address=' + encodeURIComponent(q));
       const j = await r.json();
       if (!r.ok) { $('status').textContent = j.error; return false; }
       bbl = j.bbl; $('status').textContent = j.normalized + ' · BBL ' + bbl;
+      window._addr = j.normalized.replace(/, USA$/, '');
     } else $('status').textContent = 'BBL ' + bbl;
     const r = await fetch('/api/building/' + bbl);
     b = await r.json();
@@ -98,7 +145,8 @@ async function lookup(e){
       b.landlord ? 'owner holds ' + b.landlord.portfolio + ' building(s)' : null
     ].filter(Boolean).map(t => `<span class="chip">${esc(t)}</span>`).join('');
   $('lastc').textContent = b.last_complaint; $('lastv').textContent = b.last_violation;
-  $('landlord').textContent = b.landlord ? 'Registered owner: ' + b.landlord.name : '';
+  who(b);
+  $('draftbox').style.display = 'none'; $('draftstatus').textContent = '';
   // the building, drawn: window grid sized from units, cells lit in risk share
   const cols = 6, rows = Math.min(12, Math.max(4, Math.round((b.units || 24) / 8)));
   const cells = cols * rows, lit = Math.max(1, Math.round(Math.min(b.season.p, 0.99) * cells));
@@ -132,15 +180,77 @@ async function reliability(){
       <td>${r.buildings.toLocaleString()}</td>
       <td>${(r.actually_failed*100).toFixed(1)}%</td></tr>`).join('');
 }
+// T5a: who answers for the heat, from the building's public HPD registration
+function who(b){
+  const o = b.landlord, a = b.agent, reg = b.registration;
+  let h = '<h2>Who is responsible for the heat</h2>';
+  if (!o && !a) {
+    $('who').innerHTML = h + '<p class="muted" style="margin-bottom:0">No HPD registration ' +
+      'was found for this building. Most rental buildings must register with HPD every ' +
+      'year; 311 takes a heat complaint either way.</p>';
+    return;
+  }
+  h += '<p class="muted" style="margin-top:0">From the building\'s public HPD registration' +
+       (reg && reg.last_filed ? ', last filed ' + esc(reg.last_filed) : '') +
+       '. Business addresses only.</p><table class="who">';
+  if (o) h += '<tr><th>Registered owner</th><td><b>' + esc(o.name) + '</b><br><span class="muted">' +
+       esc(o.portfolio > 1 ? 'owns ' + o.portfolio.toLocaleString() + ' registered buildings'
+                           : 'owns this building only') +
+       (o.address ? ' · ' + esc(o.address) : '') + '</span></td></tr>';
+  if (a) h += '<tr><th>Managing agent</th><td><b>' + esc(a.name) + '</b><br><span class="muted">' +
+       esc(a.address || '') + (a.company ? '' : (a.address ? ' · ' : '') +
+       'filed as a person, so the street address is not shown here') + '</span></td></tr>';
+  h += '</table>';
+  if (reg) h += '<p style="margin-bottom:0"><a href="' + esc(reg.record_url) + '" target="_blank" ' +
+       'rel="noopener">Full registration on HPD Online (building ' + esc(reg.hpd_building_id) +
+       ')</a></p>';
+  $('who').innerHTML = h;
+}
+
+// T5b: a notice the user sends from their own mail client; this site never sends it
+const asOf = () => document.querySelector('input[name=as]:checked').value;
 async function draft(){
-  let j;
-  try { j = await (await fetch('/api/draft_message/' + window._bbl)).json(); } catch { return false; }
-  const o = $('draft_out'); o.style.display = 'block';
-  if (j.error) { o.textContent = j.error; return false; }
-  o.textContent = 'To: ' + j.to + '\nSubject: ' + j.subject + '\n\n' + j.body;
+  const btn = $('draftbtn'); btn.disabled = true; $('draftstatus').textContent = 'drafting...';
+  let r, j;
+  try {
+    r = await fetch('/api/draft_message/' + window._bbl + '?as=' + asOf() +
+                    (window._addr ? '&address=' + encodeURIComponent(window._addr) : ''));
+    j = await r.json();
+  } catch { j = {error: 'could not reach the server - try again'}; }
+  btn.disabled = false;
+  if (!r || !r.ok || j.error) { $('draftstatus').textContent = j.error || 'no draft'; return false; }
+  $('draftstatus').textContent = '';
+  $('draft_to').textContent = j.recipients.length
+      ? 'To (public HPD registration):\n' + j.recipients.join('\n') : 'To: ' + j.to;
+  $('draft_subj').value = j.subject; $('draft_out').value = j.body;
+  $('copied').textContent = '';
+  $('draftbox').style.display = 'block';
   return false;
 }
-const urlBBL = new URLSearchParams(location.search).get('bbl');
-if (urlBBL) { $('q').value = urlBBL; lookup(); }
+async function copyDraft(){
+  const text = 'Subject: ' + $('draft_subj').value + '\n\n' + $('draft_out').value;
+  try { await navigator.clipboard.writeText(text); $('copied').textContent = 'Copied.'; }
+  catch { $('draft_out').select(); $('copied').textContent = 'Select-all is on: press Ctrl+C.'; }
+}
+function openMail(){
+  // no recipient: the registration has postal addresses, not email addresses
+  location.href = 'mailto:?subject=' + encodeURIComponent($('draft_subj').value) +
+                  '&body=' + encodeURIComponent($('draft_out').value);
+  return false;
+}
+document.querySelectorAll('input[name=as]').forEach(x => x.addEventListener('change',
+  () => { if ($('draftbox').style.display === 'block') draft(); }));
+
+const params = new URLSearchParams(location.search);
+if (params.get('as') === 'landlord') document.querySelector('input[name=as][value=landlord]').checked = true;
+const urlBBL = params.get('bbl');
+if (urlBBL) {
+  $('q').value = urlBBL;
+  // /building?bbl=...#draft (the landlord view's self-audit links): draft straight away
+  lookup().then(() => {
+    if (location.hash === '#draft' && $('result').style.display === 'block')
+      draft().then(() => $('draft').scrollIntoView({behavior: 'smooth'}));
+  });
+}
 </script>
 {% endblock %}
