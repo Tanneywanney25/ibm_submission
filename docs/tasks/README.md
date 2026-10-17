@@ -17,7 +17,7 @@ your PRs. Roles doc: `docs/roles-endgame.md`.
 | [T9](T9-shap-explanations.md) | SHAP per building + "why this number" on the site | new | — |
 | [T10](T10-time-to-failure.md) | M10 discrete-time hazard: predict WHEN, survival curves | new (first to drop) | — |
 | [T11](T11-robustness-audit.md) | leave-one-borough-out CV, drift PSI, pytest leakage suite | 11c done: 9 leakage tests green (caught and fixed an eval-clobber bug); 11a/11b open | Emerson (11c) |
-| [T12](T12-policy-simulator.md) | inspector dispatch simulator: violations caught and cold-days averted per policy | new | — |
+| [T12](T12-policy-simulator.md) | inspector dispatch simulator: violations caught and cold-days averted per policy | done: calibrated to the real total AND lag; +7.8% violations, cold-days −50.2% vs FCFS, ranking stable across 9-cell sensitivity grid — see docs/experiments-report.md | Emerson |
 
 Build order: T1–T6 are landed or owned; the rigor sprint runs **T11c (leakage
 tests) → T7 → T9 ∥ T12 → T8 → T10**. The submission needs T1–T3 for the video;
