@@ -12,7 +12,8 @@ late gain came from aligning the training objective with the evaluated task.
 
 | model | what it is | @100 | @500 | @1000 | @2500 | verdict |
 |---|---|---|---|---|---|---|
-| **M11 spell-direct** | XGBoost on spell snapshots | **89.9** (seeds: 88.0–89.9) | 64.8 | 51.3 | **34.9** | **best per-spell queue** |
+| **M13 FINAL (frozen)** | 5-seed bag of the spell-HPO winner (blend chose pure bag, w=1.0) | **90.1** | **65.4** | 51.4 | **35.2** | **the shipped per-spell scorer; model stream closed** |
+| M11 spell-direct | XGBoost on spell snapshots, hand config | 89.9 (seeds: 88.0–89.9) | 64.8 | 51.3 | 34.9 | superseded by M13 |
 | **M12 tuned day-model** | XGBoost, first HPO (val-winter selected) | 89.2 | **65.2** | **51.8** | 34.8 | best day-level config |
 | M1 (frozen submission) | XGBoost+sklearn ensemble, day labels | 86.1 | 64.6 | 51.4 | 34.8 | the cited numbers; unchanged |
 | M7 ranker | XGBRanker rank:pairwise | 87.9 | 64.6 | 50.7 | 33.7 | top-heavy; rejected |
@@ -57,6 +58,18 @@ What the evidence says about the remaining ceiling at spell p@100:
   graph work, deep nets, more external data (landlord/boiler/litigation
   already in or marginal). The curve has flattened everywhere except target
   design, and that card is now played.
+
+## M13 — the final squeeze result (model/24; MODELS NOW FROZEN)
+
+The last hour of model work, every choice made on the validation winter and
+the test spells evaluated exactly once: a 12-trial HPO on the spell task
+(winner: depth 7, lr 0.03, 61 trees, heavier regularization), the winner
+bagged across 5 seeds for stability, then a coarse blend grid with M12 —
+which chose the pure bag (M12 added nothing on top). **Test: 90.1 / 65.4 /
+51.4 / 35.2 — improvement or tie at every k, +4.0 at the top.** Recipe is one
+reproducible artifact (`final_spell_ensemble.json` + five member JSONs).
+The remaining gap to the ~93% label-noise ceiling is the mild-spell floor;
+the squeeze delivered the predicted +0.5–1.5 and the stream is closed.
 
 ## Rules unchanged
 
