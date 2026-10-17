@@ -142,21 +142,26 @@ def simulate(policy, capacity, kscale):
                 inspected=stats["inspected"], expired=stats["expired"]), stats["cum"]
 
 
-# ---------------- calibrate (capacity, kscale) so FCFS reproduces reality
-print("calibrating FCFS to the real season total "
-      f"({REAL_VIOLATIONS:,} heat violations)...")
+# ---------------- calibrate (capacity, kscale) so FCFS reproduces reality:
+# BOTH the season total AND the measured congestion (stream 2: median lag
+# grows to ~3-4 days in the busy stretches; the system visibly saturates).
+REAL_BUSY_LAG = 3.5                 # stream 2: median complaint->inspection lag
+print("calibrating FCFS to the real total "
+      f"({REAL_VIOLATIONS:,} violations) AND the measured ~{REAL_BUSY_LAG}-day lag...")
 best = None
-for capacity in (600, 800, 1000, 1200, 1500):
+for capacity in (300, 400, 500, 600, 700, 800, 1000, 1200):
     r, _ = simulate("fcfs", capacity, 1.0)
     k = REAL_VIOLATIONS / r["violations"]       # linear in kscale by construction
-    # keep k plausible: P(viol|inspected) for tier3 = k*0.1061 must stay <= 1
-    if k * TIER_RATE[3] > 1:
+    if k * TIER_RATE[3] > 1:                    # P(viol|insp) must stay a probability
         continue
-    cand = (abs(np.log(k)), capacity, k)        # prefer k nearest 1 (least rescaling)
+    lag_err = abs(r["mean_wait"] - REAL_BUSY_LAG) / REAL_BUSY_LAG
+    cand = (lag_err, abs(np.log(k)), capacity, k, r["mean_wait"])
+    print(f"  capacity {capacity:4d}: mean wait {r['mean_wait']:.2f}d, k -> {k:.2f}")
     if best is None or cand < best:
         best = cand
-_, CAP, K = best
-print(f"calibrated: capacity {CAP}/day, outcome scale k={K:.2f} "
+_, _, CAP, K, W = best
+print(f"calibrated: capacity {CAP}/day (FCFS mean wait {W:.2f}d ~ measured "
+      f"{REAL_BUSY_LAG}d), outcome scale k={K:.2f} "
       f"(tier P(viol|insp): {[round(K*v,3) for v in TIER_RATE.values()]})")
 
 # ---------------- run the three policies under identical calibration
