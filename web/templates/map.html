@@ -106,8 +106,8 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   <header class="hm-heading">
     <div>
       <p class="hm-eyebrow">HeatAhead / Winter planning</p>
-      <h1 id="hm-title">Where winter risk concentrates.</h1>
-      <p class="hm-subtitle">Explore modeled risk across all five boroughs.</p>
+      <h1 id="hm-title">Heating risk across NYC</h1>
+      <p class="hm-subtitle">Explore estimated winter risk across all five boroughs.</p>
     </div>
     <div id="hm-status" class="hm-status" role="status" aria-live="polite" data-state="loading">Loading property data…</div>
   </header>
@@ -126,7 +126,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
           <label class="hm-label" for="hm-risk-filter">Minimum risk</label>
           <output id="hm-filter-value" for="hm-risk-filter">All risks</output>
         </div>
-        <input id="hm-risk-filter" type="range" min="0" max="99" step="1" value="0" aria-valuetext="All modeled risks" disabled>
+        <input id="hm-risk-filter" type="range" min="0" max="99" step="1" value="0" aria-valuetext="All estimated risks" disabled>
         <div class="hm-ticks" aria-hidden="true"><span>0%</span><span>50%</span><span>99%</span></div>
       </div>
       <div class="hm-field">
@@ -147,19 +147,19 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
       </div>
       <div class="hm-reading">
         <h2>What am I seeing?</h2>
-        <p><b>Color shows modeled winter risk.</b> The citywide view groups properties into hexagons.</p>
-        <p><b>Zoom in to see mapped building shapes.</b> Hexagons gradually fade into colored property markers; gray buildings provide context.</p>
-        <p>In the citywide 3D view, hexagon height shows complaint volume. Hexagons with zero complaints last season stay flat; try Flat map. Up close, building heights come from the map and may be estimated.</p>
-        <p>Click a hexagon to see its buildings, ordered by risk. Click an individual property marker for its record and aerial photo.</p>
+        <p><b>Darker blue means higher estimated risk.</b> Larger hexagons keep the city view clear. Zoom in to see smaller areas.</p>
+        <p><b>Zoom in for a closer look.</b> Colored dots gradually replace the hexagons. Gray building shapes come from the background map.</p>
+        <p>In 3D, taller hexagons mean more complaints last season. Areas with no recorded complaints have flat hexagons; try Flat map. Gray building heights come from the background map and may be estimated.</p>
+        <p>Click a hexagon to see its buildings, with higher scores first. Click a colored dot or a building in the list to see its record and photos.</p>
       </div>
       <button id="hm-reset" type="button" class="hm-secondary" disabled>Reset view &amp; filter</button>
-      <p class="hm-footnote">Model estimates, not confirmed outages. BBL-level property records only; a property may contain multiple buildings.</p>
+      <p class="hm-footnote">Scores are estimates, not reports of current heating problems. One property record can cover more than one building.</p>
     </aside>
 
     <div id="hm-view" class="hm-view">
-      <div id="hm-map" role="region" aria-label="Interactive map of modeled winter heating risk in New York City"></div>
+      <div id="hm-map" role="region" aria-label="Interactive map of estimated winter heating risk in New York City"></div>
       <div class="hm-map-toolbar">
-        <span id="hm-view-label" class="hm-view-label">120 m hexagons</span>
+        <span id="hm-view-label" class="hm-view-label">City view · larger areas</span>
         <a id="hm-street-view" class="hm-map-link" target="_blank" rel="noopener noreferrer" hidden
            aria-label="Open nearby imagery in Google Street View" title="Opens the nearest available Google Street View panorama in a new tab">Street View ↗</a>
         <div class="hm-zoom" aria-label="Map zoom">
@@ -168,12 +168,12 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
         </div>
       </div>
       <div class="hm-legend" aria-label="Winter risk color legend, from 0 to 99 percent">
-        <div class="hm-legend-title"><span>Modeled winter risk</span><span>Lower → Higher</span></div>
+        <div class="hm-legend-title"><span>Estimated winter risk</span><span>Lower → Higher</span></div>
         <div class="hm-scale" aria-hidden="true"></div>
         <div class="hm-scale-labels" aria-hidden="true"><span>0%</span><span>50%</span><span>99%</span></div>
-        <p id="hm-legend-note" class="hm-legend-note">Color = mean property risk in each hexagon.</p>
+        <p id="hm-legend-note" class="hm-legend-note">Each hexagon shows average risk in an area. Zoom in for smaller areas.</p>
         <p class="hm-context-key"><span class="hm-context-swatch" aria-hidden="true"></span>Gray buildings = background map</p>
-        <p class="hm-coverage-note">No color? A property may be outside the mapped data or hidden by your filter. This does not confirm working heat.<br><a href="/faq#unranked">Why some buildings have no color →</a></p>
+        <p class="hm-coverage-note">No color? A building may have no mapped score, or your filter may be hiding it. It can still have heating problems.<br><a href="/faq#unranked">Why some buildings have no color →</a></p>
       </div>
       <div id="hm-tip" role="tooltip" hidden></div>
       <section id="hm-area-panel" class="hm-area-panel" role="region" aria-labelledby="hm-area-title" hidden>
@@ -181,7 +181,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
           <button id="hm-area-close" class="hm-secondary" type="button" aria-label="Close building list">×</button></div>
         <p id="hm-area-summary" class="hm-area-summary"></p>
         <button id="hm-area-zoom" class="hm-secondary" type="button">Zoom to these buildings</button>
-        <ol id="hm-area-list" class="hm-area-list" aria-label="Buildings ordered by modeled winter risk"></ol>
+        <ol id="hm-area-list" class="hm-area-list" aria-label="Buildings with higher estimated winter risk first"></ol>
         <div class="hm-area-paging"><button id="hm-area-prev" class="hm-secondary" type="button">Previous</button>
           <span id="hm-area-page" role="status" aria-live="polite"></span>
           <button id="hm-area-next" class="hm-secondary" type="button">Next</button></div>
@@ -189,8 +189,8 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
       <div id="hm-message" class="hm-message">
         <div class="hm-message-box">
           <div id="hm-loader" class="hm-loader" aria-hidden="true"></div>
-          <h2 id="hm-message-title">Bringing the city into view</h2>
-          <p id="hm-message-text">Loading ranked properties and their winter risk estimates.</p>
+          <h2 id="hm-message-title">Loading the map</h2>
+          <p id="hm-message-text">Loading buildings and their winter risk scores.</p>
           <button id="hm-retry" type="button" hidden>Reload map</button>
         </div>
       </div>
@@ -200,7 +200,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   <p id="hm-render-note" class="hm-note" hidden></p>
   <p id="hm-geometry-note" class="hm-note" hidden></p>
   <p id="hm-tile-note" class="hm-note" hidden>Street-map tiles are unavailable. Property risk data is still shown.</p>
-  <footer class="hm-footer"><span id="hm-coverage">Ranked properties with mapped coordinates.</span><span>Risk estimates of 20% or higher are shown as bands in tooltips.</span></footer>
+  <footer class="hm-footer"><span id="hm-coverage">Properties with a mapped risk score.</span><span>Scores of 20% or higher are shown as ranges.</span></footer>
 </section>
 
 <script>
@@ -238,6 +238,10 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   const DETAIL_ZOOM = 13.8;
   const DETAIL_START = DETAIL_ZOOM - 1;
   const DETAIL_END = DETAIL_ZOOM + 1;
+  const GRID_START = 11.3;
+  const GRID_END = 12.5;
+  const OVERVIEW_RADIUS = 400;
+  const NEIGHBORHOOD_RADIUS = 120;
   const POSITION = row => row.position;
   const RISK_WEIGHT = row => row.p;
   const COMPLAINT_WEIGHT = row => row.c;
@@ -260,7 +264,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     view:{...AREAS.city, pitch:0, minZoom:8, maxZoom:18, maxPitch:60},
     individual:false, ready:false, failed:false, fallbackUsed:false, areaBounds:{},
     buildingsInstalled:false, buildingsUnavailable:false, buildingWarning:false,
-    selectedRows:[], selectedPage:0, interacting:false, labelMode:'', renderedBlend:null};
+    selectedRows:[], selectedPage:0, interacting:false, labelMode:'', renderedBlend:null, renderedGridBlend:null};
   const number = new Intl.NumberFormat('en-US');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let viewer = null;
@@ -274,6 +278,19 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   function detailBlend(zoom) {
     const t = Math.max(0, Math.min(1, (zoom - DETAIL_START) / (DETAIL_END - DETAIL_START)));
     return t * t * (3 - 2 * t);
+  }
+  function gridBlend(zoom) {
+    const t = Math.max(0, Math.min(1, (zoom - GRID_START) / (GRID_END - GRID_START)));
+    return t * t * (3 - 2 * t);
+  }
+  function pickMode(zoom) {
+    return detailBlend(zoom) >= .5 ? 'property' : gridBlend(zoom) >= .5 ? 'neighborhood' : 'overview';
+  }
+  function renderPixelRatios(dpr) {
+    const native = typeof dpr === 'number' && Number.isFinite(dpr) && dpr > 0 ? dpr : 1;
+    // Native-density text on Retina screens, with a separate ceiling for the data
+    // canvas so the 63k-property overlay does not render at unbounded phone DPRs.
+    return {map:Math.max(1,Math.min(2,native)), overlay:Math.max(1,Math.min(1.5,native))};
   }
   function mapController(mode) {
     return {dragPan:true, dragRotate:mode === '3d', touchRotate:mode === '3d',
@@ -345,7 +362,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
       } catch (error) {
         state.buildingsUnavailable = true;
         el('hm-geometry-note').hidden = false;
-        el('hm-geometry-note').textContent = 'Building shapes could not load. The property risk markers are still available.';
+        el('hm-geometry-note').textContent = "Building shapes could not load. The colored risk dots are still available.";
       }
     }
     const show = detailBlend(state.view.zoom) > 0 && state.buildingsInstalled && !state.buildingsUnavailable;
@@ -363,13 +380,15 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   }
   function updateViewLabels() {
     const blend = detailBlend(state.view.zoom);
+    const grid = gridBlend(state.view.zoom);
     const blending = blend > 0 && blend < 1;
+    const resizing = grid > 0 && grid < 1;
     const detailed = state.individual;
-    const labelMode = [blending,detailed,state.mode,state.buildingsUnavailable].join(':');
+    const labelMode = [blending,detailed,resizing,grid === 0,state.mode,state.buildingsUnavailable].join(':');
     if (labelMode !== state.labelMode) {
       state.labelMode = labelMode;
-      el('hm-view-label').textContent = blending ? 'Hexagons → property markers' : detailed ? (state.buildingsUnavailable ? 'Property risk markers' : state.mode === '3d' ? 'Mapped 3D buildings + risk markers' : 'Building outlines + risk markers') : '120 m hexagons';
-      el('hm-legend-note').textContent = blending ? 'Zoom blends hexagon averages into individual property risk. Gray buildings are map context.' : detailed ? (state.buildingsUnavailable ? 'Color = modeled property risk.' : 'Color = property risk. Gray buildings are map context.') : 'Color = mean property risk in each hexagon.';
+      el('hm-view-label').textContent = blending ? 'Hexagons → colored dots' : detailed ? (state.buildingsUnavailable ? 'Colored risk dots' : state.mode === '3d' ? '3D buildings + risk dots' : 'Building outlines + risk dots') : resizing ? 'Zooming in · smaller areas' : grid === 0 ? 'City view · larger areas' : 'Neighborhood view · smaller areas';
+      el('hm-legend-note').textContent = blending ? 'Hexagons are changing to colored dots as you zoom in.' : detailed ? (state.buildingsUnavailable ? 'Each colored dot shows one property’s estimated risk.' : 'Each dot shows a property’s risk. Gray buildings are part of the background map.') : grid < 1 ? 'Each hexagon shows average risk in an area. Zoom in for smaller areas.' : 'Color shows the average risk in each hexagon.';
       el('hm-street-view').hidden = !detailed;
     }
     if (detailed && !state.interacting) el('hm-street-view').href = streetViewURL(state.view);
@@ -488,7 +507,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     state.selectedPage = 0;
     selectionFocus = document.activeElement;
     el('hm-area-title').textContent = `${number.format(summary.count)} ${summary.count === 1 ? 'building' : 'buildings'} in this hexagon`;
-    el('hm-area-summary').textContent = `Mean winter risk ${riskLabel(summary.risk)} · ${number.format(summary.units)} units · ${number.format(summary.complaints)} complaints last season. Highest risk first; current filter applied.`;
+    el('hm-area-summary').textContent = `Average winter risk ${riskLabel(summary.risk)} · ${number.format(summary.units)} units · ${number.format(summary.complaints)} complaints last season. Higher scores first. Your current filter is applied.`;
     hideTip();
     renderAreaPage();
     el('hm-area-panel').hidden = false;
@@ -510,7 +529,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     // Dynamic content is restricted to validated numeric fields and digit-only BBLs.
     tip.innerHTML = `<div class="hm-tip-kicker">${summary.individual ? 'Property · BBL ' + summary.highest.bbl : number.format(summary.count) + ' properties in this hexagon'}</div>` +
       `<div class="hm-tip-risk">${riskLabel(summary.risk)}</div>` +
-      `<div class="hm-tip-row"><span>${summary.individual ? 'Modeled winter risk' : 'Mean modeled winter risk'}</span></div>` +
+      `<div class="hm-tip-row"><span>${summary.individual ? 'Estimated winter risk' : 'Average estimated winter risk'}</span></div>` +
       `<div class="hm-tip-row"><span>Complaints last season</span><b>${number.format(summary.complaints)}</b></div>` +
       `<div class="hm-tip-row"><span>Residential units</span><b>${number.format(summary.units)}</b></div>` +
       `<p class="hm-tip-action">${summary.individual ? 'Click to open this property.' : 'Click to see all ' + number.format(summary.count) + ' buildings in this area.'}</p>`;
@@ -527,24 +546,31 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   }
   function makeLayers() {
     const blend = detailBlend(state.view.zoom);
-    // Keep both layer IDs and their data/accessors stable across zooms. Only opacity
-    // changes during the fade; one representation handles clicks at a time.
-    return [new deck.HexagonLayer({
-      id:'winter-risk-hexagons', data:state.filtered,
-      visible:blend < 1, pickable:blend < .5,
-      getPosition:POSITION, radius:120, coverage:.94,
+    const grid = gridBlend(state.view.zoom);
+    const active = pickMode(state.view.zoom);
+    // Two fixed grids avoid re-binning 63k rows on every wheel event. Their IDs,
+    // data, radii and accessors stay stable; opacity alone blends the views.
+    const hex = (id,radius,weight,mode) => new deck.HexagonLayer({
+      id, data:state.filtered,
+      visible:weight > 0, pickable:active === mode,
+      getPosition:POSITION, radius, coverage:.94,
       getColorWeight:RISK_WEIGHT, colorAggregation:'MEAN',
       colorDomain:COLOR_DOMAIN, colorRange:COLORS, colorScaleType:'quantize',
       getElevationWeight:COMPLAINT_WEIGHT, elevationAggregation:'SUM',
       // Fixed scale: one complaint = 1.5 display meters; filters do not rescale heights.
       elevationDomain:state.elevationDomain,
       elevationRange:state.elevationDomain, elevationScale:1.5,
-      extruded:state.mode === '3d', opacity:.95 * (1 - blend),
+      extruded:state.mode === '3d', opacity:.95 * weight,
+      // Fading large columns must not depth-block the smaller incoming grid.
+      parameters:{depthMask:mode !== 'overview' || grid === 0},
       autoHighlight:true, highlightColor:[255,255,255,90],
       material:{ambient:.65, diffuse:.55, shininess:15}
-    }), new deck.ScatterplotLayer({
+    });
+    return [hex('winter-risk-overview',OVERVIEW_RADIUS,(1 - grid) * (1 - blend),'overview'),
+      hex('winter-risk-hexagons',NEIGHBORHOOD_RADIUS,grid * (1 - blend),'neighborhood'),
+      new deck.ScatterplotLayer({
       id:'winter-risk-properties', data:state.filtered,
-      visible:blend > 0, pickable:blend >= .5,
+      visible:blend > 0, pickable:active === 'property',
       getPosition:POSITION, getFillColor:PROPERTY_COLOR,
       getRadius:4, radiusMinPixels:3, radiusMaxPixels:7,
       stroked:true, getLineColor:[14,17,22,150], lineWidthMinPixels:.5,
@@ -554,7 +580,10 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   }
   function onViewStateChange({viewState}) {
     const zoomChanged = state.view.zoom !== viewState.zoom;
+    const previousMode = pickMode(state.view.zoom);
     state.view = {...viewState};
+    // A selected large-area list must not linger after a different grid takes over.
+    if (previousMode !== pickMode(viewState.zoom) && state.selectedRows.length) closeArea();
     const blend = detailBlend(viewState.zoom);
     state.individual = blend >= .5;
     hideTip();
@@ -562,7 +591,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     if (zoomChanged && viewFrame === null) {
       viewFrame = requestAnimationFrame(() => {
         viewFrame = null;
-        if (detailBlend(state.view.zoom) !== state.renderedBlend) refreshLayers();
+        if (detailBlend(state.view.zoom) !== state.renderedBlend || gridBlend(state.view.zoom) !== state.renderedGridBlend) refreshLayers();
         else { syncBuildings(); updateViewLabels(); }
       });
     }
@@ -578,6 +607,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     if (!viewer) return;
     hideTip();
     state.renderedBlend = detailBlend(state.view.zoom);
+    state.renderedGridBlend = gridBlend(state.view.zoom);
     viewer.setProps({layers:makeLayers()});
     syncBuildings();
     updateViewLabels();
@@ -619,7 +649,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   function updateFilterLabel() {
     const value = Number(el('hm-risk-filter').value);
     el('hm-filter-value').textContent = value ? '≥ ' + value + '%' : 'All risks';
-    el('hm-risk-filter').setAttribute('aria-valuetext', value ? 'At least ' + value + ' percent modeled risk' : 'All modeled risks');
+    el('hm-risk-filter').setAttribute('aria-valuetext', value ? 'At least ' + value + ' percent estimated risk' : 'All estimated risks');
   }
   function fail(message) {
     state.failed = true;
@@ -673,20 +703,20 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
       state.elevationDomain = [0,Math.max(1,state.totalComplaints)];
       state.areaBounds = collectAreaBounds(state.rows);
       state.view = {...state.view,...areaView('city')};
-      el('hm-coverage').textContent = number.format(state.rows.length) + ' ranked properties with mapped coordinates.';
+      el('hm-coverage').textContent = number.format(state.rows.length) + ' properties with a mapped risk score.';
       if (parsed.skipped) {
         el('hm-data-note').hidden = false;
-        el('hm-data-note').textContent = number.format(parsed.skipped) + ' incomplete, duplicate, or invalid property records could not be mapped.';
+        el('hm-data-note').textContent = number.format(parsed.skipped) + ' records could not be mapped because details were missing, repeated or invalid.';
       }
+      const resolution = renderPixelRatios(window.devicePixelRatio);
       viewer = new deck.DeckGL({
         container:'hm-map', map:maplibregl,
         mapStyle:'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-        mapOptions:{attributionControl:true, fadeDuration:0, pixelRatio:1},
+        mapOptions:{attributionControl:true, fadeDuration:0, pixelRatio:resolution.map},
         initialViewState:{...state.view, minZoom:8, maxZoom:18, maxPitch:60},
         controller:mapController('flat'),
-        // Both canvases use CSS-pixel resolution. High-DPI displays otherwise
-        // multiply the fill/picking cost of 63k properties and building tiles.
-        useDevicePixels:1,
+        // Keep basemap text sharp while bounding the heavier data canvas.
+        useDevicePixels:resolution.overlay,
         layers:makeLayers(), onHover, onClick, pickingRadius:4,
         getCursor:({isHovering,isDragging}) => isDragging ? 'grabbing' : isHovering ? 'pointer' : 'grab',
         onViewStateChange, onInteractionStateChange,
@@ -696,7 +726,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
           el('hm-message').hidden = true;
           for (const id of ['hm-flat','hm-3d','hm-risk-filter','hm-area','hm-reset','hm-zoom-in','hm-zoom-out','hm-buildings']) el(id).disabled = false;
           el('hm-status').dataset.state = 'ready';
-          el('hm-status').textContent = 'Citywide snapshot ready';
+          el('hm-status').textContent = 'Map ready';
           el('hm-status').title = 'First map render: ' + ((performance.now() - started)/1000).toFixed(2) + ' seconds';
         },
         onError:error => {
@@ -721,7 +751,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
           if (event.sourceId === BUILDING_SOURCE || (event.error && /openfreemap/.test(event.error.message || ''))) {
             state.buildingWarning = true;
             el('hm-geometry-note').hidden = false;
-            el('hm-geometry-note').textContent = 'Some building shapes could not load. Property risk markers remain available.';
+            el('hm-geometry-note').textContent = 'Some building shapes could not load. You can still use the colored risk dots.';
           } else el('hm-tile-note').hidden = false;
         });
         syncBuildings();

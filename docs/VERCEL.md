@@ -267,9 +267,19 @@ in the existing instance SQLite database and reload after a fresh Google sign-in
 The map uses a fixed pale-blue to deep-blue risk scale, interpolated into 256 steps for
 deck.gl 8 compatibility. Area color is mean property risk; the legend uses the same endpoints.
 Clicking a hexagon opens all its current-filter buildings in a paginated list; only clicking
-an individual marker or list link navigates to a building. Wheel easing is disabled, wheel
-speed is explicit, both map canvases use CSS pixels, and camera updates coalesce per frame.
-Panning reuses existing data layers; the flat/3D choice is preserved when zooming to buildings.
+an individual marker or list link navigates to a building. The citywide view uses 400 m
+hexagon radii, smoothly blending to fixed 120 m radii at zooms 11.3–12.5, before the existing
+12.8–14.8 fade to individual property dots. All layers use the same filtered properties;
+color remains the mean risk, height the sum of last-season complaints at 1.5 display m per
+complaint. No scores or public assets change. A grid switch closes any previous area list
+so its members do not refer to the old grid. Exactly one representation handles picking.
+
+Wheel easing is disabled, wheel speed is explicit, and camera updates coalesce per frame.
+Panning reuses existing data layers and fixed radii avoid per-frame re-binning. Basemap
+pixel ratio follows the screen up to 2, and the data overlay up to 1.5, instead of forcing
+both to 1 and blurring Retina text. Caps bound the fill/picking cost. The flat/3D choice
+is preserved when zooming to buildings. Verify actual-device appearance/performance in
+the preview; logic tests cannot prove frame rate or GPU rendering.
 
 ## 11. Learn more, FAQs and site guide
 

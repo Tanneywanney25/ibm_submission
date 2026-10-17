@@ -3,21 +3,21 @@
 {% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='help-pages.css') }}">{% endblock %}
 {% block body %}
 <div class="help-page faq-page">
-  <header class="help-hero"><p class="help-eyebrow">Help when you need it</p>
-    <h1>What would you like to know?</h1>
-    <p class="help-lead">Straight answers about building risk, the map, accounts and what to do next.</p>
+  <header class="help-hero"><p class="help-eyebrow">Help with HeatAhead</p>
+    <h1>Frequently asked questions</h1>
+    <p class="help-lead">Help with checking a building, reading the map and using your account.</p>
     <p><a href="/learn-more">New to HeatAhead? See how it works →</a></p>
   </header>
   <section class="faq-tools help-panel" aria-label="Find an answer" data-faq-tools hidden>
-    <label for="faq-search">Search frequently asked questions</label>
-    <input id="faq-search" type="search" placeholder="Try ‘hexagon height’, ‘alerts’ or ‘no heat’" autocomplete="off">
+    <label for="faq-search">Search the FAQs</label>
+    <input id="faq-search" type="search" placeholder="Try ‘height’, ‘alerts’ or ‘no heat’" autocomplete="off">
     <div class="faq-categories" role="group" aria-label="Filter by topic">
       <button type="button" class="faq-filter" data-faq-category="all" aria-pressed="true">All topics</button>
       {% for category in categories %}<button type="button" class="faq-filter" data-faq-category="{{ category }}" aria-pressed="false">{{ category }}</button>{% endfor %}
     </div>
     <p id="faq-count" class="help-small" role="status" aria-live="polite"></p>
   </section>
-  <p id="faq-empty" class="help-callout" hidden>No matching answers. Try a shorter phrase, choose All topics, or ask the guide.</p>
+  <p id="faq-empty" class="help-callout" hidden>No answers found. Try a shorter search, choose All topics, or ask the guide.</p>
   {% for category in categories %}
   <section class="faq-group" data-faq-group="{{ category }}" aria-labelledby="faq-group-{{ loop.index }}">
     <h2 id="faq-group-{{ loop.index }}">{{ category }}</h2>
@@ -34,7 +34,7 @@
     {% endfor %}
   </section>
   {% endfor %}
-  <section class="help-bottom help-panel"><div><h2>Prefer to ask a question?</h2><p>Try “How can I check my building?” or “Why are some hexagons taller?”</p></div>
+  <section class="help-bottom help-panel"><div><h2>Need help finding an answer?</h2><p>Ask the guide a question, like “How do I check my building?”</p></div>
     <button type="button" class="help-primary" data-open-guide hidden>Ask HeatAhead</button>
   </section>
 </div>

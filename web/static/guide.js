@@ -113,22 +113,22 @@
       const node=bubble('HeatAhead guide',item.answer);
       links(node,item.links);if(item.sources.length)links(node,item.sources,true);
       follow(node,item.follow.slice(0,3));
-      status.textContent=usedAI?'AI matched your question to this published FAQ.':'';
+      status.textContent=usedAI?'AI helped find this FAQ answer.':'';
     }
     function welcome(){
-      const node=bubble('HeatAhead guide','What would you like to do? I can explain the site and give you a shortcut to the right page.');
+      const node=bubble('HeatAhead guide','What would you like to know? You can ask about a building, the map or alerts.');
       follow(node,['look-up','alerts','heights','no-heat']);
     }
     function fallback(question){
-      const node=bubble('HeatAhead guide','I could not confidently match that question. Try a short question about a building, the map, alerts or inspections, or browse the FAQs.');
-      links(node,[{label:'Browse all FAQs',href:'/faq'},{label:'See how HeatAhead works',href:'/learn-more'}]);
+      const node=bubble('HeatAhead guide',"I'm not sure which answer fits. Try asking about a building, the map or alerts, or check the FAQs below.");
+      links(node,[{label:'All FAQs',href:'/faq'},{label:'How HeatAhead works',href:'/learn-more'}]);
       follow(node,rank(question,items).filter(r=>r.score>0).slice(0,2).map(r=>r.item.id));scroll();
     }
     function busy(value){$('hg-send').disabled=value;}
     async function ask(raw,selected=null){
       const question=String(raw||'').trim();if(!question)return;
       if(question.length>400||privateQuestion(question)){
-        status.textContent='Use a short general question without passwords, contact information or unit details.';
+        status.textContent='Keep questions under 400 characters and leave out contact details, passwords and apartment numbers.';
         input.value='';input.focus();return;
       }
       const ticket=++version;if(pending)pending.abort();pending=null;busy(false);status.textContent='';
@@ -140,7 +140,7 @@
       if(!content.ai_enabled){fallback(question);return;}
       pending=new AbortController();const controller=pending;
       const timer=win.setTimeout(()=>controller.abort(),7000);busy(true);
-      status.textContent='Finding the closest help topic…';
+      status.textContent='Looking for an answer…';
       try{
         const response=await win.fetch('/api/guide/ask',{method:'POST',credentials:'same-origin',
           headers:{'Content-Type':'application/json'},
@@ -148,8 +148,8 @@
         const result=response.ok?await response.json():null;
         if(ticket!==version)return;
         if(result&&result.mode==='ai'&&byId.has(result.topic))answer(byId.get(result.topic),true);
-        else{fallback(question);status.textContent='AI matching is unavailable. Common answers and links still work.';}
-      }catch{if(ticket===version){fallback(question);status.textContent='Could not connect. Use the FAQs or one of the shortcuts.';}}
+        else{fallback(question);status.textContent='AI help is unavailable right now. You can still use the FAQs and links.';}
+      }catch{if(ticket===version){fallback(question);status.textContent="Couldn't connect. Try the FAQs or use a link below.";}}
       finally{win.clearTimeout(timer);if(ticket===version){pending=null;busy(false);}}
     }
     function open(){
@@ -170,7 +170,7 @@
       log.replaceChildren();input.value='';status.textContent='';welcome();input.focus();
     });
     doc.querySelectorAll('[data-open-guide]').forEach(button=>{button.hidden=false;button.addEventListener('click',open);});
-    if(content.ai_enabled)$('hg-privacy').textContent='Common answers stay on this device. Unfamiliar questions may use AI matching. Leave out personal and unit details.';
+    if(content.ai_enabled)$('hg-privacy').textContent="Questions the guide doesn't recognize may use AI help. Please leave out passwords, contact details and apartment numbers.";
     setupFAQ(doc,items);
   }
   function setupFAQ(doc,items){
