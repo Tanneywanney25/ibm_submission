@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}How HeatAhead works{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='help-pages.css') }}">{% endblock %}
+{% block body %}
+<div class="help-page">
+  <header class="help-hero">
+    <p class="help-eyebrow">A guide to HeatAhead</p>
+    <h1>A clearer picture.<br>A head start on the cold.</h1>
+    <p class="help-lead">Heating problems leave a history. HeatAhead brings that history together with weather
+      to help New Yorkers know where to look before the next cold spell.</p>
+    <div class="help-actions"><a class="help-primary" href="/building">Check a building</a><a class="help-secondary" href="/map">Explore the map</a></div>
+    <p class="help-small">All five boroughs. Building-level information. Public browsing without an account.</p>
+  </header>
+
+  <nav class="help-toc" aria-label="On this page">
+    <a href="#how-it-works">How it works</a><a href="#reading-the-map">Read the map</a>
+    <a href="#understanding-risk">Understand risk</a><a href="#taking-action">Take action</a>
+    <a href="#data-and-privacy">Data &amp; privacy</a>
+  </nav>
+
+  <section id="how-it-works" class="help-section">
+    <p class="help-eyebrow">01 / The process</p><h2>From a weather forecast to a useful next step.</h2>
+    <div class="help-steps">
+      <article class="help-panel"><span class="help-step">1</span><h3>Detect the cold</h3><p>Weather forecasts identify upcoming freezing stretches that could put heating systems under pressure.</p></article>
+      <article class="help-panel"><span class="help-step">2</span><h3>Put history in context</h3><p>The model uses past complaints, violations and building information to estimate risk and prioritize properties.</p></article>
+      <article class="help-panel"><span class="help-step">3</span><h3>Help people prepare</h3><p>Tenants can check a building, landlords can review a property’s record, and inspectors can explore the ranked queue.</p></article>
+    </div>
+    <p class="help-small">Built by NYU Tingineers for the IBM Z Datathon, with model work on IBM LinuxONE. HeatAhead is an independent project, not NYC311 or an HPD service.</p>
+  </section>
+
+  <section id="reading-the-map" class="help-section">
+    <p class="help-eyebrow">02 / Read the map</p><h2>Color and height tell different stories.</h2>
+    <div class="help-map-key help-panel">
+      <div><h3>Color = modeled winter risk</h3><div class="help-risk-ramp" role="img" aria-label="Pale blue for lower risk, deep blue for higher risk"></div>
+        <div class="help-scale-labels"><span>Lower risk</span><span>Higher risk</span></div>
+        <p>A hexagon shows the average risk of its displayed properties. Zoomed-in property markers show individual estimates.</p></div>
+      <div><h3>Height = past complaints</h3><div class="help-height-example" aria-hidden="true"><span style="height:25%"></span><span style="height:55%"></span><span style="height:90%"></span></div>
+        <p>In the citywide 3D view, taller hexagons mean more heating complaints last season. They are not a count of buildings or their actual height.</p></div>
+    </div>
+    <div class="help-two">
+      <div><h3>Click an area, then choose a property</h3><p>A hexagon opens its building list, sorted by risk. Use its pages to see every member. A list entry or an individual marker opens that property’s record.</p></div>
+      <div><h3>Zoom in for building context</h3><p>Hexagons gradually fade into property markers. Gray footprints and heights come from the map. A tax lot can contain multiple physical buildings.</p></div>
+    </div>
+    <a class="help-text-link" href="/map">Try the map →</a>
+  </section>
+
+  <section id="understanding-risk" class="help-section">
+    <p class="help-eyebrow">03 / Understand the estimate</p><h2>A probability is a reason to look closer.</h2>
+    <div class="help-two">
+      <article class="help-panel"><h3>Match the time window</h3><p>Winter risk describes a season. The cold-day estimate on a building record describes a shorter prediction window. A seasonal estimate and a short-window estimate answer different questions.</p></article>
+      <article class="help-panel"><h3>Check the evidence</h3><p>On a building record, expand <b>How accurate is this number?</b> to see predictions grouped against observed outcomes in held-out data. Results for a group do not guarantee an outcome for one building.</p></article>
+    </div>
+    <ul class="help-points">
+      <li>High risk is not a confirmed outage or inspected violation. Low risk does not guarantee working heat.</li>
+      <li>Complaint records reflect reporting behavior, and unreported problems can be missed.</li>
+      <li>Probabilities are capped at 99%. Above 20%, the site shows bands to avoid unsupported precision.</li>
+      <li>A property that is not individually ranked has no individual estimate; that does not mean zero risk.</li>
+    </ul>
+    <a class="help-text-link" href="/building">Open a building record →</a>
+  </section>
+
+  <section id="taking-action" class="help-section">
+    <p class="help-eyebrow">04 / Choose your next step</p><h2>Use the information in a way that helps.</h2>
+    <div class="help-steps">
+      <article class="help-panel"><h3>For tenants</h3><p>Check your building’s record, find available owner or agent details, and save a building for cold-snap email alerts when account access is enabled.</p><a href="/#account">Manage building alerts →</a></article>
+      <article class="help-panel"><h3>For owners &amp; managers</h3><p>Review the property’s history and choose the owner/manager view to draft a self-audit notice. Review and send it yourself; nothing is auto-sent.</p><a href="/building?as=landlord">Review a building →</a></article>
+      <article class="help-panel"><h3>For inspectors</h3><p>Explore the prioritized queue and download the public top-500 list. The live monitor demonstrates queue updates using a historical replay.</p><a href="/monitor">Open the monitor →</a></article>
+    </div>
+    <aside class="help-callout" aria-labelledby="help-no-heat"><h3 id="help-no-heat">Already without heat or hot water?</h3>
+      <p>Contact your landlord or managing agent. If the problem is not resolved, use NYC311 to report it. Give service and contact details directly to the City. You do not need a high model score to report a real problem.</p>
+      <a href="https://portal.311.nyc.gov/article/?kanumber=KA-01036" target="_blank" rel="noopener noreferrer">Official NYC311 heat complaint guidance ↗</a>
+      <p class="help-small">For a gas smell or carbon-monoxide alarm, leave the building and call 911 from outside. HeatAhead cannot dispatch emergency help.
+        <a href="https://www.nyc.gov/site/hpd/services-and-information/heat-and-hot-water-information.page" target="_blank" rel="noopener noreferrer">HPD heating safety guidance ↗</a></p>
+    </aside>
+  </section>
+
+  <section id="data-and-privacy" class="help-section">
+    <p class="help-eyebrow">05 / Data &amp; privacy</p><h2>Public records, with practical limits.</h2>
+    <p>HeatAhead combines public NYC complaint, violation, property, owner and boiler records with weather information. Records can be incomplete, delayed or hard to match. A complaint is a report; a violation follows a different inspection process.</p>
+    <div class="help-source-links">
+      <a href="https://data.cityofnewyork.us/d/ygpa-z7cr" target="_blank" rel="noopener noreferrer">HPD complaints ↗</a>
+      <a href="https://data.cityofnewyork.us/d/wvxf-dwi5" target="_blank" rel="noopener noreferrer">HPD violations ↗</a>
+      <a href="https://www.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page" target="_blank" rel="noopener noreferrer">NYC PLUTO properties ↗</a>
+      <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo weather ↗</a>
+    </div>
+    <p>The map shows building-level information. Account registrations link saved buildings to a verified Google email. HeatAhead does not receive your Google password. Public owner and agent details come from business-registration records.</p>
+    <p>The site guide uses the answers published in our FAQs. Common questions are matched on your device. If optional AI matching is enabled, an unfamiliar question may be sent to the AI provider to select a help topic. The guide does not send your account identity or conversation history, and this application does not store guide conversations. Do not enter personal contact details, passwords or unit details.</p>
+    <p>Aerial photos and Street View have varying capture dates; they are not live images. The guide can point you to a page, but cannot send a notice, file a complaint, change alerts or invent a building score.</p>
+  </section>
+
+  <section class="help-bottom help-panel"><div><h2>Still have a question?</h2><p>Find a quick answer or ask the guide to point you in the right direction.</p></div>
+    <div class="help-actions"><a class="help-primary" href="/faq">Browse FAQs</a><button class="help-secondary" type="button" data-open-guide hidden>Ask HeatAhead</button></div>
+  </section>
+</div>
+{% endblock %}

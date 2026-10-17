@@ -119,14 +119,18 @@ function skyline(el, specs, cell, gap, pad){
 }
 </script>
 {% block head %}{% endblock %}
+<link rel="stylesheet" href="{{ url_for('static', filename='guide.css') }}">
+<script defer src="{{ url_for('static', filename='guide.js') }}"></script>
 </head>
 <body>
-<nav>
+<nav aria-label="Main navigation">
   <a class="brand" href="/">HeatAhead</a>
   <a href="/" class="{{ 'active' if page == 'signup' }}">{{ 'My account' if account_user else 'Sign in' }}</a>
   <a href="/building" class="{{ 'active' if page == 'building' }}">Check a building</a>
   <a href="/map" class="{{ 'active' if page == 'map' }}">Risk map</a>
   <a href="/monitor" class="{{ 'active' if page == 'monitor' }}">Live monitor</a>
+  <a href="/learn-more" class="{{ 'active' if page == 'learn' }}">Learn more</a>
+  <a href="/faq" class="{{ 'active' if page == 'faq' }}">FAQs</a>
   {% if account_user %}
   <div class="account-nav">
     <span title="{{ account_user.email }}">{{ account_user.name or account_user.email }}</span>
@@ -156,7 +160,9 @@ function skyline(el, specs, cell, gap, pad){
   <span><span class="dot" id="hdot"></span><span id="hstatus">checking the LinuxONE backend…</span></span>
   <span>Building-level data only · probabilities calibrated on the held-out 2025-26 winter</span>
   <span>Browse freely · Google sign-in for saved buildings</span>
+  <span><a href="/learn-more">How it works</a> · <a href="/faq">Help &amp; FAQs</a></span>
 </footer>
+{% include "_guide.html" %}
 <script>
 (async () => {
   const dot = document.getElementById('hdot'), st = document.getElementById('hstatus');
