@@ -53,6 +53,22 @@ th { color:var(--muted); font-weight:600; }
              font-size:.62rem; color:var(--muted); }
 .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
 @media (max-width:760px){ .grid2 { grid-template-columns:1fr; } }
+/* architecture (docs/design-language.md): buildings as shapes, lit windows as heat */
+.bwin { position:relative; background:var(--panel); border:1px solid var(--line);
+        flex:none; }
+.bwin i { position:absolute; background:var(--bg); }
+.bwin i.lit { background:var(--window);
+              box-shadow:0 0 10px 2px rgba(255,196,107,.45); }
+.skyline { display:flex; align-items:flex-end; gap:10px; overflow:hidden;
+           pointer-events:none; }
+.skybars { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+.skybars .col { display:flex; flex-direction:column; align-items:center; gap:5px;
+                font-size:.68rem; color:var(--muted); }
+.skybars .col b { font-size:.72rem; color:var(--ink); }
+.skybars .cur .bwin { border-color:var(--accent); }
+.skybars .cur b { color:var(--window); }
+.skyfoot { display:flex; align-items:flex-end; gap:4px; height:104px;
+           overflow:hidden; margin-top:2.2rem; pointer-events:none; }
 </style>
 <script>
 // Display rules (docs/webapp-spec.md): calibrated numbers only, never above 99%,
@@ -74,6 +90,29 @@ function riskHTML(p){
 function esc(s){
   return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+// A building as HTML: a window-cell grid; litIdx is a Set of lit cell indexes.
+function bldg(cols, rows, cell, gap, pad, litIdx, title){
+  const w = pad*2 + cols*cell + (cols-1)*gap, h = pad*2 + rows*cell + (rows-1)*gap;
+  let s = `<div class="bwin" style="width:${w}px;height:${h}px"` +
+          (title ? ` title="${esc(title)}"` : '') + ` aria-hidden="true">`;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const i = r*cols + c;
+    s += `<i class="${litIdx && litIdx.has(i) ? 'lit' : ''}" style="left:${pad + c*(cell+gap)}px;` +
+         `top:${pad + r*(cell+gap)}px;width:${cell}px;height:${cell}px"></i>`;
+  }
+  return s + '</div>';
+}
+// Deterministic spread of n lit windows across total cells.
+function litSet(n, total, seed){
+  const s = new Set();
+  for (let j = 0; j < n && s.size < total; j++) s.add(((j*7 + (seed||3)*13) * 3) % total);
+  return s;
+}
+// A skyline strip: specs = [[cols, rows, litCount], ...].
+function skyline(el, specs, cell, gap, pad){
+  el.innerHTML = specs.map(([c, r, lit], k) =>
+    bldg(c, r, cell, gap, pad, litSet(lit, c*r, k))).join('');
+}
 </script>
 {% block head %}{% endblock %}
 </head>
@@ -86,6 +125,20 @@ function esc(s){
   <a href="/monitor" class="{{ 'active' if page == 'monitor' }}">Live monitor</a>
 </nav>
 <main>{% block body %}{% endblock %}</main>
+<div class="skyfoot" id="skyfoot" aria-hidden="true"></div>
+<script>
+(() => {
+  const f = document.getElementById('skyfoot'); if (!f) return;
+  const hs = [5,3,7,4,8,3,5,6,4,9,3,6,5,7,4,8,5,3,6,4,7,5,4,6,3,5,4,6,3,5];
+  f.innerHTML = hs.map((h, k) =>
+    `<div style="position:relative;flex:1;height:${h*11}px;` +
+    `background:var(--${k % 4 ? 'panel' : 'line'})">` +
+    ((k === 6 || k === 17 || k === 26)
+      ? `<i style="position:absolute;left:38%;top:10px;width:7px;height:7px;` +
+        `background:var(--window);box-shadow:0 0 9px 2px rgba(255,196,107,.45)"></i>`
+      : '') + `</div>`).join('');
+})();
+</script>
 <footer>
   <span><span class="dot" id="hdot"></span><span id="hstatus">checking the LinuxONE backendâ€¦</span></span>
   <span>Building-level data only Â· probabilities calibrated on the held-out 2025-26 winter</span>

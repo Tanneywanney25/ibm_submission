@@ -13,11 +13,17 @@
   <div class="grid2">
     <div class="card">
       <h2>This winter</h2>
+      <div style="display:flex; gap:1.2rem; align-items:flex-start; flex-wrap:wrap">
+        <div id="elev"></div>
+        <div style="flex:1; min-width:200px">
       <div class="big"><span id="p_season"></span></div>
       <p class="muted">chance of at least one heat outage this winter â€”
         <span id="vs_median"></span>Ã— the citywide median,
         rank <span id="rank"></span></p>
       <p id="coldday" class="muted"></p>
+        </div>
+      </div>
+      <p class="muted" id="elevcap" style="font-size:.8rem"></p>
       <div class="chips" id="chips"></div>
       <p><a href="#" onclick="return draft()">Draft an owner notice</a>
          <span class="muted">(nothing is sent)</span></p>
@@ -93,17 +99,30 @@ async function lookup(e){
     ].filter(Boolean).map(t => `<span class="chip">${esc(t)}</span>`).join('');
   $('lastc').textContent = b.last_complaint; $('lastv').textContent = b.last_violation;
   $('landlord').textContent = b.landlord ? 'Registered owner: ' + b.landlord.name : '';
+  // the building, drawn: window grid sized from units, cells lit in risk share
+  const cols = 6, rows = Math.min(12, Math.max(4, Math.round((b.units || 24) / 8)));
+  const cells = cols * rows, lit = Math.max(1, Math.round(Math.min(b.season.p, 0.99) * cells));
+  $('elev').innerHTML = bldg(cols, rows, 13, 6, 10, litSet(lit, cells, 5),
+      'your building, drawn from city records');
+  $('elevcap').textContent = `Your building, drawn from city records - ${lit} of ${cells} ` +
+      `windows lit = this winter's risk share.`;
   bars('cbars', b.complaints); bars('vbars', b.violations);
   reliability();
   return false;
 }
 function bars(el, obj){
+  // seasons as a skyline: each bar is a little building; the latest one is lit
   const seasons = Object.keys(obj).sort();
   const max = Math.max(1, ...Object.values(obj));
-  $(el).innerHTML = seasons.map(s =>
-    `<div style="height:${Math.max(3, 66*obj[s]/max)}px" title="${s}: ${obj[s]}">
-       <span>${s.slice(2,4)}-${s.slice(5)}</span></div>`).join('')
-    || '<span class="muted">none on record</span>';
+  $(el).className = 'skybars';
+  $(el).innerHTML = seasons.map((s, k) => {
+    const v = obj[s], rows = Math.max(1, Math.round(v / max * 9));
+    const cur = k === seasons.length - 1;
+    return `<div class="col ${cur ? 'cur' : ''}">` +
+      bldg(2, rows, 6, 3, 4, cur ? litSet(Math.min(3, rows), 2*rows, 2) : null,
+           `${s}: ${v}`) +
+      `<span>${s.slice(2,4)}-${s.slice(5)}</span><b>${v}</b></div>`;
+  }).join('') || '<span class="muted">none on record</span>';
 }
 async function reliability(){
   let rows = [];
