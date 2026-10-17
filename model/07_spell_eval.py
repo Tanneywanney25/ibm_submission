@@ -12,6 +12,8 @@ Run from the repo root:  python model/07_spell_eval.py
 Writes: model/out/spell_results.csv
 """
 
+import sys
+
 import numpy as np
 import pandas as pd
 from common import (DATA, FEATS, NEVER, OUT, add_second_tier, band_prep, band_rates,
