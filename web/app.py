@@ -231,6 +231,42 @@ def api_live_start():
         return jsonify(offline=True, error="realtime service unreachable"), 503
 
 
+@app.get("/api/my_buildings")
+def api_my_buildings():
+    """Landlord view: every building registered under this email, plus the
+    rest of each building's landlord portfolio (public record)."""
+    email = (request.args.get("email") or "").strip()
+    rows = db().execute("SELECT bbl FROM users WHERE email=? AND bbl IS NOT NULL",
+                        (email,)).fetchall()
+    own = {int(r[0]) for r in rows}
+    portfolio = set(own)
+    for b in own:
+        if b in lord.index:
+            portfolio |= set(lord[lord.landlord == lord.loc[b].landlord].index)
+    out = []
+    for b in sorted(portfolio):
+        if b in season_risk.index:
+            sr = season_risk.loc[b]
+            out.append(dict(bbl=int(b), registered=b in own,
+                            p_season=round(float(sr.p_season), 3),
+                            rank=int(sr["rank"]), units=int(sr.unitsres),
+                            c_last1=int(sr.c_last1), v_last1=int(sr.v_last1)))
+        else:
+            out.append(dict(bbl=int(b), registered=b in own, ranked=False))
+    return jsonify(buildings=out)
+
+
+@app.get("/api/queue.csv")
+def api_queue_csv():
+    """Government export: the current top-k inspection list as CSV."""
+    k = max(1, min(int(request.args.get("k", 500)), 5000))
+    cols = ["rank", "p_calibrated", "tenants_at_risk", "unitsres", "cd",
+            "latitude", "longitude", "c_last1", "v_last1", "chronic"]
+    body = ranked.sort_values("rank").head(k)[cols].to_csv()
+    return (body, 200, {"Content-Type": "text/csv",
+                        "Content-Disposition": f"attachment; filename=heatahead_top{k}.csv"})
+
+
 @app.get("/api/draft_message/<int:bbl>")
 def api_draft_message(bbl):
     """Template a message to the building's registered owner (the later

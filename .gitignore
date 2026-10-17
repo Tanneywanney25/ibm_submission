@@ -28,3 +28,7 @@ model/out/
 1. docs/
 notebooks/
 data_exploration.ipynb
+
+# web app local state
+web/heatahead.db
+web/alerts.log

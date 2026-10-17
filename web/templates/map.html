@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Risk map — HeatAhead{% endblock %}
+{% block head %}
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+<link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/deck.gl@8.9.36/dist.min.js"></script>
+<style>#mapwrap{position:relative;height:72vh;border-radius:10px;overflow:hidden;
+border:1px solid var(--line)} #legend{position:absolute;bottom:14px;left:14px;
+background:rgba(14,17,22,.9);padding:.6rem .9rem;border-radius:8px;font-size:.8rem;z-index:5}
+#tip{position:absolute;pointer-events:none;background:#0b0e13;border:1px solid var(--line);
+padding:.4rem .7rem;border-radius:7px;font-size:.82rem;z-index:6;display:none}</style>
+{% endblock %}
+{% block body %}
+<h1>Where the heat fails <span class="muted" style="font-size:1rem">(T2 — full build per docs/tasks/T2-risk-map-3d.md)</span></h1>
+<p class="muted">Column height = complaints last season · color = this winter's risk.
+Click a column to open that building.</p>
+<div id="mapwrap"><div id="tip"></div>
+  <div id="legend">risk: <span style="color:#ffd9a0">low</span> →
+    <span style="color:#ff6b35">high</span> · drag to rotate (right-drag/ctrl)</div>
+</div>
+<script>
+(async () => {
+  const d = await (await fetch('/api/map_data')).json();
+  const idx = Object.fromEntries(d.columns.map((c,i)=>[c,i]));
+  const rows = d.rows.map((r,i) => ({lon:r[idx.lon], lat:r[idx.lat],
+    p:r[idx.p_season], c:r[idx.c_last1], u:r[idx.units], bbl:d.bbls[i]}));
+  const color = p => [255, Math.max(40, 217-180*p), Math.max(20, 160-140*p)];
+  new deck.DeckGL({
+    container: 'mapwrap',
+    mapStyle: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    initialViewState: {longitude:-73.93, latitude:40.78, zoom:10.4, pitch:50, bearing:-15},
+    controller: true,
+    layers: [new deck.ColumnLayer({
+      id:'risk', data:rows, diskResolution:6, radius:28, extruded:true,
+      elevationScale:6, pickable:true,
+      getPosition:r=>[r.lon,r.lat], getElevation:r=>Math.min(r.c,400),
+      getFillColor:r=>color(r.p),
+    })],
+    onClick: info => { if (info.object) location.href='/building?bbl='+info.object.bbl; },
+    onHover: info => {
+      const t = document.getElementById('tip');
+      if (!info.object) { t.style.display='none'; return; }
+      t.style.display='block'; t.style.left=(info.x+12)+'px'; t.style.top=(info.y+12)+'px';
+      const o=info.object;
+      t.innerHTML = `BBL ${o.bbl}<br>winter risk <b>${(o.p*100).toFixed(0)}%</b>` +
+        `<br>${o.c} complaints last season · ${o.u} units`;
+    },
+  });
+})();
+</script>
+{% endblock %}

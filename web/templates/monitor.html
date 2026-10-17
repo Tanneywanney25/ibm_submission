@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Live monitor — HeatAhead{% endblock %}
+{% block body %}
+<h1>Live monitor <span class="muted" style="font-size:1rem">(replay: Feb 7–9, 2026 cold snap)</span></h1>
+<div class="card" id="banner" style="display:none"></div>
+<div class="card" style="display:flex; gap:2rem; flex-wrap:wrap; align-items:center">
+  <div><div class="muted">replay clock</div><b id="clock">—</b></div>
+  <div><div class="muted">events processed</div><b id="processed">—</b></div>
+  <div><div class="muted">events / sec</div><b id="eps">—</b></div>
+  <div><div class="muted">p99 latency</div><b id="p99">—</b></div>
+  <div><div class="muted">scoring</div><b id="mode">—</b></div>
+  <button onclick="startReplay()">Start replay</button>
+  <a href="/api/queue.csv?k=500" class="muted">download top-500 CSV (gov)</a>
+</div>
+<div class="card">
+  <h2>Inspector queue — top 25 right now</h2>
+  <table id="queue"><tr><th>#</th><th>BBL</th><th>score</th>
+    <th>replay complaints</th><th>units</th></tr></table>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+async function tick(){
+  try {
+    const s = await (await fetch('/api/live/stats')).json();
+    if (s.offline) { offline(); return; }
+    $('banner').style.display='none';
+    $('clock').textContent = s.replay_clock ? s.replay_clock.replace('T',' ') : s.status;
+    $('processed').textContent = (s.processed||0).toLocaleString();
+    $('eps').textContent = (s.replay_events_per_second||0).toFixed(1);
+    $('p99').textContent = s.processing_latency_ms_p99 ?
+        s.processing_latency_ms_p99.toFixed(2)+' ms' : '—';
+    $('mode').textContent = s.scoring_mode;
+    const q = await (await fetch('/api/live/queue?k=25')).json();
+    if (!q.offline) $('queue').innerHTML =
+      '<tr><th>#</th><th>BBL</th><th>score</th><th>replay complaints</th><th>units</th></tr>' +
+      (q.buildings||[]).map((b,i)=>`<tr><td>${i+1}</td>
+        <td><a href="/building?bbl=${b.bbl}">${b.bbl}</a></td>
+        <td>${b.score.toFixed(3)}</td><td>${b.replay_complaints}</td>
+        <td>${b.unitsres ?? ''}</td></tr>`).join('');
+  } catch { offline(); }
+}
+function offline(){
+  const b = $('banner'); b.style.display='block';
+  b.textContent = 'Realtime service offline — start realtime/app.py (port 5000) on this host.';
+}
+async function startReplay(){
+  await fetch('/api/live/replay/start', {method:'POST',
+    headers:{'Content-Type':'application/json'}, body: JSON.stringify({speedup:1200})});
+}
+tick(); setInterval(tick, 1500);
+</script>
+{% endblock %}
