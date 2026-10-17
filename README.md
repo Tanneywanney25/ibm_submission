@@ -1,0 +1,90 @@
+# [ONLXXX] HeatAhead — forecast-triggered heat-failure prediction for NYC buildings
+
+> **Set the team number in the title above and in the Hack2skill project title before submitting.**
+
+NYC tenants filed **300,000+ no-heat complaints** last winter. Since Oct 1, 2026, HPD must
+attempt an inspection for every non-anonymous heat complaint — with ~350 inspectors and no
+way to prioritize. HeatAhead reads the weather forecast, and **before** the cold arrives,
+ranks every residential building by the probability it loses heat — so inspectors knock
+before tenants freeze.
+
+Built at the IBM Z Datathon, Oct 17–18, 2026, on an IBM z17 LinuxONE guest (s390x).
+
+## The results (all on the held-out 2025-26 winter)
+
+One model, one list, four honest clocks — of the **top 100** ranked buildings:
+
+| horizon | model | best baseline (14-day recency) |
+|---|---|---|
+| fail within the exact 48h | **69.1%** | 61.7% |
+| fail during that cold spell | **86.1%** | 77.1% |
+| fail within 30 days | **96.6%** | 91.0% |
+| preseason list: fail that winter | **99%** (95.4% @1000) | 96% |
+
+- **Validation:** 6-fold forward-chaining cross-validation — train only on past winters,
+  test on the next, six times. The model wins **6 of 6** (mean p@100 0.673 vs 0.634).
+- **Calibrated probabilities:** when we say 15%, 15% fail — verified bin-by-bin on
+  held-out data, nine splits, including fit-on-mild-days → test-on-coldest.
+- **Per-building winter risk:** every building gets its own number
+  (`model/out/season_risk_2026.csv`); 3,801 buildings enter 2026-27 at ≥80%.
+- **IBM Z, measured:** Snap ML re-scores all 172,485 buildings at **481,356
+  buildings/sec (p99 0.51 ms)** on a 3-core s390x guest — 1.3–1.4× XGBoost. `nnpa`
+  (Telum accelerator) present on the guest.
+
+## Repo map
+
+| where | what |
+|---|---|
+| `docs/` | project brief, team split, **SUBMISSION.md (the full story)**, model-iterations.md, webapp-spec.md |
+| `analysis/` | stream 1: weather bands, building-type × cold reaction rates, heatmaps |
+| `task 2/` | stream 2: label credibility (violation confirmation), Bronx geography, Forecast-Only buildings, boiler join, z17 hardware log |
+| `model/` | stream 5: the full pipeline, numbered `00`–`09`; `model/README.md` has run instructions |
+| `realtime/` | stream 6: live replay event loop (Feb 7–9, 2026 cold snap) + Flask API |
+| `web/`, `slides/` | frontend spec and the presentation scripts |
+| `R/` | early EDA (Quarto) + processed master tables (`days.csv`, `buildings.csv`) |
+
+## Reproduce
+
+Data (not in git — complaints CSV is 345 MB) comes from the sources below into `data/`;
+names and layout in `docs/README.md`. Then:
+
+```
+python model/00_second_tier.py   # landlord + boiler feature tables
+python model/01_build_panel.py   # label + features (leak-checked)
+python model/02_train.py         # XGBoost + sklearn ensemble
+python model/03_evaluate.py      # 71 cold days, precision@k vs 3 baselines
+python model/05_backtest.py      # 6-winter forward-chaining CV
+python model/07_spell_eval.py    # per-spell + season horizons, error autopsy
+python model/09_season_risk.py   # per-building winter risk (the tenant number)
+python model/04_snapml_bench.py  # LinuxONE: Snap ML throughput (s390x)
+```
+
+LinuxONE setup: `model/linuxone_setup.md`.
+
+## Data sources (NYC Open Data unless noted)
+
+- HPD Housing Maintenance Code Complaints and Problems — https://data.cityofnewyork.us/d/ygpa-z7cr
+- HPD Housing Maintenance Code Violations — https://data.cityofnewyork.us/d/wvxf-dwi5
+- HPD Multiple Dwelling Registrations — https://data.cityofnewyork.us/d/tesw-yqqr
+- HPD Registration Contacts — https://data.cityofnewyork.us/d/feu5-w2e2
+- DOB NOW Safety: Boiler inspections — https://data.cityofnewyork.us/d/52dp-yji6
+- DOB Boiler registrations (fuel) — https://data.cityofnewyork.us/d/f4rp-2kvy
+- DCP PLUTO 26v2 — https://www.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page
+- NOAA GHCN-Daily, Central Park station USW00094728 — https://www.ncdc.noaa.gov/cdo-web/
+- Open-Meteo historical weather + Previous Runs (archived forecasts) — https://open-meteo.com/
+- NYC GeoSearch (address → BBL) — https://geosearch.planninglabs.nyc/
+
+## Open-source libraries
+
+[pandas](https://pandas.pydata.org/) · [NumPy](https://numpy.org/) ·
+[scikit-learn](https://scikit-learn.org/) · [XGBoost](https://xgboost.ai/) ·
+[Snap ML](https://www.zurich.ibm.com/snapml/) · [Flask](https://flask.palletsprojects.com/) ·
+[Folium](https://python-visualization.github.io/folium/) · [data.table](https://rdatatable.gitlab.io/data.table/) (R EDA) ·
+[Quarto](https://quarto.org/) · [Jupyter](https://jupyter.org/)
+
+## Team
+
+NYU Tingineers — IBM Z Datathon 2026. Prior art and what's new vs it:
+`docs/heat-project-brief.md` §9 (short version: building-level heat prediction exists;
+a short-horizon, forecast-triggered, calibrated inspection ranking scored per fixed
+inspection budget does not — that is the contribution).
