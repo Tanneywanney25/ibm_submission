@@ -1,0 +1,1032 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "about",
+      "category": "Getting started",
+      "question": "What does HeatAhead do?",
+      "answer": "HeatAhead uses weather and building history to estimate winter heating risk across New York City. Use it to check a property, explore patterns on the map, and help prioritize inspections. It is a planning tool, not a live sensor or a guarantee that heat will fail.",
+      "terms": [
+        "what is heatahead",
+        "how does heatahead work",
+        "what do you do",
+        "what is this website",
+        "learn more",
+        "how does this work"
+      ],
+      "keywords": [
+        "heatahead",
+        "purpose",
+        "work",
+        "explain",
+        "about",
+        "learn"
+      ],
+      "links": [
+        {
+          "label": "Learn how HeatAhead works",
+          "href": "/learn-more"
+        },
+        {
+          "label": "Check a building",
+          "href": "/building"
+        }
+      ],
+      "follow": [
+        "look-up",
+        "limitations"
+      ],
+      "sources": []
+    },
+    {
+      "id": "look-up",
+      "category": "Getting started",
+      "question": "How can I check my building?",
+      "answer": "Open Check a building, enter its street address or 10-digit BBL, and select Look up. Include the borough in an address. The record shows modeled risk, complaints, violations and available owner information. Use a building address only.",
+      "terms": [
+        "check my building",
+        "find my building",
+        "look up my building",
+        "check my address",
+        "search an address",
+        "my building risk",
+        "find a property",
+        "building lookup",
+        "look up",
+        "take me to my building"
+      ],
+      "keywords": [
+        "building",
+        "address",
+        "lookup",
+        "search",
+        "find",
+        "check",
+        "property"
+      ],
+      "links": [
+        {
+          "label": "Go to building lookup",
+          "href": "/building"
+        }
+      ],
+      "follow": [
+        "bbl",
+        "winter-risk"
+      ],
+      "sources": []
+    },
+    {
+      "id": "bbl",
+      "category": "Getting started",
+      "question": "What is a BBL?",
+      "answer": "A BBL is the 10-digit Borough, Block and Lot identifier used for a New York City tax lot. The first digit identifies the borough. A tax lot may contain more than one physical building. You can search by street address if you do not know its BBL.",
+      "terms": [
+        "what is a bbl",
+        "what does bbl mean",
+        "borough block lot",
+        "tax lot",
+        "parcel"
+      ],
+      "keywords": [
+        "bbl",
+        "identifier",
+        "parcel",
+        "lot",
+        "digits"
+      ],
+      "links": [
+        {
+          "label": "Find a building by address",
+          "href": "/building"
+        }
+      ],
+      "follow": [
+        "look-up"
+      ],
+      "sources": []
+    },
+    {
+      "id": "map",
+      "category": "Map and risk",
+      "question": "How can I explore the risk map?",
+      "answer": "Open the risk map to explore all five boroughs. Use the minimum-risk slider to filter properties, the area selector to move between boroughs, and Flat map or 3D view to choose the display. Zoom in to move from area hexagons to individual property markers.",
+      "terms": [
+        "open the map",
+        "show the map",
+        "risk map",
+        "see the map",
+        "all five boroughs",
+        "explore neighborhoods",
+        "take me to the map"
+      ],
+      "keywords": [
+        "map",
+        "borough",
+        "neighborhood",
+        "explore",
+        "zoom",
+        "filter",
+        "slider"
+      ],
+      "links": [
+        {
+          "label": "Open the risk map",
+          "href": "/map"
+        }
+      ],
+      "follow": [
+        "hexagons",
+        "heights",
+        "colors"
+      ],
+      "sources": []
+    },
+    {
+      "id": "hexagons",
+      "category": "Map and risk",
+      "question": "What happens when I click a hexagon?",
+      "answer": "A hexagon groups nearby properties. Clicking it opens a list of the properties inside that area, ordered by risk and respecting your current filter. Use Next to see more entries, or Zoom to these buildings to look closer. A property marker or a list link opens that specific property record.",
+      "terms": [
+        "click a hexagon",
+        "hexagon list",
+        "multiple buildings",
+        "buildings in an area",
+        "hexagons mean",
+        "what are the hexagons"
+      ],
+      "keywords": [
+        "hexagon",
+        "hexagons",
+        "area",
+        "list",
+        "cluster",
+        "density",
+        "multiple"
+      ],
+      "links": [
+        {
+          "label": "Explore map areas",
+          "href": "/map"
+        }
+      ],
+      "follow": [
+        "heights",
+        "colors"
+      ],
+      "sources": []
+    },
+    {
+      "id": "heights",
+      "category": "Map and risk",
+      "question": "Why are some hexagons taller?",
+      "answer": "In the citywide 3D view, a hexagon’s height represents the combined heating complaints last season from its displayed properties. Two properties with many complaints can be taller than twenty with few complaints. Up close, gray building shapes use map-provided geometry and heights instead.",
+      "terms": [
+        "hexagon height",
+        "hexagons taller",
+        "some hexagons taller",
+        "taller than",
+        "why so tall",
+        "what does height mean",
+        "column height",
+        "3d height"
+      ],
+      "keywords": [
+        "height",
+        "heights",
+        "tall",
+        "taller",
+        "columns",
+        "3d",
+        "complaint"
+      ],
+      "links": [
+        {
+          "label": "See the 3D map",
+          "href": "/map"
+        },
+        {
+          "label": "Read the map explanation",
+          "href": "/learn-more#reading-the-map"
+        }
+      ],
+      "follow": [
+        "colors",
+        "hexagons"
+      ],
+      "sources": []
+    },
+    {
+      "id": "colors",
+      "category": "Map and risk",
+      "question": "What do the map colors mean?",
+      "answer": "The map uses a continuous pale-blue to deep-blue scale: darker blue means higher modeled winter risk. An area hexagon shows the average risk of the properties inside it; an individual marker shows that property’s risk. Height is a separate measure of past complaint volume.",
+      "terms": [
+        "map colors",
+        "map colours",
+        "darker blue",
+        "lighter blue",
+        "color mean",
+        "colour mean",
+        "blue mean",
+        "color scale",
+        "colour scale"
+      ],
+      "keywords": [
+        "color",
+        "colors",
+        "colour",
+        "colours",
+        "blue",
+        "darker",
+        "gradient",
+        "legend"
+      ],
+      "links": [
+        {
+          "label": "Open the map and legend",
+          "href": "/map"
+        },
+        {
+          "label": "Understand map colors",
+          "href": "/learn-more#reading-the-map"
+        }
+      ],
+      "follow": [
+        "heights",
+        "winter-risk"
+      ],
+      "sources": []
+    },
+    {
+      "id": "winter-risk",
+      "category": "Map and risk",
+      "question": "What does winter risk mean?",
+      "answer": "Winter risk is the model’s estimate for the season, based on a property’s history and building context. It is not a live reading of your heat. Different prediction windows answer different questions, so compare a seasonal estimate with seasonal estimates. Open a building’s record to see its actual displayed estimate.",
+      "terms": [
+        "winter risk",
+        "season risk",
+        "seasonal risk",
+        "what is my risk",
+        "my risk score",
+        "risk percentage",
+        "risk percent",
+        "what does risk mean",
+        "risk number"
+      ],
+      "keywords": [
+        "risk",
+        "winter",
+        "season",
+        "seasonal",
+        "percentage",
+        "probability",
+        "score"
+      ],
+      "links": [
+        {
+          "label": "See a building’s risk",
+          "href": "/building"
+        },
+        {
+          "label": "Understand the estimates",
+          "href": "/learn-more#understanding-risk"
+        }
+      ],
+      "follow": [
+        "cold-day",
+        "calibration",
+        "limitations"
+      ],
+      "sources": []
+    },
+    {
+      "id": "cold-day",
+      "category": "Map and risk",
+      "question": "How is cold-day risk different from winter risk?",
+      "answer": "Winter risk covers a season. The cold-day estimate on a building record concerns the next freezing-day prediction window and is shown separately. A building can have substantial risk across a whole winter while having a lower estimate for a short window. The two numbers should not be treated as interchangeable.",
+      "terms": [
+        "cold day risk",
+        "cold-day risk",
+        "next freezing day",
+        "48 hours",
+        "48h",
+        "different risk numbers",
+        "two risk numbers"
+      ],
+      "keywords": [
+        "cold",
+        "freezing",
+        "48h",
+        "window",
+        "horizon",
+        "different"
+      ],
+      "links": [
+        {
+          "label": "Compare estimates on a building",
+          "href": "/building"
+        },
+        {
+          "label": "Read about prediction windows",
+          "href": "/learn-more#understanding-risk"
+        }
+      ],
+      "follow": [
+        "winter-risk",
+        "calibration"
+      ],
+      "sources": []
+    },
+    {
+      "id": "calibration",
+      "category": "Map and risk",
+      "question": "How can I check how accurate the estimates are?",
+      "answer": "Open a building record and expand How accurate is this number? to compare prediction bands with observed outcomes in held-out data. Calibration describes groups of similar predictions, not certainty about one property. Displayed probabilities are capped at 99%, with bands above 20% to avoid suggesting unsupported precision.",
+      "terms": [
+        "how accurate",
+        "can i trust",
+        "is it accurate",
+        "calibration",
+        "reliability",
+        "why a range",
+        "why bands",
+        "not exact",
+        "99 percent"
+      ],
+      "keywords": [
+        "accurate",
+        "accuracy",
+        "trust",
+        "calibration",
+        "calibrated",
+        "reliability",
+        "bands",
+        "range",
+        "precision"
+      ],
+      "links": [
+        {
+          "label": "Open a building’s accuracy table",
+          "href": "/building"
+        },
+        {
+          "label": "Learn about model limits",
+          "href": "/learn-more#understanding-risk"
+        }
+      ],
+      "follow": [
+        "limitations",
+        "unranked"
+      ],
+      "sources": []
+    },
+    {
+      "id": "unranked",
+      "category": "Map and risk",
+      "question": "Why is my building not individually ranked?",
+      "answer": "A property can be outside the ranked set or have too little usable matched history. Not individually ranked does not mean zero risk or prove there have never been heating problems. Read the context on its record and use official complaint channels if you currently have no heat.",
+      "terms": [
+        "not ranked",
+        "not individually ranked",
+        "missing building",
+        "building not found",
+        "no history",
+        "no record",
+        "not on the map"
+      ],
+      "keywords": [
+        "unranked",
+        "missing",
+        "unavailable",
+        "ranked",
+        "history",
+        "record"
+      ],
+      "links": [
+        {
+          "label": "Look up a building",
+          "href": "/building"
+        },
+        {
+          "label": "What to do without heat",
+          "href": "/faq#no-heat"
+        }
+      ],
+      "follow": [
+        "data",
+        "no-heat"
+      ],
+      "sources": []
+    },
+    {
+      "id": "data",
+      "category": "Trust and data",
+      "question": "Where does the information come from?",
+      "answer": "The project combines public NYC building, complaint, violation, ownership and boiler records with weather information. Records are joined at building or tax-lot level. Public data can be incomplete or delayed, and a reported complaint is not the same as an inspected violation or a sensor-confirmed outage.",
+      "terms": [
+        "where is the data from",
+        "data sources",
+        "source of data",
+        "where does the information come from",
+        "how often updated",
+        "data updated",
+        "complaints vs violations"
+      ],
+      "keywords": [
+        "data",
+        "source",
+        "sources",
+        "updated",
+        "records",
+        "violation",
+        "violations",
+        "history"
+      ],
+      "links": [
+        {
+          "label": "See data sources and limitations",
+          "href": "/learn-more#data-and-privacy"
+        }
+      ],
+      "follow": [
+        "privacy",
+        "limitations"
+      ],
+      "sources": []
+    },
+    {
+      "id": "privacy",
+      "category": "Trust and data",
+      "question": "What personal information does HeatAhead use?",
+      "answer": "The map and records show building-level information, not individual tenants. Saving alerts links your registration to your verified Google email. Public owner or agent details are business-registration records. The guide does not need personal contact details; do not enter passwords, email addresses, phone numbers or unit details into it.",
+      "terms": [
+        "personal data",
+        "my privacy",
+        "my information",
+        "google password",
+        "private information",
+        "store my questions",
+        "save my questions",
+        "who can see my data"
+      ],
+      "keywords": [
+        "privacy",
+        "personal",
+        "private",
+        "password",
+        "email",
+        "phone",
+        "store",
+        "questions"
+      ],
+      "links": [
+        {
+          "label": "Read about data and privacy",
+          "href": "/learn-more#data-and-privacy"
+        },
+        {
+          "label": "Manage your account",
+          "href": "/#account"
+        }
+      ],
+      "follow": [
+        "sign-in",
+        "remove-alerts"
+      ],
+      "sources": []
+    },
+    {
+      "id": "sign-in",
+      "category": "Accounts and alerts",
+      "question": "How can I sign up or sign in?",
+      "answer": "Use Continue with Google on the home page. The same button handles first-time and returning users; HeatAhead does not receive your Google password. You can browse the map and building records without signing in. If the button says sign-in is being set up, account access is not available yet.",
+      "terms": [
+        "sign in",
+        "sign up",
+        "log in",
+        "login",
+        "create an account",
+        "google login",
+        "google sign in",
+        "without an account",
+        "without logging in",
+        "register an account"
+      ],
+      "keywords": [
+        "login",
+        "log",
+        "sign",
+        "signup",
+        "google",
+        "account",
+        "register"
+      ],
+      "links": [
+        {
+          "label": "Go to sign-in and account",
+          "href": "/#account"
+        }
+      ],
+      "follow": [
+        "remember",
+        "alerts"
+      ],
+      "sources": []
+    },
+    {
+      "id": "remember",
+      "category": "Accounts and alerts",
+      "question": "Will I stay signed in when I come back?",
+      "answer": "Choose Keep me signed in for 30 days on this device when you use Google sign-in. Browser privacy settings or clearing cookies can end the session sooner. Sign out on a shared device. After signing in again with the same Google email, saved building registrations can be restored from your account.",
+      "terms": [
+        "stay signed in",
+        "remember me",
+        "auto login",
+        "autologin",
+        "30 days",
+        "keep me signed in",
+        "returning visit",
+        "come back"
+      ],
+      "keywords": [
+        "remember",
+        "return",
+        "returning",
+        "cookies",
+        "cookie",
+        "autologin",
+        "device",
+        "logout"
+      ],
+      "links": [
+        {
+          "label": "Open your account",
+          "href": "/#account"
+        }
+      ],
+      "follow": [
+        "sign-in",
+        "alerts"
+      ],
+      "sources": []
+    },
+    {
+      "id": "alerts",
+      "category": "Accounts and alerts",
+      "question": "How can I get cold-snap email alerts?",
+      "answer": "Sign in with Google, choose Tenant or Landlord, enter your building’s address or BBL, confirm the email-alert checkbox and save. Alerts are designed for forecast cold spells and qualifying building risk, not every cold day. Email delivery also depends on the alert service being enabled; you can always check a building directly.",
+      "terms": [
+        "get alerts",
+        "heat alerts",
+        "email alerts",
+        "cold snap alerts",
+        "notifications",
+        "notify me",
+        "subscribe",
+        "save my building",
+        "register my building",
+        "enable alerts"
+      ],
+      "keywords": [
+        "alerts",
+        "alert",
+        "subscribe",
+        "notifications",
+        "notify",
+        "save",
+        "saved"
+      ],
+      "links": [
+        {
+          "label": "Save a building for alerts",
+          "href": "/#account"
+        }
+      ],
+      "follow": [
+        "remove-alerts",
+        "remember"
+      ],
+      "sources": []
+    },
+    {
+      "id": "remove-alerts",
+      "category": "Accounts and alerts",
+      "question": "How can I stop alerts or remove a saved building?",
+      "answer": "Sign in with the Google account used for that registration. Under Your saved buildings, select Stop alerts & remove for the property. An unsubscribe link in an alert email also leads to a confirmation step. The guide itself does not change registrations or send messages.",
+      "terms": [
+        "stop alerts",
+        "remove a building",
+        "remove my building",
+        "delete my building",
+        "unsubscribe",
+        "turn off alerts",
+        "cancel alerts",
+        "turn notifications off",
+        "disable notifications",
+        "delete registration",
+        "stop getting emails"
+      ],
+      "keywords": [
+        "unsubscribe",
+        "stop",
+        "remove",
+        "delete",
+        "cancel",
+        "off"
+      ],
+      "links": [
+        {
+          "label": "Manage saved buildings",
+          "href": "/#account"
+        }
+      ],
+      "follow": [
+        "alerts",
+        "privacy"
+      ],
+      "sources": []
+    },
+    {
+      "id": "landlord",
+      "category": "Taking action",
+      "question": "How can a landlord use HeatAhead?",
+      "answer": "Look up a building, review its history and available owner or agent records, then choose I own or manage it on the building page for self-audit wording. Registering as Landlord saves alert preferences; it does not verify ownership or grant access to private tenant data.",
+      "terms": [
+        "i am a landlord",
+        "i own a building",
+        "i manage a building",
+        "landlord view",
+        "self audit",
+        "self-audit",
+        "managing agent",
+        "owner information",
+        "who owns",
+        "find my landlord",
+        "contact my landlord"
+      ],
+      "keywords": [
+        "landlord",
+        "owner",
+        "owns",
+        "ownership",
+        "agent",
+        "manage",
+        "responsible",
+        "contact"
+      ],
+      "links": [
+        {
+          "label": "Open landlord building lookup",
+          "href": "/building?as=landlord"
+        },
+        {
+          "label": "Read about responsible parties",
+          "href": "/learn-more#taking-action"
+        }
+      ],
+      "follow": [
+        "draft-message",
+        "alerts"
+      ],
+      "sources": []
+    },
+    {
+      "id": "draft-message",
+      "category": "Taking action",
+      "question": "How can I draft a message about my building?",
+      "answer": "Open the building record, find the drafted-notice section and choose the tenant or landlord wording. Select Draft the notice, review the text, then copy it or open your email app. Nothing is automatically sent. Owner records may include a business mailing address rather than an email address.",
+      "terms": [
+        "draft a message",
+        "draft a notice",
+        "write to my landlord",
+        "send a message",
+        "write an email",
+        "contact the owner",
+        "draft notice",
+        "email landlord"
+      ],
+      "keywords": [
+        "draft",
+        "message",
+        "notice",
+        "write",
+        "send",
+        "email"
+      ],
+      "links": [
+        {
+          "label": "Find a building and draft a notice",
+          "href": "/building#draft"
+        }
+      ],
+      "follow": [
+        "landlord",
+        "no-heat"
+      ],
+      "sources": []
+    },
+    {
+      "id": "inspector",
+      "category": "Taking action",
+      "question": "How can inspectors use the ranked queue?",
+      "answer": "Open the live monitor to view the prioritized queue, or download the public top-500 CSV. Ranks support inspection planning; they do not confirm a violation. The Government preference on an account selects an inspector-oriented view rather than verifying employment or unlocking private records.",
+      "terms": [
+        "inspection queue",
+        "inspector queue",
+        "ranked queue",
+        "top 500",
+        "download csv",
+        "export csv",
+        "inspection list",
+        "government view",
+        "which buildings need inspecting",
+        "prioritize inspections",
+        "top buildings to inspect"
+      ],
+      "keywords": [
+        "inspector",
+        "inspectors",
+        "queue",
+        "rank",
+        "ranked",
+        "csv",
+        "export",
+        "download",
+        "government"
+      ],
+      "links": [
+        {
+          "label": "Open the inspection monitor",
+          "href": "/monitor"
+        },
+        {
+          "label": "Download the top-500 CSV",
+          "href": "/api/queue.csv?k=500"
+        }
+      ],
+      "follow": [
+        "replay",
+        "calibration"
+      ],
+      "sources": []
+    },
+    {
+      "id": "replay",
+      "category": "Taking action",
+      "question": "Is the live monitor showing events happening right now?",
+      "answer": "The monitor demonstrates how complaints can re-sort an inspection queue through a historical replay. Use its replay clock and scoring-mode labels to understand what is running. A replay is not a live report of today’s outages. If the service is offline, the map and existing building records can still be used.",
+      "terms": [
+        "live monitor",
+        "real time",
+        "realtime",
+        "historical replay",
+        "start replay",
+        "service offline",
+        "monitor offline",
+        "replay clock"
+      ],
+      "keywords": [
+        "live",
+        "monitor",
+        "realtime",
+        "replay",
+        "offline",
+        "latency",
+        "stream"
+      ],
+      "links": [
+        {
+          "label": "Open the live monitor",
+          "href": "/monitor"
+        }
+      ],
+      "follow": [
+        "inspector",
+        "map"
+      ],
+      "sources": []
+    },
+    {
+      "id": "no-heat",
+      "category": "Taking action",
+      "question": "What should I do if I have no heat or hot water?",
+      "answer": "Contact your landlord, superintendent or managing agent about the problem. If it is not resolved, use NYC311 to report a heat or hot-water problem. Give any contact and service details directly to NYC311, not this guide. Do not wait for a model score or an email alert before reporting an existing problem.",
+      "terms": [
+        "no heat",
+        "no hot water",
+        "heat stopped",
+        "heat not working",
+        "heat is out",
+        "heating is broken",
+        "heat failed",
+        "my heat died",
+        "report a problem",
+        "file a complaint",
+        "311",
+        "freezing in my home",
+        "file a heat complaint",
+        "file heat complaint",
+        "report heating problem",
+        "make a heat complaint",
+        "report no heating"
+      ],
+      "keywords": [
+        "noheat",
+        "broken",
+        "failed",
+        "fails",
+        "stopped",
+        "report",
+        "complaint",
+        "311"
+      ],
+      "links": [
+        {
+          "label": "Open NYC311 heat complaint guidance",
+          "href": "https://portal.311.nyc.gov/article/?kanumber=KA-01036"
+        }
+      ],
+      "follow": [
+        "heat-rules",
+        "landlord"
+      ],
+      "sources": [
+        {
+          "label": "NYC311: heat and hot-water complaints",
+          "href": "https://portal.311.nyc.gov/article/?kanumber=KA-01036"
+        }
+      ]
+    },
+    {
+      "id": "heat-rules",
+      "category": "Taking action",
+      "question": "What are NYC’s heat and hot-water requirements?",
+      "answer": "NYC heat season runs October 1–May 31. From 6 AM–10 PM, indoor temperature must reach at least 68°F when it is below 55°F outside. From 10 PM–6 AM, at least 62°F is required regardless of outdoor temperature. Hot water must reach at least 120°F year-round. See HPD for current official guidance.",
+      "terms": [
+        "heat requirements",
+        "heating rules",
+        "heat season",
+        "heat law",
+        "what temperature",
+        "68 degrees",
+        "62 degrees",
+        "nighttime",
+        "at night",
+        "hot water temperature"
+      ],
+      "keywords": [
+        "rules",
+        "law",
+        "requirements",
+        "temperature",
+        "nighttime",
+        "daytime",
+        "required",
+        "68",
+        "62",
+        "120"
+      ],
+      "links": [
+        {
+          "label": "Read official HPD heat guidance",
+          "href": "https://www.nyc.gov/site/hpd/services-and-information/heat-and-hot-water-information.page"
+        }
+      ],
+      "follow": [
+        "no-heat"
+      ],
+      "sources": [
+        {
+          "label": "NYC HPD: heat and hot water",
+          "href": "https://www.nyc.gov/site/hpd/services-and-information/heat-and-hot-water-information.page"
+        }
+      ]
+    },
+    {
+      "id": "imagery",
+      "category": "Map and risk",
+      "question": "Are the building photos and shapes live?",
+      "answer": "The building page offers aerial imagery and a link to the nearest available Google Street View panorama. Capture dates and coverage vary; the images are not live. The location marker identifies the mapped property point. Gray map footprints and heights provide context and are not a prediction of the building’s physical condition.",
+      "terms": [
+        "building photo",
+        "real photo",
+        "satellite",
+        "aerial",
+        "street view",
+        "building shapes",
+        "real buildings",
+        "live photo"
+      ],
+      "keywords": [
+        "photo",
+        "photos",
+        "imagery",
+        "satellite",
+        "aerial",
+        "street",
+        "shapes",
+        "footprints"
+      ],
+      "links": [
+        {
+          "label": "Open building imagery",
+          "href": "/building"
+        }
+      ],
+      "follow": [
+        "hexagons",
+        "heights"
+      ],
+      "sources": []
+    },
+    {
+      "id": "limitations",
+      "category": "Trust and data",
+      "question": "Does a high score mean a building will definitely lose heat?",
+      "answer": "No. A risk estimate is uncertain and does not confirm an outage or violation. Complaints reflect reporting behavior as well as possible heating problems; unreported problems can be missing. Weather forecasts and public records also have limits. Use the score to plan a closer look, not to accuse an owner or dismiss a tenant’s report.",
+      "terms": [
+        "definitely fail",
+        "guarantee",
+        "confirmed outage",
+        "confirmed violation",
+        "is my heat working",
+        "current outage",
+        "live outage",
+        "will i lose heat",
+        "prove my landlord",
+        "can it be wrong",
+        "limitations",
+        "definitely lose heat",
+        "definitely lose heating",
+        "risk is certain"
+      ],
+      "keywords": [
+        "guarantee",
+        "certain",
+        "definitely",
+        "prove",
+        "confirmed",
+        "limits",
+        "limitations",
+        "outage",
+        "wrong"
+      ],
+      "links": [
+        {
+          "label": "Understand the limits",
+          "href": "/learn-more#understanding-risk"
+        },
+        {
+          "label": "Report an existing heat problem",
+          "href": "/faq#no-heat"
+        }
+      ],
+      "follow": [
+        "calibration",
+        "no-heat"
+      ],
+      "sources": []
+    },
+    {
+      "id": "emergency",
+      "category": "Taking action",
+      "question": "What if I smell gas or a carbon-monoxide alarm sounds?",
+      "answer": "If you smell gas or a carbon-monoxide alarm sounds, leave the building and call 911 from outside. HeatAhead cannot dispatch help or assess an emergency. For a heating-service problem without immediate danger, use NYC311.",
+      "terms": [
+        "smell gas",
+        "gas leak",
+        "carbon monoxide",
+        "co alarm",
+        "carbon-monoxide",
+        "fire",
+        "emergency",
+        "911"
+      ],
+      "keywords": [
+        "gas",
+        "leak",
+        "carbon",
+        "monoxide",
+        "fire",
+        "emergency",
+        "911"
+      ],
+      "links": [
+        {
+          "label": "Read HPD’s heating safety guidance",
+          "href": "https://www.nyc.gov/site/hpd/services-and-information/heat-and-hot-water-information.page"
+        }
+      ],
+      "follow": [
+        "no-heat"
+      ],
+      "sources": [
+        {
+          "label": "NYC HPD: heating safety",
+          "href": "https://www.nyc.gov/site/hpd/services-and-information/heat-and-hot-water-information.page"
+        }
+      ]
+    }
+  ]
+}

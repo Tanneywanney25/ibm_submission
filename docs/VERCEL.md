@@ -104,6 +104,9 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/building` | GET | lookup page (`building.html`) | template |
 | `/map` | GET | risk map (`map.html`) | template |
 | `/monitor` | GET | live monitor (`monitor.html`) | template |
+| `/learn-more` | GET | how the site works, map reading, prediction windows, actions, data and privacy | template + shared guide content |
+| `/faq` | GET | 26 searchable, categorized questions with deep links and official sources | shared guide content, server-rendered answers (works without JavaScript) |
+| `/api/guide/ask` | POST | `{question,previous_topic?}` → `{topic,mode}`; optional AI selects an existing FAQ id; no generated URLs, scores, account actions or conversation storage; 400 invalid/private input, 403 cross-origin, 429 warm-worker request limit | stdlib + requests; 200 `{topic:null,mode:"guide"}` if unconfigured or provider fails |
 | `/api/lookup?address=` | GET | `{bbl, normalized}` from NYC GeoSearch; 502 when the geocoder is down | live call, same in both modes |
 | `/api/building/<bbl>` | GET | the building payload | `public/data/b/NN.json` |
 | `/api/map_data` | GET | map rows | 302 redirect to `/data/map_data.json` (static, 3.1 MB; the function must not return 4 MB bodies, Vercel caps function responses at 4.5 MB). `fetch` follows the redirect, so `map.html` is unchanged |
@@ -137,6 +140,8 @@ New endpoints go under `/api/` and get a row in this table in the same commit.
 | `FLASK_SECRET_KEY` | stable random secret of at least 32 characters; exactly the same value on Vercel and LinuxONE; never commit it | signed cookies and one-use account forwarding |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth web application credentials; Vercel only | Google sign-in |
 | `AUTH_BASE_URL` | `https://ibmsubmission.vercel.app` for Production; exact stable preview origin for a preview; no trailing path | OAuth callback origin and cookie host |
+| `OPENAI_API_KEY` | optional server-side provider key; never send it to the browser or commit it | guide AI topic matching only |
+| `GUIDE_AI_MODEL` | explicit active Responses API model with Structured Outputs support; AI stays disabled unless both variables are set | optional semantic matching of unfamiliar wording |
 
 The browser calls only the HTTPS website. Account forwarding now signs the exact request
 and matching reply with 60-second expiry, SHA-256, and a SQLite one-use nonce. An old backend,
@@ -252,3 +257,27 @@ Clicking a hexagon opens all its current-filter buildings in a paginated list; o
 an individual marker or list link navigates to a building. Wheel easing is disabled, wheel
 speed is explicit, both map canvases use CSS pixels, and camera updates coalesce per frame.
 Panning reuses existing data layers; the flat/3D choice is preserved when zooming to buildings.
+
+## 11. Learn more, FAQs and site guide
+
+`web/site_guide.py` owns `/learn-more`, `/faq` and the optional AI topic endpoint. The 26
+answers live once in `web/static/guide-content.json`, which drives the FAQ page and the
+guide on every page. The guide matches common wording locally using `web/static/guide.js`;
+it runs without Google credentials, a provider key or the LinuxONE backend. FAQ details
+and links remain available when JavaScript is disabled. New UI uses the existing theme.
+
+Optional AI **only selects a topic id** from the shared catalog. The application, not the
+model, supplies the published answer and allowlisted links. The visitor clicks a shortcut
+to navigate; no account changes, notices, complaint filings or model scoring occur.
+Questions use a same-origin POST, not a query string. Account identity and conversation
+history never enter the provider payload; BBLs are redacted, obvious contact/unit details
+are rejected, and the application stores no guide conversation. `store:false` on provider
+requests is not a promise of zero provider retention. No provider error, question or key
+is logged. Source links for heat requirements and reporting go to official NYC pages.
+
+The public AI endpoint has a warm-worker budget of 5 requests/client/minute and 20 total
+requests/minute, a 400-character input cap, bounded provider timeout and output length,
+and no automatic retries. These are **not distributed quotas or a global spending cap**:
+set a provider project budget/rate limit and hosting controls before enabling public AI.
+Without a key/model, only the local guide runs; it must not be advertised as generative AI.
+Setup, tests and rollout: [SITE_GUIDE.md](SITE_GUIDE.md).
