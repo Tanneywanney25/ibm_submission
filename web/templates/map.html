@@ -14,14 +14,14 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
 .hm-status::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--accent); }
 .hm-status[data-state="ready"]::before { background:var(--ok); }
 .hm-status[data-state="error"]::before { background:#e8a06f; }
-.hm-shell { display:grid; grid-template-columns:265px minmax(0,1fr); border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--panel); }
+.hm-shell { display:grid; grid-template-columns:265px minmax(0,1fr); border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--panel); }
 .hm-sidebar { padding:1.3rem 1.2rem; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:1.3rem; }
 .hm-field { display:flex; flex-direction:column; gap:.55rem; margin:0; padding:0; border:0; min-width:0; }
 .hm-label, .hm-field legend { color:var(--muted); font-size:.72rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; padding:0; }
 .hm-field legend { margin-bottom:.55rem; }
 .hm-tabs { display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--line); border-radius:8px; padding:3px; gap:3px; background:var(--bg); }
 .hm-tabs button { background:transparent; color:var(--muted); padding:.55rem .3rem; font-size:.82rem; border-radius:5px; }
-.hm-tabs button[aria-pressed="true"] { background:var(--accent); color:#16100b; }
+.hm-tabs button[aria-pressed="true"] { background:var(--accent); color:var(--on-accent, #15120e); }
 .hm-filter-title { display:flex; justify-content:space-between; gap:.4rem; align-items:center; }
 .hm-filter-title output { color:var(--ink); font-size:.83rem; font-weight:600; }
 #hm-risk-filter { width:100%; padding:0; accent-color:var(--accent); cursor:pointer; height:20px; background:transparent; }
@@ -37,44 +37,42 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
 .hm-secondary { background:transparent; color:var(--ink); border:1px solid var(--line); font-size:.8rem; padding:.55rem .8rem; }
 .hm-sidebar :disabled, .hm-zoom :disabled { opacity:.45; cursor:wait; }
 .hm-footnote { margin:auto 0 0; color:var(--muted); font-size:.7rem; line-height:1.6; }
-.hm-view { position:relative; height:calc(100svh - 205px); min-height:560px; max-height:860px; background:#0b1118; isolation:isolate; }
+.hm-view { position:relative; height:calc(100svh - 205px); min-height:560px; max-height:860px; background:var(--well, #0d1015); isolation:isolate; }
 #hm-map { position:absolute; inset:0; }
 .hm-map-toolbar { position:absolute; z-index:2; top:14px; right:14px; display:flex; align-items:flex-start; gap:.6rem; max-width:calc(100% - 28px); }
-.hm-view-label { color:#dbe1e7; background:rgba(14,17,22,.92); border:1px solid var(--line); border-radius:6px; padding:.4rem .6rem; font-size:.7rem; }
-.hm-map-link { color:#e8eaed; background:rgba(14,17,22,.94); border:1px solid var(--line); border-radius:6px; padding:.4rem .6rem; font-size:.7rem; text-decoration:none; white-space:nowrap; }
-.hm-map-link:hover { color:#ffbb8f; }
+.hm-view-label { color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:.4rem .6rem; font-size:.7rem; }
+.hm-map-link { color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:.4rem .6rem; font-size:.7rem; text-decoration:none; white-space:nowrap; }
+.hm-map-link:hover { color:var(--accent); }
 .hm-map-link[hidden] { display:none; }
 .hm-zoom { display:flex; flex-direction:column; gap:1px; border:1px solid var(--line); border-radius:7px; overflow:hidden; flex-shrink:0; }
-.hm-zoom button { width:34px; height:32px; padding:0; background:#161b23; color:var(--ink); font-size:1.2rem; border-radius:0; }
-.hm-legend { position:absolute; left:14px; bottom:38px; z-index:2; width:300px; max-width:calc(100% - 28px); background:rgba(14,17,22,.94); border:1px solid #303741; border-radius:9px; padding:.75rem .85rem; pointer-events:none; }
+.hm-zoom button { width:34px; height:32px; padding:0; background:var(--panel); color:var(--ink); font-size:1.2rem; border-radius:0; }
+.hm-legend { position:absolute; left:14px; bottom:38px; z-index:2; width:300px; max-width:calc(100% - 28px); background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:.75rem .85rem; pointer-events:none; }
 .hm-legend-title { display:flex; justify-content:space-between; gap:.5rem; font-size:.72rem; margin-bottom:.55rem; }
 .hm-legend-title span:last-child { color:var(--muted); }
 .hm-scale { display:flex; height:8px; border-radius:3px; overflow:hidden; }
 .hm-scale span { flex:1; }
-.hm-scale span:nth-child(1) { background:rgb(255,226,207); }
-.hm-scale span:nth-child(2) { background:rgb(255,187,143); }
-.hm-scale span:nth-child(3) { background:rgb(255,142,82); }
-.hm-scale span:nth-child(4) { background:rgb(235,98,38); }
-.hm-scale span:nth-child(5) { background:rgb(178,65,19); }
-.hm-scale-labels { display:flex; justify-content:space-between; color:#c3cbd4; font-size:.64rem; margin-top:.3rem; }
+.hm-scale span:nth-child(1) { background:rgb(92,99,109); }
+.hm-scale span:nth-child(2) { background:rgb(182,92,63); }
+.hm-scale span:nth-child(3) { background:rgb(255,196,107); }
+.hm-scale-labels { display:flex; justify-content:space-between; color:var(--muted); font-size:.64rem; margin-top:.3rem; }
 .hm-legend-note { color:var(--muted); font-size:.66rem; line-height:1.45; margin:.45rem 0 0; }
 .hm-message { position:absolute; z-index:4; inset:0; display:flex; align-items:center; justify-content:center; padding:1.4rem; background:rgba(11,17,24,.68); }
 .hm-message[hidden], #hm-tip[hidden], #hm-data-note[hidden], #hm-tile-note[hidden], #hm-render-note[hidden], #hm-geometry-note[hidden] { display:none; }
-.hm-message-box { max-width:350px; text-align:center; background:#161b23; border:1px solid var(--line); border-radius:12px; padding:1.4rem; box-shadow:0 16px 50px #0004; }
+.hm-message-box { max-width:350px; text-align:center; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1.4rem; }
 .hm-message-box h2 { margin:0 0 .4rem; font-size:1rem; }
 .hm-message-box p { margin:.3rem 0 1rem; color:var(--muted); font-size:.84rem; }
 .hm-message-box button[hidden] { display:none; }
 .hm-loader { width:23px; height:23px; border:2px solid #414752; border-top-color:var(--accent); border-radius:50%; margin:0 auto 1rem; animation:hm-spin .9s linear infinite; }
 @keyframes hm-spin { to { transform:rotate(360deg); } }
-#hm-tip { position:absolute; pointer-events:none; z-index:5; width:260px; max-width:calc(100% - 24px); background:#12171f; border:1px solid #414955; border-radius:9px; padding:.8rem .9rem; box-shadow:0 8px 24px #0006; font-size:.8rem; }
+#hm-tip { position:absolute; pointer-events:none; z-index:5; width:260px; max-width:calc(100% - 24px); background:var(--well, #0d1015); border:1px solid var(--line); border-radius:9px; padding:.8rem .9rem; font-size:.8rem; }
 .hm-tip-kicker { color:var(--muted); font-size:.65rem; letter-spacing:.06em; text-transform:uppercase; }
-.hm-tip-risk { font-size:1.35rem; font-weight:700; color:#ffbb8f; margin:.15rem 0 .35rem; letter-spacing:-.025em; }
+.hm-tip-risk { font-size:1.35rem; font-weight:700; color:var(--ink); margin:.15rem 0 .35rem; letter-spacing:-.025em; }
 .hm-tip-row { display:flex; justify-content:space-between; gap:1rem; color:#bbc3ce; font-size:.74rem; }
 .hm-tip-row b { color:var(--ink); font-weight:500; }
 .hm-tip-action { color:var(--muted); margin:.55rem 0 0; padding-top:.5rem; border-top:1px solid var(--line); font-size:.68rem; }
 .hm-note { font-size:.76rem; color:#c9b398; margin:.65rem 0 0; }
 .hm-footer { display:flex; justify-content:space-between; flex-wrap:wrap; gap:.4rem 1rem; margin-top:.65rem; color:var(--muted); font-size:.7rem; }
-.hm-sidebar button:focus-visible, .hm-sidebar input:focus-visible, .hm-sidebar select:focus-visible, .hm-view button:focus-visible, .hm-map-link:focus-visible { outline:2px solid #ffbb8f; outline-offset:3px; }
+.hm-sidebar button:focus-visible, .hm-sidebar input:focus-visible, .hm-sidebar select:focus-visible, .hm-view button:focus-visible, .hm-map-link:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 @media(max-width:900px) { .hm-shell { grid-template-columns:225px minmax(0,1fr); } .hm-sidebar { padding:1rem; } .hm-view { min-height:540px; } }
 @media(max-width:680px) {
   main { padding:1rem .7rem; } nav { gap:.6rem 1rem; padding:.7rem; flex-wrap:wrap; font-size:.82rem; }
@@ -135,9 +133,9 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
       <div class="hm-reading">
         <h2>What am I seeing?</h2>
         <p><b>Color shows modeled winter risk.</b> The citywide view groups properties into hexagons.</p>
-        <p><b>Zoom in to see mapped building shapes.</b> Colored markers identify ranked properties; gray buildings provide context.</p>
+        <p><b>Zoom in to see mapped building shapes.</b> Hexagons gradually fade into colored property markers; gray buildings provide context.</p>
         <p>In the citywide 3D view, hexagon height shows complaint volume. Up close, building heights come from the map and may be estimated.</p>
-        <p>Click a property marker to open its record. A hexagon opens its highest-risk property.</p>
+        <p>Click a property marker for its record and aerial photo. A hexagon opens its highest-risk property.</p>
       </div>
       <button id="hm-reset" type="button" class="hm-secondary" disabled>Reset view &amp; filter</button>
       <p class="hm-footnote">Model estimates, not confirmed outages. BBL-level property records only; a property may contain multiple buildings.</p>
@@ -156,8 +154,8 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
       </div>
       <div class="hm-legend" aria-label="Winter risk color legend, from 0 to 99 percent">
         <div class="hm-legend-title"><span>Modeled winter risk</span><span>Lower → Higher</span></div>
-        <div class="hm-scale" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-        <div class="hm-scale-labels" aria-hidden="true"><span>0%</span><span>20</span><span>40</span><span>60</span><span>80</span><span>99%</span></div>
+        <div class="hm-scale" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="hm-scale-labels" aria-hidden="true"><span>0%</span><span>33</span><span>67</span><span>99%</span></div>
         <p id="hm-legend-note" class="hm-legend-note">Color = mean property risk in each hexagon.</p>
       </div>
       <div id="hm-tip" role="tooltip" hidden></div>
@@ -205,8 +203,16 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     }
   }).then(data => ({data}), error => ({error})).finally(() => clearTimeout(timeout));
 
-  const COLORS = [[255,226,207],[255,187,143],[255,142,82],[235,98,38],[178,65,19]];
+  // Keep the shared design's slate → brick → lit-window severity palette.
+  const COLORS = [[92,99,109],[182,92,63],[255,196,107]];
   const DETAIL_ZOOM = 13.8;
+  const DETAIL_START = DETAIL_ZOOM - 1;
+  const DETAIL_END = DETAIL_ZOOM + 1;
+  const POSITION = row => row.position;
+  const RISK_WEIGHT = row => row.p;
+  const COMPLAINT_WEIGHT = row => row.c;
+  const PROPERTY_COLOR = row => riskColor(row.p);
+  const COLOR_DOMAIN = [0,1];
   const BUILDING_SOURCE = 'heatahead-building-shapes';
   const BUILDING_FLAT = 'heatahead-buildings-flat';
   const BUILDING_3D = 'heatahead-buildings-3d';
@@ -218,7 +224,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     queens: {longitude:-73.822, latitude:40.721, zoom:11.25, bearing:0},
     staten: {longitude:-74.146, latitude:40.582, zoom:11.2, bearing:0}
   };
-  const state = {mode:'flat', rows:[], filtered:[], totalComplaints:0,
+  const state = {mode:'flat', rows:[], filtered:[], totalComplaints:0, elevationDomain:[0,1],
     view:{...AREAS.city, pitch:0, minZoom:8, maxZoom:18, maxPitch:60},
     individual:false, ready:false, failed:false, fallbackUsed:false, areaBounds:{},
     buildingsInstalled:false, buildingsUnavailable:false, buildingWarning:false};
@@ -230,6 +236,15 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   const el = id => document.getElementById(id);
   const hideTip = () => { el('hm-tip').hidden = true; };
 
+  function detailBlend(zoom) {
+    const t = Math.max(0, Math.min(1, (zoom - DETAIL_START) / (DETAIL_END - DETAIL_START)));
+    return t * t * (3 - 2 * t);
+  }
+  function mapController(mode) {
+    return {dragRotate:mode === '3d', touchRotate:mode === '3d',
+      scrollZoom:{smooth:!reducedMotion}};
+  }
+
   // Display rules affect labels/colors only; they never rewrite model values.
   function riskLabel(raw) {
     const p = Math.max(0, Math.min(0.99, raw));
@@ -240,7 +255,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     return '80–99%';
   }
   function riskColor(p) {
-    return COLORS[Math.min(4, Math.floor(Math.max(0, Math.min(0.99, p)) * 5))];
+    return COLORS[Math.min(COLORS.length - 1, Math.floor(Math.max(0, Math.min(0.99, p)) * COLORS.length))];
   }
   function buildingURL(row) {
     return '/building?bbl=' + encodeURIComponent(row.bbl);
@@ -267,19 +282,22 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     const base = ['min', height, ['max', 0, ['to-number', ['get','render_min_height'], 0]]];
     return [
       {id:BUILDING_FLAT, type:'fill', source:BUILDING_SOURCE, 'source-layer':'building',
-        minzoom:DETAIL_ZOOM, layout:{visibility:'none'},
-        paint:{'fill-color':'#697d8c', 'fill-outline-color':'#a5b4bf', 'fill-opacity':.65}},
+        minzoom:DETAIL_START, layout:{visibility:'none'},
+        paint:{'fill-color':'#5c636d', 'fill-outline-color':'#9aa0a8',
+          'fill-opacity':['interpolate',['linear'],['zoom'],DETAIL_START,0,DETAIL_END,.65]}},
       {id:BUILDING_3D, type:'fill-extrusion', source:BUILDING_SOURCE, 'source-layer':'building',
-        minzoom:DETAIL_ZOOM, filter:['!=',['get','hide_3d'],true], layout:{visibility:'none'},
-        paint:{'fill-extrusion-color':'#8498a6', 'fill-extrusion-height':height,
-          'fill-extrusion-base':base, 'fill-extrusion-opacity':.94, 'fill-extrusion-vertical-gradient':true}}
+        minzoom:DETAIL_START, filter:['!=',['get','hide_3d'],true], layout:{visibility:'none'},
+        paint:{'fill-extrusion-color':'#9aa0a8', 'fill-extrusion-height':height,
+          'fill-extrusion-base':base,
+          'fill-extrusion-opacity':['interpolate',['linear'],['zoom'],DETAIL_START,0,DETAIL_END,.94],
+          'fill-extrusion-vertical-gradient':true}}
     ];
   }
   function syncBuildings() {
     if (!baseMap || (!state.buildingsInstalled && !baseMap.isStyleLoaded())) return;
-    if (state.individual && !state.buildingsInstalled && !state.buildingsUnavailable) {
+    if (state.view.zoom >= DETAIL_START - .5 && !state.buildingsInstalled && !state.buildingsUnavailable) {
       try {
-        // Load building geometry only once the user enters the neighborhood view.
+        // Start loading just before the fade, then reuse the same source on every zoom.
         if (!baseMap.getSource(BUILDING_SOURCE)) baseMap.addSource(BUILDING_SOURCE, {
           type:'vector', url:'https://tiles.openfreemap.org/planet', maxzoom:14
         });
@@ -293,7 +311,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
         el('hm-geometry-note').textContent = 'Building shapes could not load. The property risk markers are still available.';
       }
     }
-    const show = state.individual && state.buildingsInstalled && !state.buildingsUnavailable;
+    const show = detailBlend(state.view.zoom) > 0 && state.buildingsInstalled && !state.buildingsUnavailable;
     const visibility = (id, visible) => {
       const value = visible ? 'visible' : 'none';
       if (baseMap.getLayer(id) && baseMap.getLayoutProperty(id,'visibility') !== value) baseMap.setLayoutProperty(id,'visibility',value);
@@ -307,9 +325,11 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     }
   }
   function updateViewLabels() {
+    const blend = detailBlend(state.view.zoom);
+    const blending = blend > 0 && blend < 1;
     const detailed = state.individual;
-    el('hm-view-label').textContent = detailed ? (state.buildingsUnavailable ? 'Property risk markers' : state.mode === '3d' ? 'Mapped 3D buildings + risk markers' : 'Building outlines + risk markers') : '120 m hexagons';
-    el('hm-legend-note').textContent = detailed ? (state.buildingsUnavailable ? 'Color = modeled property risk.' : 'Color = property risk. Gray buildings are map context.') : 'Color = mean property risk in each hexagon.';
+    el('hm-view-label').textContent = blending ? 'Hexagons → property markers' : detailed ? (state.buildingsUnavailable ? 'Property risk markers' : state.mode === '3d' ? 'Mapped 3D buildings + risk markers' : 'Building outlines + risk markers') : '120 m hexagons';
+    el('hm-legend-note').textContent = blending ? 'Zoom blends hexagon averages into individual property risk. Gray buildings are map context.' : detailed ? (state.buildingsUnavailable ? 'Color = modeled property risk.' : 'Color = property risk. Gray buildings are map context.') : 'Color = mean property risk in each hexagon.';
     el('hm-street-view').hidden = !detailed;
     if (detailed) el('hm-street-view').href = streetViewURL(state.view);
   }
@@ -419,29 +439,44 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     if (summary) window.location.assign(buildingURL(summary.highest));
   }
   function makeLayers() {
-    if (state.individual) {
-      return [new deck.ScatterplotLayer({
-        id:'winter-risk-properties', data:state.filtered, pickable:true,
-        getPosition:row => row.position, getFillColor:row => riskColor(row.p),
-        getRadius:4, radiusMinPixels:3, radiusMaxPixels:7,
-        stroked:true, getLineColor:[14,17,22,150], lineWidthMinPixels:.5,
-        opacity:.95, autoHighlight:true, highlightColor:[255,255,255,100],
-        parameters:{depthTest:false}
-      })];
-    }
+    const blend = detailBlend(state.view.zoom);
+    // Keep both layer IDs and their data/accessors stable across zooms. Only opacity
+    // changes during the fade; one representation handles clicks at a time.
     return [new deck.HexagonLayer({
-      id:'winter-risk-hexagons', data:state.filtered, pickable:true,
-      getPosition:row => row.position, radius:120, coverage:.94,
-      getColorWeight:row => row.p, colorAggregation:'MEAN',
-      colorDomain:[0,1], colorRange:COLORS, colorScaleType:'quantize',
-      getElevationWeight:row => row.c, elevationAggregation:'SUM',
+      id:'winter-risk-hexagons', data:state.filtered,
+      visible:blend < 1, pickable:blend < .5,
+      getPosition:POSITION, radius:120, coverage:.94,
+      getColorWeight:RISK_WEIGHT, colorAggregation:'MEAN',
+      colorDomain:COLOR_DOMAIN, colorRange:COLORS, colorScaleType:'quantize',
+      getElevationWeight:COMPLAINT_WEIGHT, elevationAggregation:'SUM',
       // Fixed scale: one complaint = 1.5 display meters; filters do not rescale heights.
-      elevationDomain:[0,Math.max(1,state.totalComplaints)],
-      elevationRange:[0,Math.max(1,state.totalComplaints)], elevationScale:1.5,
-      extruded:state.mode === '3d', opacity:.95,
+      elevationDomain:state.elevationDomain,
+      elevationRange:state.elevationDomain, elevationScale:1.5,
+      extruded:state.mode === '3d', opacity:.95 * (1 - blend),
       autoHighlight:true, highlightColor:[255,255,255,90],
       material:{ambient:.65, diffuse:.55, shininess:15}
+    }), new deck.ScatterplotLayer({
+      id:'winter-risk-properties', data:state.filtered,
+      visible:blend > 0, pickable:blend >= .5,
+      getPosition:POSITION, getFillColor:PROPERTY_COLOR,
+      getRadius:4, radiusMinPixels:3, radiusMaxPixels:7,
+      stroked:true, getLineColor:[14,17,22,150], lineWidthMinPixels:.5,
+      opacity:.95 * blend, autoHighlight:true, highlightColor:[255,255,255,100],
+      parameters:{depthTest:false}
     })];
+  }
+  function onViewStateChange({viewState}) {
+    const previousBlend = detailBlend(state.view.zoom);
+    const zoomChanged = state.view.zoom !== viewState.zoom;
+    state.view = {...viewState};
+    const blend = detailBlend(viewState.zoom);
+    state.individual = blend >= .5;
+    hideTip();
+    if (blend !== previousBlend) refreshLayers();
+    else {
+      if (zoomChanged) syncBuildings();
+      if (state.individual) updateViewLabels();
+    }
   }
   function refreshLayers() {
     if (!viewer) return;
@@ -461,7 +496,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     el('hm-flat').setAttribute('aria-pressed', String(mode === 'flat'));
     el('hm-3d').setAttribute('aria-pressed', String(mode === '3d'));
     if (!viewer) return;
-    viewer.setProps({controller:{dragRotate:mode === '3d', touchRotate:mode === '3d'}});
+    viewer.setProps({controller:mapController(mode)});
     refreshLayers();
     if (animate) moveCamera({pitch:mode === '3d' ? (state.individual ? 55 : 45) : 0});
   }
@@ -528,6 +563,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
       state.rows = parsed.rows;
       state.filtered = state.rows;
       state.totalComplaints = state.rows.reduce((sum,row) => sum + row.c, 0);
+      state.elevationDomain = [0,Math.max(1,state.totalComplaints)];
       state.areaBounds = collectAreaBounds(state.rows);
       state.view = {...state.view,...areaView('city')};
       el('hm-coverage').textContent = number.format(state.rows.length) + ' ranked properties with mapped coordinates.';
@@ -540,17 +576,11 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
         mapStyle:'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
         mapOptions:{attributionControl:true},
         initialViewState:{...state.view, minZoom:8, maxZoom:18, maxPitch:60},
-        controller:{dragRotate:false, touchRotate:false},
+        controller:mapController('flat'),
         useDevicePixels:Math.min(window.devicePixelRatio || 1, 1.5),
         layers:makeLayers(), onHover, onClick, pickingRadius:4,
         getCursor:({isHovering,isDragging}) => isDragging ? 'grabbing' : isHovering ? 'pointer' : 'grab',
-        onViewStateChange:({viewState}) => {
-          state.view = {...viewState};
-          const individual = viewState.zoom >= DETAIL_ZOOM;
-          hideTip();
-          if (individual !== state.individual) { state.individual = individual; refreshLayers(); }
-          else if (individual) updateViewLabels();
-        },
+        onViewStateChange,
         onAfterRender:() => {
           if (state.ready || state.failed) return;
           state.ready = true;
