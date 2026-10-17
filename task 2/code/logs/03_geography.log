@@ -1,0 +1,22 @@
+[14:47:52] load ...
+[14:48:00] load done in 8.4 s
+[14:48:00] per-building totals ...
+[14:48:00] per-building totals done in 0.4 s
+[14:48:00] community districts ...
+[14:48:01] community districts done in 0.3 s
+                                  district  residential_units  heat_complaints_2025_26  complaints_per_100_units_2025_26  feb7_9_2026_complaints  forecast_only_strict_buildings
+                                Bronx CD 7            56577.0                    16675                         29.473107                     624                             184
+                                Bronx CD 4            58204.0                    15150                         26.029139                     686                             189
+                                Bronx CD 5            57144.0                    12282                         21.493070                     519                             171
+                           Manhattan CD 12            75854.0                    18968                         25.005932                     695                             148
+                            Brooklyn CD 14            65404.0                    11473                         17.541741                     411                             223
+               Bronx CD 7 + 4 + 5 together           171925.0                    44107                         25.654791                    1829                             544
+                  all five focus districts           313183.0                    74548                         23.803335                    2935                             915
+rest of New York City (54 other districts)          3422191.0                   226928                          6.631073                   10219                           16447
+                       New York City total          3735374.0                   301476                          8.070838                   13154                           17362
+[14:48:01] council districts ...
+[14:48:01] council districts done in 0.2 s
+[14:48:01] figure ...
+[14:48:01] figure done in 0.3 s
+  numbers -> /home/linux1/heatahead/stream2/out/numbers_03_geography.json
+STEP 3 complete

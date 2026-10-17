@@ -1,0 +1,481 @@
+{
+  "complaints_all_total": 1839105,
+  "complaints_2025_26_total": 303259,
+  "complaints_with_cd_share": 0.9942472017639015,
+  "snap_complaints_total": 13222,
+  "snap_buildings_total": 6382,
+  "snap_failed_buildings_total": 2281,
+  "snap_units_in_complaining_buildings": 601241.0,
+  "cd_count": 59,
+  "focus_table": [
+    {
+      "district": "Bronx CD 7",
+      "residential_buildings_all": 2889,
+      "residential_buildings_3plus": 1667,
+      "residential_units": 56577.0,
+      "estimated_tenants": 144271.34999999998,
+      "heat_complaints_all_seasons": 102538,
+      "heat_complaints_2025_26": 16675,
+      "complaints_per_100_units_2025_26": 29.473107446488857,
+      "complaints_per_residential_building_2025_26": 5.771893388715819,
+      "failure_events_48h_2025_26": 3179,
+      "heat_violations_2025_26": 347,
+      "heat_violations_per_1000_units_2025_26": 6.133234353182389,
+      "chronic_buildings": 1033,
+      "forecast_only_strict_buildings": 184,
+      "forecast_only_broad_buildings": 447,
+      "feb7_9_2026_complaints": 624,
+      "feb7_9_2026_buildings": 269,
+      "feb7_9_2026_failure_events_48h": 128,
+      "feb7_9_2026_units_in_complaining_buildings": 15741.0,
+      "feb7_9_2026_complaints_per_1000_units": 11.02921681955565,
+      "share_of_city_units": 0.015146274509593952,
+      "share_of_city_complaints_2025_26": 0.05531120221841871,
+      "share_of_city_feb7_9_complaints": 0.047438041660331456
+    },
+    {
+      "district": "Bronx CD 4",
+      "residential_buildings_all": 2474,
+      "residential_buildings_3plus": 1791,
+      "residential_units": 58204.0,
+      "estimated_tenants": 148420.19999999998,
+      "heat_complaints_all_seasons": 93434,
+      "heat_complaints_2025_26": 15150,
+      "complaints_per_100_units_2025_26": 26.029138890797885,
+      "complaints_per_residential_building_2025_26": 6.123686337914309,
+      "failure_events_48h_2025_26": 2943,
+      "heat_violations_2025_26": 562,
+      "heat_violations_per_1000_units_2025_26": 9.655693766751426,
+      "chronic_buildings": 924,
+      "forecast_only_strict_buildings": 189,
+      "forecast_only_broad_buildings": 457,
+      "feb7_9_2026_complaints": 686,
+      "feb7_9_2026_buildings": 253,
+      "feb7_9_2026_failure_events_48h": 130,
+      "feb7_9_2026_units_in_complaining_buildings": 20066.0,
+      "feb7_9_2026_complaints_per_1000_units": 11.786131537351384,
+      "share_of_city_units": 0.01558183999781548,
+      "share_of_city_complaints_2025_26": 0.05025275643832345,
+      "share_of_city_feb7_9_complaints": 0.05215143682530029
+    },
+    {
+      "district": "Bronx CD 5",
+      "residential_buildings_all": 2604,
+      "residential_buildings_3plus": 1516,
+      "residential_units": 57144.0,
+      "estimated_tenants": 145717.19999999998,
+      "heat_complaints_all_seasons": 89955,
+      "heat_complaints_2025_26": 12282,
+      "complaints_per_100_units_2025_26": 21.49307013859723,
+      "complaints_per_residential_building_2025_26": 4.716589861751152,
+      "failure_events_48h_2025_26": 2444,
+      "heat_violations_2025_26": 479,
+      "heat_violations_per_1000_units_2025_26": 8.382332353352933,
+      "chronic_buildings": 880,
+      "forecast_only_strict_buildings": 171,
+      "forecast_only_broad_buildings": 403,
+      "feb7_9_2026_complaints": 519,
+      "feb7_9_2026_buildings": 223,
+      "feb7_9_2026_failure_events_48h": 108,
+      "feb7_9_2026_units_in_complaining_buildings": 18162.0,
+      "feb7_9_2026_complaints_per_1000_units": 9.082318353632928,
+      "share_of_city_units": 0.015298066538986457,
+      "share_of_city_complaints_2025_26": 0.04073956135811806,
+      "share_of_city_feb7_9_complaints": 0.03945567888094876
+    },
+    {
+      "district": "Manhattan CD 12",
+      "residential_buildings_all": 2076,
+      "residential_buildings_3plus": 1882,
+      "residential_units": 75854.0,
+      "estimated_tenants": 193427.69999999998,
+      "heat_complaints_all_seasons": 112447,
+      "heat_complaints_2025_26": 18968,
+      "complaints_per_100_units_2025_26": 25.005932449178687,
+      "complaints_per_residential_building_2025_26": 9.136801541425818,
+      "failure_events_48h_2025_26": 3552,
+      "heat_violations_2025_26": 566,
+      "heat_violations_per_1000_units_2025_26": 7.4617027447464865,
+      "chronic_buildings": 1300,
+      "forecast_only_strict_buildings": 148,
+      "forecast_only_broad_buildings": 420,
+      "feb7_9_2026_complaints": 695,
+      "feb7_9_2026_buildings": 293,
+      "feb7_9_2026_failure_events_48h": 112,
+      "feb7_9_2026_units_in_complaining_buildings": 15602.0,
+      "feb7_9_2026_complaints_per_1000_units": 9.162338175969627,
+      "share_of_city_units": 0.020306935798128915,
+      "share_of_city_complaints_2025_26": 0.06291711446350622,
+      "share_of_city_feb7_9_complaints": 0.05283563934924738
+    },
+    {
+      "district": "Brooklyn CD 14",
+      "residential_buildings_all": 10769,
+      "residential_buildings_3plus": 2080,
+      "residential_units": 65404.0,
+      "estimated_tenants": 166780.19999999998,
+      "heat_complaints_all_seasons": 65994,
+      "heat_complaints_2025_26": 11473,
+      "complaints_per_100_units_2025_26": 17.54174056632622,
+      "complaints_per_residential_building_2025_26": 1.0653728294177733,
+      "failure_events_48h_2025_26": 2165,
+      "heat_violations_2025_26": 248,
+      "heat_violations_per_1000_units_2025_26": 3.791817014249893,
+      "chronic_buildings": 919,
+      "forecast_only_strict_buildings": 223,
+      "forecast_only_broad_buildings": 459,
+      "feb7_9_2026_complaints": 411,
+      "feb7_9_2026_buildings": 218,
+      "feb7_9_2026_failure_events_48h": 79,
+      "feb7_9_2026_units_in_complaining_buildings": 10972.0,
+      "feb7_9_2026_complaints_per_1000_units": 6.2840193260351045,
+      "share_of_city_units": 0.017509357831371104,
+      "share_of_city_complaints_2025_26": 0.03805609733444785,
+      "share_of_city_feb7_9_complaints": 0.0312452485935837
+    },
+    {
+      "district": "Bronx CD 7 + 4 + 5 together",
+      "residential_buildings_all": 7967,
+      "residential_buildings_3plus": 4974,
+      "residential_units": 171925.0,
+      "estimated_tenants": 438408.74999999994,
+      "heat_complaints_all_seasons": 285927,
+      "heat_complaints_2025_26": 44107,
+      "complaints_per_100_units_2025_26": 25.654791333430275,
+      "complaints_per_residential_building_2025_26": 5.536211873980168,
+      "failure_events_48h_2025_26": 8566,
+      "heat_violations_2025_26": 1388,
+      "heat_violations_per_1000_units_2025_26": 8.073287770830303,
+      "chronic_buildings": 2837,
+      "forecast_only_strict_buildings": 544,
+      "forecast_only_broad_buildings": 1307,
+      "feb7_9_2026_complaints": 1829,
+      "feb7_9_2026_buildings": 745,
+      "feb7_9_2026_failure_events_48h": 366,
+      "feb7_9_2026_units_in_complaining_buildings": 53969.0,
+      "feb7_9_2026_complaints_per_1000_units": 10.638359749890942,
+      "share_of_city_units": 0.046026181046395886,
+      "share_of_city_complaints_2025_26": 0.14630352001486022,
+      "share_of_city_feb7_9_complaints": 0.13904515736658052
+    },
+    {
+      "district": "all five focus districts",
+      "residential_buildings_all": 20812,
+      "residential_buildings_3plus": 8936,
+      "residential_units": 313183.0,
+      "estimated_tenants": 798616.6499999999,
+      "heat_complaints_all_seasons": 464368,
+      "heat_complaints_2025_26": 74548,
+      "complaints_per_100_units_2025_26": 23.803335430084008,
+      "complaints_per_residential_building_2025_26": 3.581971939265808,
+      "failure_events_48h_2025_26": 14283,
+      "heat_violations_2025_26": 2202,
+      "heat_violations_per_1000_units_2025_26": 7.031032974331302,
+      "chronic_buildings": 5056,
+      "forecast_only_strict_buildings": 915,
+      "forecast_only_broad_buildings": 2186,
+      "feb7_9_2026_complaints": 2935,
+      "feb7_9_2026_buildings": 1256,
+      "feb7_9_2026_failure_events_48h": 557,
+      "feb7_9_2026_units_in_complaining_buildings": 80543.0,
+      "feb7_9_2026_complaints_per_1000_units": 9.37151761110916,
+      "share_of_city_units": 0.08384247467589591,
+      "share_of_city_complaints_2025_26": 0.2472767318128143,
+      "share_of_city_feb7_9_complaints": 0.22312604530941157
+    },
+    {
+      "district": "rest of New York City (54 other districts)",
+      "residential_buildings_all": 746538,
+      "residential_buildings_3plus": 163535,
+      "residential_units": 3422191.0,
+      "estimated_tenants": 8726587.049999999,
+      "heat_complaints_all_seasons": 1364151,
+      "heat_complaints_2025_26": 226928,
+      "complaints_per_100_units_2025_26": 6.631073484793806,
+      "complaints_per_residential_building_2025_26": 0.3039738097725769,
+      "failure_events_48h_2025_26": 41336,
+      "heat_violations_2025_26": 8671,
+      "heat_violations_per_1000_units_2025_26": 2.533756882652079,
+      "chronic_buildings": 32864,
+      "forecast_only_strict_buildings": 16447,
+      "forecast_only_broad_buildings": 30111,
+      "feb7_9_2026_complaints": 10219,
+      "feb7_9_2026_buildings": 5077,
+      "feb7_9_2026_failure_events_48h": 1799,
+      "feb7_9_2026_units_in_complaining_buildings": 520698.0,
+      "feb7_9_2026_complaints_per_1000_units": 2.9860986718742466,
+      "share_of_city_units": 0.9161575253241041,
+      "share_of_city_complaints_2025_26": 0.7527232681871857,
+      "share_of_city_feb7_9_complaints": 0.7768739546905884
+    },
+    {
+      "district": "New York City total",
+      "residential_buildings_all": 767350,
+      "residential_buildings_3plus": 172471,
+      "residential_units": 3735374.0,
+      "estimated_tenants": 9525203.7,
+      "heat_complaints_all_seasons": 1828519,
+      "heat_complaints_2025_26": 301476,
+      "complaints_per_100_units_2025_26": 8.07083842206965,
+      "complaints_per_residential_building_2025_26": 0.39287939010881606,
+      "failure_events_48h_2025_26": 55619,
+      "heat_violations_2025_26": 10873,
+      "heat_violations_per_1000_units_2025_26": 2.910819639479206,
+      "chronic_buildings": 37920,
+      "forecast_only_strict_buildings": 17362,
+      "forecast_only_broad_buildings": 32297,
+      "feb7_9_2026_complaints": 13154,
+      "feb7_9_2026_buildings": 6333,
+      "feb7_9_2026_failure_events_48h": 2356,
+      "feb7_9_2026_units_in_complaining_buildings": 601241.0,
+      "feb7_9_2026_complaints_per_1000_units": 3.521467997582036,
+      "share_of_city_units": 1.0,
+      "share_of_city_complaints_2025_26": 1.0,
+      "share_of_city_feb7_9_complaints": 1.0
+    }
+  ],
+  "top10_cd_by_complaints_per_100_units_2025_26": [
+    {
+      "cd_label": "Bronx CD 7",
+      "residential_units": 56577.0,
+      "heat_complaints_2025_26": 16675,
+      "complaints_per_100_units_2025_26": 29.473107446488857,
+      "feb7_9_2026_complaints": 624,
+      "chronic_buildings": 1033,
+      "forecast_only_strict_buildings": 184
+    },
+    {
+      "cd_label": "Bronx CD 4",
+      "residential_units": 58204.0,
+      "heat_complaints_2025_26": 15150,
+      "complaints_per_100_units_2025_26": 26.029138890797885,
+      "feb7_9_2026_complaints": 686,
+      "chronic_buildings": 924,
+      "forecast_only_strict_buildings": 189
+    },
+    {
+      "cd_label": "Manhattan CD 12",
+      "residential_units": 75854.0,
+      "heat_complaints_2025_26": 18968,
+      "complaints_per_100_units_2025_26": 25.005932449178687,
+      "feb7_9_2026_complaints": 695,
+      "chronic_buildings": 1300,
+      "forecast_only_strict_buildings": 148
+    },
+    {
+      "cd_label": "Manhattan CD 10",
+      "residential_units": 61895.0,
+      "heat_complaints_2025_26": 14064,
+      "complaints_per_100_units_2025_26": 22.722352370950805,
+      "feb7_9_2026_complaints": 527,
+      "chronic_buildings": 1034,
+      "forecast_only_strict_buildings": 269
+    },
+    {
+      "cd_label": "Bronx CD 5",
+      "residential_units": 57144.0,
+      "heat_complaints_2025_26": 12282,
+      "complaints_per_100_units_2025_26": 21.49307013859723,
+      "feb7_9_2026_complaints": 519,
+      "chronic_buildings": 880,
+      "forecast_only_strict_buildings": 171
+    },
+    {
+      "cd_label": "Bronx CD 6",
+      "residential_units": 36810.0,
+      "heat_complaints_2025_26": 7835,
+      "complaints_per_100_units_2025_26": 21.28497690844879,
+      "feb7_9_2026_complaints": 352,
+      "chronic_buildings": 771,
+      "forecast_only_strict_buildings": 204
+    },
+    {
+      "cd_label": "Manhattan CD 9",
+      "residential_units": 46830.0,
+      "heat_complaints_2025_26": 9065,
+      "complaints_per_100_units_2025_26": 19.357249626307922,
+      "feb7_9_2026_complaints": 372,
+      "chronic_buildings": 700,
+      "forecast_only_strict_buildings": 162
+    },
+    {
+      "cd_label": "Bronx CD 2",
+      "residential_units": 22088.0,
+      "heat_complaints_2025_26": 4160,
+      "complaints_per_100_units_2025_26": 18.833755885548715,
+      "feb7_9_2026_complaints": 179,
+      "chronic_buildings": 415,
+      "forecast_only_strict_buildings": 135
+    },
+    {
+      "cd_label": "Bronx CD 12",
+      "residential_units": 58918.0,
+      "heat_complaints_2025_26": 11081,
+      "complaints_per_100_units_2025_26": 18.807495162768593,
+      "feb7_9_2026_complaints": 457,
+      "chronic_buildings": 1361,
+      "forecast_only_strict_buildings": 659
+    },
+    {
+      "cd_label": "Brooklyn CD 14",
+      "residential_units": 65404.0,
+      "heat_complaints_2025_26": 11473,
+      "complaints_per_100_units_2025_26": 17.54174056632622,
+      "feb7_9_2026_complaints": 411,
+      "chronic_buildings": 919,
+      "forecast_only_strict_buildings": 223
+    }
+  ],
+  "top10_cd_by_complaints_2025_26": [
+    {
+      "cd_label": "Manhattan CD 12",
+      "heat_complaints_2025_26": 18968,
+      "complaints_per_100_units_2025_26": 25.005932449178687
+    },
+    {
+      "cd_label": "Bronx CD 7",
+      "heat_complaints_2025_26": 16675,
+      "complaints_per_100_units_2025_26": 29.473107446488857
+    },
+    {
+      "cd_label": "Bronx CD 4",
+      "heat_complaints_2025_26": 15150,
+      "complaints_per_100_units_2025_26": 26.029138890797885
+    },
+    {
+      "cd_label": "Manhattan CD 10",
+      "heat_complaints_2025_26": 14064,
+      "complaints_per_100_units_2025_26": 22.722352370950805
+    },
+    {
+      "cd_label": "Bronx CD 5",
+      "heat_complaints_2025_26": 12282,
+      "complaints_per_100_units_2025_26": 21.49307013859723
+    },
+    {
+      "cd_label": "Brooklyn CD 14",
+      "heat_complaints_2025_26": 11473,
+      "complaints_per_100_units_2025_26": 17.54174056632622
+    },
+    {
+      "cd_label": "Bronx CD 12",
+      "heat_complaints_2025_26": 11081,
+      "complaints_per_100_units_2025_26": 18.807495162768593
+    },
+    {
+      "cd_label": "Manhattan CD 9",
+      "heat_complaints_2025_26": 9065,
+      "complaints_per_100_units_2025_26": 19.357249626307922
+    },
+    {
+      "cd_label": "Brooklyn CD 17",
+      "heat_complaints_2025_26": 8790,
+      "complaints_per_100_units_2025_26": 14.159833754852844
+    },
+    {
+      "cd_label": "Bronx CD 9",
+      "heat_complaints_2025_26": 8542,
+      "complaints_per_100_units_2025_26": 12.698837451312698
+    }
+  ],
+  "focus_ranks_per_100_units": [
+    {
+      "cd_label": "Bronx CD 7",
+      "rank_complaints_per_100_units_2025_26": 1.0,
+      "rank_heat_complaints_2025_26": 2.0
+    },
+    {
+      "cd_label": "Bronx CD 4",
+      "rank_complaints_per_100_units_2025_26": 2.0,
+      "rank_heat_complaints_2025_26": 3.0
+    },
+    {
+      "cd_label": "Bronx CD 5",
+      "rank_complaints_per_100_units_2025_26": 5.0,
+      "rank_heat_complaints_2025_26": 5.0
+    },
+    {
+      "cd_label": "Manhattan CD 12",
+      "rank_complaints_per_100_units_2025_26": 3.0,
+      "rank_heat_complaints_2025_26": 1.0
+    },
+    {
+      "cd_label": "Brooklyn CD 14",
+      "rank_complaints_per_100_units_2025_26": 10.0,
+      "rank_heat_complaints_2025_26": 6.0
+    }
+  ],
+  "council_count": 51,
+  "top10_council_by_complaints_per_100_units_2025_26": [
+    {
+      "council": 14,
+      "residential_units": 71936.0,
+      "heat_complaints_2025_26": 18361,
+      "complaints_per_100_units_2025_26": 25.524076957295375,
+      "feb7_9_2026_complaints": 703
+    },
+    {
+      "council": 10,
+      "residential_units": 73174.0,
+      "heat_complaints_2025_26": 18468,
+      "complaints_per_100_units_2025_26": 25.238472681553556,
+      "feb7_9_2026_complaints": 682
+    },
+    {
+      "council": 16,
+      "residential_units": 67592.0,
+      "heat_complaints_2025_26": 16268,
+      "complaints_per_100_units_2025_26": 24.067937033968516,
+      "feb7_9_2026_complaints": 758
+    },
+    {
+      "council": 15,
+      "residential_units": 70441.0,
+      "heat_complaints_2025_26": 16350,
+      "complaints_per_100_units_2025_26": 23.21091409832342,
+      "feb7_9_2026_complaints": 676
+    },
+    {
+      "council": 9,
+      "residential_units": 83582.0,
+      "heat_complaints_2025_26": 17933,
+      "complaints_per_100_units_2025_26": 21.455576559546312,
+      "feb7_9_2026_complaints": 697
+    },
+    {
+      "council": 40,
+      "residential_units": 73123.0,
+      "heat_complaints_2025_26": 14647,
+      "complaints_per_100_units_2025_26": 20.030633316466776,
+      "feb7_9_2026_complaints": 663
+    },
+    {
+      "council": 11,
+      "residential_units": 74777.0,
+      "heat_complaints_2025_26": 14779,
+      "complaints_per_100_units_2025_26": 19.764098586463753,
+      "feb7_9_2026_complaints": 640
+    },
+    {
+      "council": 17,
+      "residential_units": 70842.0,
+      "heat_complaints_2025_26": 13073,
+      "complaints_per_100_units_2025_26": 18.453742130374636,
+      "feb7_9_2026_complaints": 559
+    },
+    {
+      "council": 7,
+      "residential_units": 81265.0,
+      "heat_complaints_2025_26": 10702,
+      "complaints_per_100_units_2025_26": 13.169261059496709,
+      "feb7_9_2026_complaints": 485
+    },
+    {
+      "council": 13,
+      "residential_units": 64099.0,
+      "heat_complaints_2025_26": 7157,
+      "complaints_per_100_units_2025_26": 11.165540804068707,
+      "feb7_9_2026_complaints": 209
+    }
+  ]
+}

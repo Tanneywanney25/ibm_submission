@@ -1,0 +1,25 @@
+ranking,k,failed_feb7_9_caught,precision,recall,forecast_only_strict_in_top_k,forecast_only_broad_in_top_k,chronic_in_top_k,verified_feb7_9_caught,units_in_failed_caught
+last season total complaints (2024-25),100,56,0.56,0.024550635686102586,0,1,99,6,5242.0
+last season total complaints (2024-25),500,203,0.406,0.08899605436212188,0,4,496,20,22331.0
+last season total complaints (2024-25),1000,346,0.346,0.15168785620341954,0,12,988,47,45737.0
+last season total complaints (2024-25),2500,646,0.2584,0.28320911880754057,3,58,2442,81,88440.0
+training-window total complaints (2018-25),100,55,0.55,0.024112231477422183,0,0,100,5,5383.0
+training-window total complaints (2018-25),500,177,0.354,0.0775975449364314,0,1,499,19,18523.0
+training-window total complaints (2018-25),1000,309,0.309,0.13546690048224463,0,1,999,32,40035.0
+training-window total complaints (2018-25),2500,611,0.2444,0.26786497150372646,0,6,2494,69,85056.0
+last season heat violations (2024-25),100,30,0.3,0.0131521262604121,0,6,94,12,2359.0
+last season heat violations (2024-25),500,118,0.236,0.051731696624287594,5,49,451,37,9342.0
+last season heat violations (2024-25),1000,215,0.215,0.09425690486628671,10,106,893,56,17251.0
+last season heat violations (2024-25),2500,431,0.1724,0.18895221394125383,46,319,2172,84,34921.0
+trailing 14-day complaints before Feb 7,100,72,0.72,0.03156510302498904,1,4,94,11,8296.0
+trailing 14-day complaints before Feb 7,500,286,0.572,0.12538360368259535,4,23,463,48,36524.0
+trailing 14-day complaints before Feb 7,1000,477,0.477,0.2091188075405524,13,75,897,76,67212.0
+trailing 14-day complaints before Feb 7,2500,866,0.3464,0.3796580447172293,39,221,2194,113,105114.0
+cold-sensitivity: sub-freezing reaction rate (2018-25),100,59,0.59,0.025865848312143797,0,0,100,6,6169.0
+cold-sensitivity: sub-freezing reaction rate (2018-25),500,204,0.408,0.08943445857080227,0,0,500,18,22923.0
+cold-sensitivity: sub-freezing reaction rate (2018-25),1000,337,0.337,0.1477422183252959,0,1,999,37,52440.0
+cold-sensitivity: sub-freezing reaction rate (2018-25),2500,645,0.258,0.28277071459886016,0,22,2478,78,87616.0
+cold-sensitivity x units (tenants at risk),100,16,0.16,0.0070144673388864535,0,3,97,1,40611.0
+cold-sensitivity x units (tenants at risk),500,121,0.242,0.0530469092503288,6,28,472,14,89021.0
+cold-sensitivity x units (tenants at risk),1000,254,0.254,0.11135466900482245,15,57,943,25,110366.0
+cold-sensitivity x units (tenants at risk),2500,551,0.2204,0.24156071898290224,28,144,2356,55,147834.0

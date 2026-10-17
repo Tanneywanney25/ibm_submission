@@ -1,0 +1,11 @@
+group,fc_subfreezing,cdays,buildings,days,cdays_per_1000_bldg_per_day
+chronic,False,46844,38549,124,9.799844186577786
+chronic,True,110321,38549,119,24.0490603359557
+cold_only,False,1280,17481,124,0.5905028685522161
+cold_only,True,3178,17481,119,1.5277090757360092
+forecast_only_broad_extra,False,4193,14991,124,2.255654467949587
+forecast_only_broad_extra,True,14189,14991,119,7.953791882972921
+forecast_only_strict,False,1434,18814,124,0.6146760991300233
+forecast_only_strict,True,4754,18814,119,2.123396397997915
+no_training_complaints,False,4607,26304,124,1.412455360646731
+no_training_complaints,True,13915,26304,119,4.445436933897646

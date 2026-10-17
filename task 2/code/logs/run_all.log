@@ -1,0 +1,58 @@
+machine: s390x | processor 0: version = FF,  identification = 09DFD8,  machine = 9175 | dflt=dflt nnpa=nnpa
+=== s2_00_stage_protect  14:43:59 ===
+  pseudonymized extracts already exist; reusing (pass --force to redo)
+[14:44:00] benchmark pass: hardware on (DFLTCC default, CPACF on) ...
+[14:44:17] benchmark pass: hardware on (DFLTCC default, CPACF on) done in 17.5 s
+[14:44:17] benchmark pass: DFLTCC=0 (deflate in software) ...
+[14:44:51] benchmark pass: DFLTCC=0 (deflate in software) done in 34.3 s
+[14:44:51] benchmark pass: CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap) ...
+[14:45:13] benchmark pass: CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap) done in 21.4 s
+STEP 0 complete
+=== s2_01_clean  14:46:01 ===
+[14:46:54] building universe ...
+[14:46:57] building universe done in 3.2 s
+  universe 116,139 buildings; 111,657 matched to PLUTO on bbl, 71,149 in the 3+ unit model universe, 22,669 sit on multi-building lots
+[14:46:57] weather ...
+[14:46:57] weather done in 0.4 s
+  weather days 3,572 through 2026-10-12; TMIN equals the team days.csv on 3,385/3,385 days; archived forecasts cover 932 days, next-48h-minimum band agrees with observed TMIN on 59% of heat-season days
+  numbers -> /home/linux1/heatahead/stream2/out/numbers_01_clean.json
+STEP 1 complete
+=== s2_02_violation_tier  14:46:58 ===
+  Stream 5 day-grid positives 590,941; 7-day confirmation 9.2%
+[14:47:34] saturation by day ...
+[14:47:36] saturation by day done in 2.0 s
+  Feb 7-9 2026: 13,222 complaints, 2,366 2+ clusters, 7-day confirmation 11.8% vs 13.4% on moderate cold days
+[14:47:36] figure ...
+[14:47:36] figure done in 0.3 s
+  numbers -> /home/linux1/heatahead/stream2/out/numbers_02_violation_tier.json
+STEP 2 complete
+=== s2_04_forecast_only  14:47:36 ===
+[14:47:46] worked examples ...
+[14:47:46] worked examples done in 0.0 s
+[14:47:46] write forecast_only_buildings.csv ...
+[14:47:51] write forecast_only_buildings.csv done in 4.3 s
+[14:47:51] figure ...
+[14:47:51] figure done in 0.4 s
+  numbers -> /home/linux1/heatahead/stream2/out/numbers_04_forecast_only.json
+STEP 4 complete
+=== s2_03_geography  14:47:51 ===
+[14:48:00] community districts ...
+[14:48:01] community districts done in 0.3 s
+[14:48:01] council districts ...
+[14:48:01] council districts done in 0.2 s
+[14:48:01] figure ...
+[14:48:01] figure done in 0.3 s
+  numbers -> /home/linux1/heatahead/stream2/out/numbers_03_geography.json
+STEP 3 complete
+=== s2_05_boiler_join  14:48:01 ===
+  universe 116,139 buildings; DOB boiler record on bin for 37.3% (3+ units: 54.7%); DEP fuel record for 25.1% (3+ units: 37.4%)
+[14:48:37] lift ...
+[14:48:37] lift done in 0.7 s
+  prior defect logged      14583                0.319482                0.069670                      0.118767               0.054241
+[14:48:37] write bin_boiler_features.csv ...
+[14:48:39] write bin_boiler_features.csv done in 1.1 s
+  numbers -> /home/linux1/heatahead/stream2/out/numbers_05_boiler_join.json
+STEP 5 complete
+=== executed notebook ===
+
+

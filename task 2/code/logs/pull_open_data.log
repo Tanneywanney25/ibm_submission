@@ -1,0 +1,58 @@
+START Sat Oct 17 02:11:32 PM UTC 2026
+  52dp-yji6 page offset=0 rows=50000 total=50000 14:11:35
+  52dp-yji6 page offset=50000 rows=50000 total=100000 14:11:41
+  52dp-yji6 page offset=100000 rows=50000 total=150000 14:11:45
+  52dp-yji6 page offset=150000 rows=50000 total=200000 14:12:00
+  52dp-yji6 page offset=200000 rows=50000 total=250000 14:12:06
+  52dp-yji6 page offset=250000 rows=50000 total=300000 14:12:13
+  52dp-yji6 page offset=300000 rows=50000 total=350000 14:12:22
+  52dp-yji6 page offset=350000 rows=50000 total=400000 14:12:29
+  52dp-yji6 page offset=400000 rows=50000 total=450000 14:12:34
+  52dp-yji6 page offset=450000 rows=50000 total=500000 14:12:45
+  52dp-yji6 page offset=500000 rows=50000 total=550000 14:12:52
+  52dp-yji6 page offset=550000 rows=50000 total=600000 14:13:05
+  52dp-yji6 page offset=600000 rows=50000 total=650000 14:13:08
+  52dp-yji6 page offset=650000 rows=50000 total=700000 14:13:20
+  52dp-yji6 page offset=700000 rows=50000 total=750000 14:13:32
+  52dp-yji6 page offset=750000 rows=50000 total=800000 14:13:39
+  52dp-yji6 page offset=800000 rows=50000 total=850000 14:13:51
+  52dp-yji6 page offset=850000 rows=42914 total=892914 14:13:55
+52dp-yji6 -> dob_boiler_52dp-yji6.csv rows=892914 secs=143.259584659 bytes=136706475
+  f4rp-2kvy page offset=0 rows=50000 total=50000 14:14:00
+  f4rp-2kvy page offset=50000 rows=41370 total=91370 14:14:12
+f4rp-2kvy -> dep_boiler_fuel_f4rp-2kvy.csv rows=91370 secs=17.159724958 bytes=18276254
+  tesw-yqqr page offset=0 rows=50000 total=50000 14:14:17
+  tesw-yqqr page offset=50000 rows=50000 total=100000 14:14:40
+  tesw-yqqr page offset=100000 rows=50000 total=150000 14:14:44
+  tesw-yqqr page offset=150000 rows=50000 total=200000 14:14:57
+  tesw-yqqr page offset=200000 rows=3887 total=203887 14:14:58
+tesw-yqqr -> hpd_registrations_tesw-yqqr.csv rows=203887 secs=45.989583333 bytes=20308043
+  kj4p-ruqc page offset=0 rows=50000 total=50000 14:15:06
+  kj4p-ruqc page offset=50000 rows=50000 total=100000 14:15:08
+  kj4p-ruqc page offset=100000 rows=50000 total=150000 14:15:11
+  kj4p-ruqc page offset=150000 rows=50000 total=200000 14:15:15
+  kj4p-ruqc page offset=200000 rows=50000 total=250000 14:15:18
+  kj4p-ruqc page offset=250000 rows=50000 total=300000 14:15:29
+  kj4p-ruqc page offset=300000 rows=50000 total=350000 14:15:31
+  kj4p-ruqc page offset=350000 rows=3622 total=353622 14:15:31
+kj4p-ruqc -> hpd_buildings_active_kj4p-ruqc.csv rows=353622 secs=33.387182185 bytes=23692672
+  64uk-42ks page offset=0 rows=50000 total=50000 14:15:37
+  64uk-42ks page offset=50000 rows=50000 total=100000 14:15:38
+  64uk-42ks page offset=100000 rows=50000 total=150000 14:15:40
+  64uk-42ks page offset=150000 rows=50000 total=200000 14:15:45
+  64uk-42ks page offset=200000 rows=50000 total=250000 14:15:47
+  64uk-42ks page offset=250000 rows=50000 total=300000 14:15:55
+  64uk-42ks page offset=300000 rows=50000 total=350000 14:15:58
+  64uk-42ks page offset=350000 rows=50000 total=400000 14:16:20
+  64uk-42ks page offset=400000 rows=50000 total=450000 14:16:23
+  64uk-42ks page offset=450000 rows=50000 total=500000 14:16:39
+  64uk-42ks page offset=500000 rows=50000 total=550000 14:16:48
+  64uk-42ks page offset=550000 rows=50000 total=600000 14:16:50
+  64uk-42ks page offset=600000 rows=50000 total=650000 14:17:01
+  64uk-42ks page offset=650000 rows=50000 total=700000 14:17:07
+  64uk-42ks page offset=700000 rows=50000 total=750000 14:17:16
+  64uk-42ks page offset=750000 rows=50000 total=800000 14:17:19
+  64uk-42ks page offset=800000 rows=50000 total=850000 14:17:21
+  64uk-42ks page offset=850000 rows=8284 total=858284 14:17:23
+64uk-42ks -> pluto_all_lots_64uk-42ks.csv rows=858284 secs=111.501078627 bytes=102648659
+END Sat Oct 17 02:17:23 PM UTC 2026

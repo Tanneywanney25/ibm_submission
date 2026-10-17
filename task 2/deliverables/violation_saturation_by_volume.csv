@@ -1,0 +1,6 @@
+dimension,level,days,complaints,clusters_2plus,confirmed,mean_tmin,dup_share,rate_7d_2plus
+"daily complaint volume bin, Frigid+Freezing days, all seasons (2+ clusters)",501-1000,98,81395,14382,1112,28.102040816326532,0.43686405683014967,0.07731887081073564
+"daily complaint volume bin, Frigid+Freezing days, all seasons (2+ clusters)",1001-2000,254,351742,62979,6782,25.9251968503937,0.4583401981357944,0.10768668921386494
+"daily complaint volume bin, Frigid+Freezing days, all seasons (2+ clusters)",2001-3000,83,198737,37407,4192,21.96385542168675,0.47708800724669925,0.11206458684203491
+"daily complaint volume bin, Frigid+Freezing days, all seasons (2+ clusters)",3001-4500,35,129434,23778,2749,14.314285714285715,0.5354645995278592,0.1156110690554294
+"daily complaint volume bin, Frigid+Freezing days, all seasons (2+ clusters)",4500+,12,60785,11124,1153,8.166666666666666,0.5383261416065984,0.1036497662711255

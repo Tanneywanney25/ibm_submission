@@ -20,3 +20,6 @@ __pycache__/
 
 # model outputs (panel.csv is ~250 MB; results CSVs are regenerated)
 model/out/
+
+# local virtualenv
+.venv/

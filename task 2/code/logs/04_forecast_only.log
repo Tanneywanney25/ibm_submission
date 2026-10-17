@@ -1,0 +1,48 @@
+[14:47:37] load ...
+[14:47:44] load done in 7.2 s
+[14:47:44] training-window band features ...
+[14:47:45] training-window band features done in 1.3 s
+[14:47:45] groups ...
+[14:47:45] groups done in 0.2 s
+  chronic 38,549 buildings | forecast-only strict 18,814 (491,865 units) | broad 33,805 (1,022,385 units)
+[14:47:45] 2025-26 holdout outcomes ...
+[14:47:46] 2025-26 holdout outcomes done in 0.4 s
+                    group  buildings     units  share_failed48_2025_26  share_failed48_feb7_9  fail48_events_feb7_9
+                  chronic      38549 2976945.0                0.271576               0.046538                1862.0
+     forecast_only_strict      18814  491865.0                0.033645               0.003774                  73.0
+forecast_only_broad_extra      14991  530520.0                0.119872               0.015276                 238.0
+                cold_only      17481  301303.0                0.025113               0.002403                  43.0
+   no_training_complaints      26304  504365.0                0.060713               0.005512                 150.0
+[14:47:46] baseline ranks at k ...
+[14:47:46] baseline ranks at k done in 0.4 s
+ranking  cold-sensitivity x units (tenants at risk)  cold-sensitivity: sub-freezing reaction rate (2018-25)  last season heat violations (2024-25)  last season total complaints (2024-25)  trailing 14-day complaints before Feb 7  training-window total complaints (2018-25)
+k                                                                                                                                                                                                                                                                              
+100                                           0.160                                                   0.590                                  0.300                                   0.560                                    0.720                                       0.550
+500                                           0.242                                                   0.408                                  0.236                                   0.406                                    0.572                                       0.354
+1000                                          0.254                                                   0.337                                  0.215                                   0.346                                    0.477                                       0.309
+2500                                          0.220                                                   0.258                                  0.172                                   0.258                                    0.346                                       0.244
+[14:47:46] intensity tiers ...
+[14:47:46] intensity tiers done in 0.1 s
+subfreezing_tier  buildings  share_failed48_2025_26  share_failed48_feb7_9
+               1      20775                0.033309               0.003514
+             2-3       8511                0.078487               0.008342
+             4-9       3705                0.192173               0.025641
+             10+        814                0.439803               0.074939
+[14:47:46] archived forecast cross-check ...
+[14:47:46] archived forecast cross-check done in 0.1 s
+  archived 48 h forecast vs observed, 2025-26: sub-freezing flag agrees on 86% of days, mean abs error 5.8 F
+[14:47:46] worked examples ...
+[14:47:46] worked examples done in 0.0 s
+ building_id          bbl       borough    cd  yearbuilt  unitsres  cdays_frigid  cdays_freezing  c_last1  snap_complaints snap_violation_date  rank__last season total complaints (2024-25)
+       46149 2030680033.0         Bronx 206.0     1931.0      45.0           2.0             3.0      4.0              2.0          2026-02-12                                         11686
+      749553 5000450001.0 Staten Island 501.0     1984.0      16.0           0.0             2.0      0.0              3.0          2026-02-08                                         61114
+      116710 2032490107.0         Bronx 208.0     1930.0       3.0           0.0             2.0      1.0              1.0          2026-02-12                                         26445
+      812435 5014940050.0 Staten Island 501.0     1969.0     164.0           0.0             1.0      0.0              2.0          2026-02-08                                         84050
+      804145 1019930088.0     Manhattan 109.0     1905.0      45.0           1.0             3.0      0.0              2.0          2026-02-10                                         48076
+       64588 2024220026.0         Bronx 204.0     1918.0      34.0           0.0             1.0      0.0              2.0          2026-02-11                                         66408
+[14:47:46] write forecast_only_buildings.csv ...
+[14:47:51] write forecast_only_buildings.csv done in 4.3 s
+[14:47:51] figure ...
+[14:47:51] figure done in 0.4 s
+  numbers -> /home/linux1/heatahead/stream2/out/numbers_04_forecast_only.json
+STEP 4 complete

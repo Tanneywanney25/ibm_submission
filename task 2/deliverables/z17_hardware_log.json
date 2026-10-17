@@ -1,0 +1,803 @@
+{
+  "machine": {
+    "uname_m": "s390x",
+    "kernel": "6.8.0-147-generic",
+    "machine_line": "processor 0: version = FF,  identification = 09DFD8,  machine = 9175",
+    "features_line": "features\t: esan3 zarch stfle msa ldisp eimm dfp edat etf3eh highgprs te vx vxd vxe gs vxe2 vxp sort dflt vxp2 nnpa sie",
+    "has_dflt": true,
+    "has_nnpa": true,
+    "has_vx": true,
+    "nproc": 3,
+    "python": "3.12.3",
+    "zlib": "1.3",
+    "openssl": "OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)",
+    "lszcrypt": "no Crypto Express cards"
+  },
+  "inflate": [],
+  "pseudonymize": {
+    "complaints_rows": 2219844,
+    "hmac_rows": 2219844,
+    "hmac_secs": 5.851247910002712,
+    "hmac_rows_per_s": 379379.58434561884,
+    "hmac_msg_mb_per_s": 3.451029171095587,
+    "apartments_distinct_raw": 15885,
+    "apartments_distinct_hashed": 502141,
+    "violations_rows": 223430,
+    "hmac_violations_secs": 0.6278285669977777
+  },
+  "bench": {
+    "hardware on (DFLTCC default, CPACF on)": {
+      "env_DFLTCC": "default",
+      "env_OPENSSL_s390xcap": "default",
+      "ops": [
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "zlib compress level 1",
+          "in_mb": 344.8203182220459,
+          "out_mb": 106.942551612854,
+          "ratio": 3.224350953120517,
+          "secs": 0.19140908800181933,
+          "mb_per_s": 1801.4835231792567
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "zlib decompress level 1",
+          "in_mb": 106.942551612854,
+          "out_mb": 344.8203182220459,
+          "ratio": 3.224350953120517,
+          "secs": 0.4952669060003245,
+          "mb_per_s": 696.2312927523163
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "zlib compress level 6",
+          "in_mb": 344.8203182220459,
+          "out_mb": 106.94254779815674,
+          "ratio": 3.2243510681348218,
+          "secs": 0.16390146099729463,
+          "mb_per_s": 2103.826995341655
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "zlib decompress level 6",
+          "in_mb": 106.94254779815674,
+          "out_mb": 344.8203182220459,
+          "ratio": 3.2243510681348218,
+          "secs": 0.4986826009990182,
+          "mb_per_s": 691.4625004587333
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "AES-256-GCM encrypt (64 MB chunks)",
+          "in_mb": 344.8203182220459,
+          "out_mb": 344.8203182220459,
+          "ratio": 1.0,
+          "secs": 0.4812309379922226,
+          "mb_per_s": 716.5381337714798
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "SHA-256 digest (hashlib/OpenSSL)",
+          "in_mb": 344.8203182220459,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.24310661299386993,
+          "mb_per_s": 1418.3913550337718
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "HMAC-SHA256 digest",
+          "in_mb": 344.8203182220459,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.2502576910046628,
+          "mb_per_s": 1377.861023322641
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "zlib compress level 1",
+          "in_mb": 266.5850534439087,
+          "out_mb": 111.45817947387695,
+          "ratio": 2.3917944353863203,
+          "secs": 0.15009152000129689,
+          "mb_per_s": 1776.1500012899146
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "zlib decompress level 1",
+          "in_mb": 111.45817947387695,
+          "out_mb": 266.5850534439087,
+          "ratio": 2.3917944353863203,
+          "secs": 0.3671642649860587,
+          "mb_per_s": 726.0648131267104
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "zlib compress level 6",
+          "in_mb": 266.5850534439087,
+          "out_mb": 111.45817947387695,
+          "ratio": 2.3917944353863203,
+          "secs": 0.13363548199413344,
+          "mb_per_s": 1994.8673022005614
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "zlib decompress level 6",
+          "in_mb": 111.45817947387695,
+          "out_mb": 266.5850534439087,
+          "ratio": 2.3917944353863203,
+          "secs": 0.37443793899728917,
+          "mb_per_s": 711.96058326194
+        },
+        {
+          "file": "staged complaints_pseud.csv (zlib-6 stream)",
+          "op": "AES-256-GCM encrypt (OpenSSL via python cryptography)",
+          "in_mb": 111.45817947387695,
+          "out_mb": 111.45819473266602,
+          "ratio": 1.0,
+          "secs": 0.13541562799946405,
+          "mb_per_s": 823.0821000536074
+        },
+        {
+          "file": "staged complaints_pseud.csv (zlib-6 stream)",
+          "op": "AES-256-GCM decrypt+verify",
+          "in_mb": 111.45819473266602,
+          "out_mb": 111.45817947387695,
+          "ratio": 1.0,
+          "secs": 0.13424115400994197,
+          "mb_per_s": 830.2832339002562
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "AES-256-GCM encrypt (64 MB chunks)",
+          "in_mb": 266.5850534439087,
+          "out_mb": 266.5850534439087,
+          "ratio": 1.0,
+          "secs": 0.35721940000075847,
+          "mb_per_s": 746.2782072959718
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "SHA-256 digest (hashlib/OpenSSL)",
+          "in_mb": 266.5850534439087,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.18710557800659444,
+          "mb_per_s": 1424.7841046968308
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "HMAC-SHA256 digest",
+          "in_mb": 266.5850534439087,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.20129811800143216,
+          "mb_per_s": 1324.3295868370317
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "zlib compress level 1",
+          "in_mb": 25.83087158203125,
+          "out_mb": 9.456269264221191,
+          "ratio": 2.731613373126453,
+          "secs": 0.010374140008934774,
+          "mb_per_s": 2489.9289540901027
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "zlib decompress level 1",
+          "in_mb": 9.456269264221191,
+          "out_mb": 25.83087158203125,
+          "ratio": 2.731613373126453,
+          "secs": 0.03770085400901735,
+          "mb_per_s": 685.1534868640637
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "zlib compress level 6",
+          "in_mb": 25.83087158203125,
+          "out_mb": 9.456269264221191,
+          "ratio": 2.731613373126453,
+          "secs": 0.003035400004591793,
+          "mb_per_s": 8509.874001105512
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "zlib decompress level 6",
+          "in_mb": 9.456269264221191,
+          "out_mb": 25.83087158203125,
+          "ratio": 2.731613373126453,
+          "secs": 0.02057258399145212,
+          "mb_per_s": 1255.5968464031519
+        },
+        {
+          "file": "staged violations_pseud.csv (zlib-6 stream)",
+          "op": "AES-256-GCM encrypt (OpenSSL via python cryptography)",
+          "in_mb": 9.456269264221191,
+          "out_mb": 9.456284523010254,
+          "ratio": 1.0,
+          "secs": 0.010145744003239088,
+          "mb_per_s": 932.0429592154328
+        },
+        {
+          "file": "staged violations_pseud.csv (zlib-6 stream)",
+          "op": "AES-256-GCM decrypt+verify",
+          "in_mb": 9.456284523010254,
+          "out_mb": 9.456269264221191,
+          "ratio": 1.0,
+          "secs": 0.010033769998699427,
+          "mb_per_s": 942.4442921700328
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "AES-256-GCM encrypt (64 MB chunks)",
+          "in_mb": 25.83087158203125,
+          "out_mb": 25.83087158203125,
+          "ratio": 1.0,
+          "secs": 0.021940611011814326,
+          "mb_per_s": 1177.3086705799644
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "SHA-256 digest (hashlib/OpenSSL)",
+          "in_mb": 25.83087158203125,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.006322833010926843,
+          "mb_per_s": 4085.3319291196635
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "HMAC-SHA256 digest",
+          "in_mb": 25.83087158203125,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.006020526998327114,
+          "mb_per_s": 4290.466862653172
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "openssl enc -aes-256-ctr -pbkdf2 (CLI; enc has no GCM mode)",
+          "in_mb": 266.5850534439087,
+          "out_mb": 266.5850534439087,
+          "ratio": 1.0,
+          "secs": 0.18727796500024851,
+          "mb_per_s": 1423.4726089828823
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "openssl dgst -sha256 -hmac (CLI)",
+          "in_mb": 266.5850534439087,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.12166973800049163,
+          "mb_per_s": 2191.0547176721257
+        }
+      ]
+    },
+    "DFLTCC=0 (deflate in software)": {
+      "env_DFLTCC": "0",
+      "env_OPENSSL_s390xcap": "default",
+      "ops": [
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "zlib compress level 1",
+          "in_mb": 344.8203182220459,
+          "out_mb": 91.20932292938232,
+          "ratio": 3.780538076014649,
+          "secs": 2.842171067997697,
+          "mb_per_s": 121.32285846712635
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "zlib decompress level 1",
+          "in_mb": 91.20932292938232,
+          "out_mb": 344.8203182220459,
+          "ratio": 3.780538076014649,
+          "secs": 1.3133516920061084,
+          "mb_per_s": 262.5498716915211
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "zlib compress level 6",
+          "in_mb": 344.8203182220459,
+          "out_mb": 70.66600513458252,
+          "ratio": 4.879578484242033,
+          "secs": 10.260537085996475,
+          "mb_per_s": 33.606458934070304
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "zlib decompress level 6",
+          "in_mb": 70.66600513458252,
+          "out_mb": 344.8203182220459,
+          "ratio": 4.879578484242033,
+          "secs": 1.1883962029969553,
+          "mb_per_s": 290.1560248614572
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "AES-256-GCM encrypt (64 MB chunks)",
+          "in_mb": 344.8203182220459,
+          "out_mb": 344.8203182220459,
+          "ratio": 1.0,
+          "secs": 0.4717918239912251,
+          "mb_per_s": 730.8738742120704
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "SHA-256 digest (hashlib/OpenSSL)",
+          "in_mb": 344.8203182220459,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.24364092999894638,
+          "mb_per_s": 1415.2807503383651
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "HMAC-SHA256 digest",
+          "in_mb": 344.8203182220459,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.24529732100199908,
+          "mb_per_s": 1405.7239468148766
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "zlib compress level 1",
+          "in_mb": 266.5850534439087,
+          "out_mb": 88.54716968536377,
+          "ratio": 3.010655839042288,
+          "secs": 2.465876517002471,
+          "mb_per_s": 108.10965253360315
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "zlib decompress level 1",
+          "in_mb": 88.54716968536377,
+          "out_mb": 266.5850534439087,
+          "ratio": 3.010655839042288,
+          "secs": 1.1386550720053492,
+          "mb_per_s": 234.12274708829148
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "zlib compress level 6",
+          "in_mb": 266.5850534439087,
+          "out_mb": 75.5085802078247,
+          "ratio": 3.5305266330022103,
+          "secs": 8.161008598006447,
+          "mb_per_s": 32.66569937311787
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "zlib decompress level 6",
+          "in_mb": 75.5085802078247,
+          "out_mb": 266.5850534439087,
+          "ratio": 3.5305266330022103,
+          "secs": 1.1137672280019615,
+          "mb_per_s": 239.35437023241198
+        },
+        {
+          "file": "staged complaints_pseud.csv (zlib-6 stream)",
+          "op": "AES-256-GCM encrypt (OpenSSL via python cryptography)",
+          "in_mb": 75.5085802078247,
+          "out_mb": 75.50859546661377,
+          "ratio": 1.0,
+          "secs": 0.0886900070036063,
+          "mb_per_s": 851.3764149861257
+        },
+        {
+          "file": "staged complaints_pseud.csv (zlib-6 stream)",
+          "op": "AES-256-GCM decrypt+verify",
+          "in_mb": 75.50859546661377,
+          "out_mb": 75.5085802078247,
+          "ratio": 1.0,
+          "secs": 0.08577799799968489,
+          "mb_per_s": 880.2791154918549
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "AES-256-GCM encrypt (64 MB chunks)",
+          "in_mb": 266.5850534439087,
+          "out_mb": 266.5850534439087,
+          "ratio": 1.0,
+          "secs": 0.3649834129901137,
+          "mb_per_s": 730.4032017781851
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "SHA-256 digest (hashlib/OpenSSL)",
+          "in_mb": 266.5850534439087,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.20544420900114346,
+          "mb_per_s": 1297.6031533817775
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "HMAC-SHA256 digest",
+          "in_mb": 266.5850534439087,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.18933063100848813,
+          "mb_per_s": 1408.039745200855
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "zlib compress level 1",
+          "in_mb": 25.83087158203125,
+          "out_mb": 7.745222091674805,
+          "ratio": 3.3350717740936537,
+          "secs": 0.2213183440035209,
+          "mb_per_s": 116.71364928349686
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "zlib decompress level 1",
+          "in_mb": 7.745222091674805,
+          "out_mb": 25.83087158203125,
+          "ratio": 3.3350717740936537,
+          "secs": 0.10538374799943995,
+          "mb_per_s": 245.11247770546674
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "zlib compress level 6",
+          "in_mb": 25.83087158203125,
+          "out_mb": 6.460906982421875,
+          "ratio": 3.9980256103839666,
+          "secs": 0.7385172810027143,
+          "mb_per_s": 34.97666506457323
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "zlib decompress level 6",
+          "in_mb": 6.460906982421875,
+          "out_mb": 25.83087158203125,
+          "ratio": 3.9980256103839666,
+          "secs": 0.09123717300826684,
+          "mb_per_s": 283.11784254528317
+        },
+        {
+          "file": "staged violations_pseud.csv (zlib-6 stream)",
+          "op": "AES-256-GCM encrypt (OpenSSL via python cryptography)",
+          "in_mb": 6.460906982421875,
+          "out_mb": 6.4609222412109375,
+          "ratio": 1.0,
+          "secs": 0.0066352249996270984,
+          "mb_per_s": 973.7283939557408
+        },
+        {
+          "file": "staged violations_pseud.csv (zlib-6 stream)",
+          "op": "AES-256-GCM decrypt+verify",
+          "in_mb": 6.4609222412109375,
+          "out_mb": 6.460906982421875,
+          "ratio": 1.0,
+          "secs": 0.006100066006183624,
+          "mb_per_s": 1059.153618316993
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "AES-256-GCM encrypt (64 MB chunks)",
+          "in_mb": 25.83087158203125,
+          "out_mb": 25.83087158203125,
+          "ratio": 1.0,
+          "secs": 0.022323198994854465,
+          "mb_per_s": 1157.1312690437114
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "SHA-256 digest (hashlib/OpenSSL)",
+          "in_mb": 25.83087158203125,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.006120171994552948,
+          "mb_per_s": 4220.612035907021
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "HMAC-SHA256 digest",
+          "in_mb": 25.83087158203125,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.005979078996460885,
+          "mb_per_s": 4320.209115370606
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "openssl enc -aes-256-ctr -pbkdf2 (CLI; enc has no GCM mode)",
+          "in_mb": 266.5850534439087,
+          "out_mb": 266.5850534439087,
+          "ratio": 1.0,
+          "secs": 0.1866912149998825,
+          "mb_per_s": 1427.946427174286
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "openssl dgst -sha256 -hmac (CLI)",
+          "in_mb": 266.5850534439087,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.12528740099514835,
+          "mb_per_s": 2127.788199982151
+        }
+      ]
+    },
+    "CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)": {
+      "env_DFLTCC": "default",
+      "env_OPENSSL_s390xcap": "km:0:0;kmc:0:0;kmctr:0:0;kmf:0:0;kmo:0:0;kma:0:0;kmac:0:0;kimd:0:0;klmd:0:0",
+      "ops": [
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "zlib compress level 1",
+          "in_mb": 344.8203182220459,
+          "out_mb": 106.942551612854,
+          "ratio": 3.224350953120517,
+          "secs": 0.16849998700490687,
+          "mb_per_s": 2046.411541930887
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "zlib decompress level 1",
+          "in_mb": 106.942551612854,
+          "out_mb": 344.8203182220459,
+          "ratio": 3.224350953120517,
+          "secs": 0.5062989069992909,
+          "mb_per_s": 681.0607596720109
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "zlib compress level 6",
+          "in_mb": 344.8203182220459,
+          "out_mb": 106.94254684448242,
+          "ratio": 3.224351096888399,
+          "secs": 0.16493954400357325,
+          "mb_per_s": 2090.586101138825
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "zlib decompress level 6",
+          "in_mb": 106.94254684448242,
+          "out_mb": 344.8203182220459,
+          "ratio": 3.224351096888399,
+          "secs": 0.5057767260004766,
+          "mb_per_s": 681.7639098358214
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "AES-256-GCM encrypt (64 MB chunks)",
+          "in_mb": 344.8203182220459,
+          "out_mb": 344.8203182220459,
+          "ratio": 1.0,
+          "secs": 3.18116277900117,
+          "mb_per_s": 108.39442750248496
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "SHA-256 digest (hashlib/OpenSSL)",
+          "in_mb": 344.8203182220459,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 1.320240280998405,
+          "mb_per_s": 261.17997093777694
+        },
+        {
+          "file": "raw complaints ygpa-z7cr.csv",
+          "op": "HMAC-SHA256 digest",
+          "in_mb": 344.8203182220459,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 1.3251137689949246,
+          "mb_per_s": 260.2194062805536
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "zlib compress level 1",
+          "in_mb": 266.5850534439087,
+          "out_mb": 111.45817947387695,
+          "ratio": 2.3917944353863203,
+          "secs": 0.15756596199935302,
+          "mb_per_s": 1691.8949375944744
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "zlib decompress level 1",
+          "in_mb": 111.45817947387695,
+          "out_mb": 266.5850534439087,
+          "ratio": 2.3917944353863203,
+          "secs": 0.37309895099315327,
+          "mb_per_s": 714.515687418271
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "zlib compress level 6",
+          "in_mb": 266.5850534439087,
+          "out_mb": 111.45817947387695,
+          "ratio": 2.3917944353863203,
+          "secs": 0.13338594601373188,
+          "mb_per_s": 1998.5992633471608
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "zlib decompress level 6",
+          "in_mb": 111.45817947387695,
+          "out_mb": 266.5850534439087,
+          "ratio": 2.3917944353863203,
+          "secs": 0.3520342249976238,
+          "mb_per_s": 757.270272359763
+        },
+        {
+          "file": "staged complaints_pseud.csv (zlib-6 stream)",
+          "op": "AES-256-GCM encrypt (OpenSSL via python cryptography)",
+          "in_mb": 111.45817947387695,
+          "out_mb": 111.45819473266602,
+          "ratio": 1.0,
+          "secs": 0.991779021002003,
+          "mb_per_s": 112.38207011201929
+        },
+        {
+          "file": "staged complaints_pseud.csv (zlib-6 stream)",
+          "op": "AES-256-GCM decrypt+verify",
+          "in_mb": 111.45819473266602,
+          "out_mb": 111.45817947387695,
+          "ratio": 1.0,
+          "secs": 0.9770951099926606,
+          "mb_per_s": 114.0709623188209
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "AES-256-GCM encrypt (64 MB chunks)",
+          "in_mb": 266.5850534439087,
+          "out_mb": 266.5850534439087,
+          "ratio": 1.0,
+          "secs": 2.431423113011988,
+          "mb_per_s": 109.64157246727395
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "SHA-256 digest (hashlib/OpenSSL)",
+          "in_mb": 266.5850534439087,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 1.0343701579986373,
+          "mb_per_s": 257.7269378688513
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "HMAC-SHA256 digest",
+          "in_mb": 266.5850534439087,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 1.0380065890058177,
+          "mb_per_s": 256.82404742655694
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "zlib compress level 1",
+          "in_mb": 25.83087158203125,
+          "out_mb": 9.456374168395996,
+          "ratio": 2.7315830700058603,
+          "secs": 0.010419901998830028,
+          "mb_per_s": 2478.9937165370275
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "zlib decompress level 1",
+          "in_mb": 9.456374168395996,
+          "out_mb": 25.83087158203125,
+          "ratio": 2.7315830700058603,
+          "secs": 0.03867658000672236,
+          "mb_per_s": 667.8685544983966
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "zlib compress level 6",
+          "in_mb": 25.83087158203125,
+          "out_mb": 9.456374168395996,
+          "ratio": 2.7315830700058603,
+          "secs": 0.0029857939953217283,
+          "mb_per_s": 8651.257127083845
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "zlib decompress level 6",
+          "in_mb": 9.456374168395996,
+          "out_mb": 25.83087158203125,
+          "ratio": 2.7315830700058603,
+          "secs": 0.022481613006675616,
+          "mb_per_s": 1148.977681199348
+        },
+        {
+          "file": "staged violations_pseud.csv (zlib-6 stream)",
+          "op": "AES-256-GCM encrypt (OpenSSL via python cryptography)",
+          "in_mb": 9.456374168395996,
+          "out_mb": 9.456389427185059,
+          "ratio": 1.0,
+          "secs": 0.0854518939886475,
+          "mb_per_s": 110.66313134794062
+        },
+        {
+          "file": "staged violations_pseud.csv (zlib-6 stream)",
+          "op": "AES-256-GCM decrypt+verify",
+          "in_mb": 9.456389427185059,
+          "out_mb": 9.456374168395996,
+          "ratio": 1.0,
+          "secs": 0.08506035400205292,
+          "mb_per_s": 111.17252307893955
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "AES-256-GCM encrypt (64 MB chunks)",
+          "in_mb": 25.83087158203125,
+          "out_mb": 25.83087158203125,
+          "ratio": 1.0,
+          "secs": 0.22262173199851532,
+          "mb_per_s": 116.03032350050856
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "SHA-256 digest (hashlib/OpenSSL)",
+          "in_mb": 25.83087158203125,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.1005360700073652,
+          "mb_per_s": 256.9313837326136
+        },
+        {
+          "file": "staged violations_pseud.csv",
+          "op": "HMAC-SHA256 digest",
+          "in_mb": 25.83087158203125,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 0.10014337899337988,
+          "mb_per_s": 257.9388856425429
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "openssl enc -aes-256-ctr -pbkdf2 (CLI; enc has no GCM mode)",
+          "in_mb": 266.5850534439087,
+          "out_mb": 266.5850534439087,
+          "ratio": 1.0,
+          "secs": 1.525260973998229,
+          "mb_per_s": 174.77996093029142
+        },
+        {
+          "file": "staged complaints_pseud.csv",
+          "op": "openssl dgst -sha256 -hmac (CLI)",
+          "in_mb": 266.5850534439087,
+          "out_mb": 0,
+          "ratio": 1.0,
+          "secs": 1.1155142310017254,
+          "mb_per_s": 238.97951817657838
+        }
+      ]
+    }
+  },
+  "openssl_speed": [
+    {
+      "algo": "aes-256-gcm",
+      "mode": "CPACF on",
+      "kb_per_s_16KB_blocks": 14863976.46,
+      "gb_per_s_16KB_blocks": 14.175392589569093
+    },
+    {
+      "algo": "aes-256-gcm",
+      "mode": "CPACF masked",
+      "kb_per_s_16KB_blocks": 138686.74,
+      "gb_per_s_16KB_blocks": 0.13226198196411132
+    },
+    {
+      "algo": "sha256",
+      "mode": "CPACF on",
+      "kb_per_s_16KB_blocks": 4384123.14,
+      "gb_per_s_16KB_blocks": 4.181025638580322
+    },
+    {
+      "algo": "sha256",
+      "mode": "CPACF masked",
+      "kb_per_s_16KB_blocks": 275449.53,
+      "gb_per_s_16KB_blocks": 0.2626891422271729
+    }
+  ]
+}

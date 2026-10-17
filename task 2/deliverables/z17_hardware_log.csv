@@ -1,0 +1,82 @@
+variant,file,op,in_mb,out_mb,ratio,secs,mb_per_s
+"hardware on (DFLTCC default, CPACF on)",raw complaints ygpa-z7cr.csv,zlib compress level 1,344.8203182220459,106.942551612854,3.224350953120517,0.19140908800181933,1801.4835231792567
+"hardware on (DFLTCC default, CPACF on)",raw complaints ygpa-z7cr.csv,zlib decompress level 1,106.942551612854,344.8203182220459,3.224350953120517,0.4952669060003245,696.2312927523163
+"hardware on (DFLTCC default, CPACF on)",raw complaints ygpa-z7cr.csv,zlib compress level 6,344.8203182220459,106.94254779815674,3.2243510681348218,0.16390146099729463,2103.826995341655
+"hardware on (DFLTCC default, CPACF on)",raw complaints ygpa-z7cr.csv,zlib decompress level 6,106.94254779815674,344.8203182220459,3.2243510681348218,0.4986826009990182,691.4625004587333
+"hardware on (DFLTCC default, CPACF on)",raw complaints ygpa-z7cr.csv,AES-256-GCM encrypt (64 MB chunks),344.8203182220459,344.8203182220459,1.0,0.4812309379922226,716.5381337714798
+"hardware on (DFLTCC default, CPACF on)",raw complaints ygpa-z7cr.csv,SHA-256 digest (hashlib/OpenSSL),344.8203182220459,0.0,1.0,0.24310661299386993,1418.3913550337718
+"hardware on (DFLTCC default, CPACF on)",raw complaints ygpa-z7cr.csv,HMAC-SHA256 digest,344.8203182220459,0.0,1.0,0.2502576910046628,1377.861023322641
+"hardware on (DFLTCC default, CPACF on)",staged complaints_pseud.csv,zlib compress level 1,266.5850534439087,111.45817947387695,2.3917944353863203,0.15009152000129689,1776.1500012899146
+"hardware on (DFLTCC default, CPACF on)",staged complaints_pseud.csv,zlib decompress level 1,111.45817947387695,266.5850534439087,2.3917944353863203,0.3671642649860587,726.0648131267104
+"hardware on (DFLTCC default, CPACF on)",staged complaints_pseud.csv,zlib compress level 6,266.5850534439087,111.45817947387695,2.3917944353863203,0.13363548199413344,1994.8673022005614
+"hardware on (DFLTCC default, CPACF on)",staged complaints_pseud.csv,zlib decompress level 6,111.45817947387695,266.5850534439087,2.3917944353863203,0.37443793899728917,711.96058326194
+"hardware on (DFLTCC default, CPACF on)",staged complaints_pseud.csv (zlib-6 stream),AES-256-GCM encrypt (OpenSSL via python cryptography),111.45817947387695,111.45819473266602,1.0,0.13541562799946405,823.0821000536074
+"hardware on (DFLTCC default, CPACF on)",staged complaints_pseud.csv (zlib-6 stream),AES-256-GCM decrypt+verify,111.45819473266602,111.45817947387695,1.0,0.13424115400994197,830.2832339002562
+"hardware on (DFLTCC default, CPACF on)",staged complaints_pseud.csv,AES-256-GCM encrypt (64 MB chunks),266.5850534439087,266.5850534439087,1.0,0.35721940000075847,746.2782072959718
+"hardware on (DFLTCC default, CPACF on)",staged complaints_pseud.csv,SHA-256 digest (hashlib/OpenSSL),266.5850534439087,0.0,1.0,0.18710557800659444,1424.7841046968308
+"hardware on (DFLTCC default, CPACF on)",staged complaints_pseud.csv,HMAC-SHA256 digest,266.5850534439087,0.0,1.0,0.20129811800143216,1324.3295868370317
+"hardware on (DFLTCC default, CPACF on)",staged violations_pseud.csv,zlib compress level 1,25.83087158203125,9.456269264221191,2.731613373126453,0.010374140008934774,2489.9289540901027
+"hardware on (DFLTCC default, CPACF on)",staged violations_pseud.csv,zlib decompress level 1,9.456269264221191,25.83087158203125,2.731613373126453,0.03770085400901735,685.1534868640637
+"hardware on (DFLTCC default, CPACF on)",staged violations_pseud.csv,zlib compress level 6,25.83087158203125,9.456269264221191,2.731613373126453,0.003035400004591793,8509.874001105512
+"hardware on (DFLTCC default, CPACF on)",staged violations_pseud.csv,zlib decompress level 6,9.456269264221191,25.83087158203125,2.731613373126453,0.02057258399145212,1255.5968464031519
+"hardware on (DFLTCC default, CPACF on)",staged violations_pseud.csv (zlib-6 stream),AES-256-GCM encrypt (OpenSSL via python cryptography),9.456269264221191,9.456284523010254,1.0,0.010145744003239088,932.0429592154328
+"hardware on (DFLTCC default, CPACF on)",staged violations_pseud.csv (zlib-6 stream),AES-256-GCM decrypt+verify,9.456284523010254,9.456269264221191,1.0,0.010033769998699427,942.4442921700328
+"hardware on (DFLTCC default, CPACF on)",staged violations_pseud.csv,AES-256-GCM encrypt (64 MB chunks),25.83087158203125,25.83087158203125,1.0,0.021940611011814326,1177.3086705799644
+"hardware on (DFLTCC default, CPACF on)",staged violations_pseud.csv,SHA-256 digest (hashlib/OpenSSL),25.83087158203125,0.0,1.0,0.006322833010926843,4085.3319291196635
+"hardware on (DFLTCC default, CPACF on)",staged violations_pseud.csv,HMAC-SHA256 digest,25.83087158203125,0.0,1.0,0.006020526998327114,4290.466862653172
+"hardware on (DFLTCC default, CPACF on)",staged complaints_pseud.csv,openssl enc -aes-256-ctr -pbkdf2 (CLI; enc has no GCM mode),266.5850534439087,266.5850534439087,1.0,0.18727796500024851,1423.4726089828823
+"hardware on (DFLTCC default, CPACF on)",staged complaints_pseud.csv,openssl dgst -sha256 -hmac (CLI),266.5850534439087,0.0,1.0,0.12166973800049163,2191.0547176721257
+DFLTCC=0 (deflate in software),raw complaints ygpa-z7cr.csv,zlib compress level 1,344.8203182220459,91.20932292938232,3.780538076014649,2.842171067997697,121.32285846712635
+DFLTCC=0 (deflate in software),raw complaints ygpa-z7cr.csv,zlib decompress level 1,91.20932292938232,344.8203182220459,3.780538076014649,1.3133516920061084,262.5498716915211
+DFLTCC=0 (deflate in software),raw complaints ygpa-z7cr.csv,zlib compress level 6,344.8203182220459,70.66600513458252,4.879578484242033,10.260537085996475,33.606458934070304
+DFLTCC=0 (deflate in software),raw complaints ygpa-z7cr.csv,zlib decompress level 6,70.66600513458252,344.8203182220459,4.879578484242033,1.1883962029969553,290.1560248614572
+DFLTCC=0 (deflate in software),raw complaints ygpa-z7cr.csv,AES-256-GCM encrypt (64 MB chunks),344.8203182220459,344.8203182220459,1.0,0.4717918239912251,730.8738742120704
+DFLTCC=0 (deflate in software),raw complaints ygpa-z7cr.csv,SHA-256 digest (hashlib/OpenSSL),344.8203182220459,0.0,1.0,0.24364092999894638,1415.2807503383651
+DFLTCC=0 (deflate in software),raw complaints ygpa-z7cr.csv,HMAC-SHA256 digest,344.8203182220459,0.0,1.0,0.24529732100199908,1405.7239468148766
+DFLTCC=0 (deflate in software),staged complaints_pseud.csv,zlib compress level 1,266.5850534439087,88.54716968536377,3.010655839042288,2.465876517002471,108.10965253360315
+DFLTCC=0 (deflate in software),staged complaints_pseud.csv,zlib decompress level 1,88.54716968536377,266.5850534439087,3.010655839042288,1.1386550720053492,234.12274708829148
+DFLTCC=0 (deflate in software),staged complaints_pseud.csv,zlib compress level 6,266.5850534439087,75.5085802078247,3.5305266330022103,8.161008598006447,32.66569937311787
+DFLTCC=0 (deflate in software),staged complaints_pseud.csv,zlib decompress level 6,75.5085802078247,266.5850534439087,3.5305266330022103,1.1137672280019615,239.35437023241198
+DFLTCC=0 (deflate in software),staged complaints_pseud.csv (zlib-6 stream),AES-256-GCM encrypt (OpenSSL via python cryptography),75.5085802078247,75.50859546661377,1.0,0.0886900070036063,851.3764149861257
+DFLTCC=0 (deflate in software),staged complaints_pseud.csv (zlib-6 stream),AES-256-GCM decrypt+verify,75.50859546661377,75.5085802078247,1.0,0.08577799799968489,880.2791154918549
+DFLTCC=0 (deflate in software),staged complaints_pseud.csv,AES-256-GCM encrypt (64 MB chunks),266.5850534439087,266.5850534439087,1.0,0.3649834129901137,730.4032017781851
+DFLTCC=0 (deflate in software),staged complaints_pseud.csv,SHA-256 digest (hashlib/OpenSSL),266.5850534439087,0.0,1.0,0.20544420900114346,1297.6031533817775
+DFLTCC=0 (deflate in software),staged complaints_pseud.csv,HMAC-SHA256 digest,266.5850534439087,0.0,1.0,0.18933063100848813,1408.039745200855
+DFLTCC=0 (deflate in software),staged violations_pseud.csv,zlib compress level 1,25.83087158203125,7.745222091674805,3.3350717740936537,0.2213183440035209,116.71364928349686
+DFLTCC=0 (deflate in software),staged violations_pseud.csv,zlib decompress level 1,7.745222091674805,25.83087158203125,3.3350717740936537,0.10538374799943995,245.11247770546674
+DFLTCC=0 (deflate in software),staged violations_pseud.csv,zlib compress level 6,25.83087158203125,6.460906982421875,3.9980256103839666,0.7385172810027143,34.97666506457323
+DFLTCC=0 (deflate in software),staged violations_pseud.csv,zlib decompress level 6,6.460906982421875,25.83087158203125,3.9980256103839666,0.09123717300826684,283.11784254528317
+DFLTCC=0 (deflate in software),staged violations_pseud.csv (zlib-6 stream),AES-256-GCM encrypt (OpenSSL via python cryptography),6.460906982421875,6.4609222412109375,1.0,0.0066352249996270984,973.7283939557408
+DFLTCC=0 (deflate in software),staged violations_pseud.csv (zlib-6 stream),AES-256-GCM decrypt+verify,6.4609222412109375,6.460906982421875,1.0,0.006100066006183624,1059.153618316993
+DFLTCC=0 (deflate in software),staged violations_pseud.csv,AES-256-GCM encrypt (64 MB chunks),25.83087158203125,25.83087158203125,1.0,0.022323198994854465,1157.1312690437114
+DFLTCC=0 (deflate in software),staged violations_pseud.csv,SHA-256 digest (hashlib/OpenSSL),25.83087158203125,0.0,1.0,0.006120171994552948,4220.612035907021
+DFLTCC=0 (deflate in software),staged violations_pseud.csv,HMAC-SHA256 digest,25.83087158203125,0.0,1.0,0.005979078996460885,4320.209115370606
+DFLTCC=0 (deflate in software),staged complaints_pseud.csv,openssl enc -aes-256-ctr -pbkdf2 (CLI; enc has no GCM mode),266.5850534439087,266.5850534439087,1.0,0.1866912149998825,1427.946427174286
+DFLTCC=0 (deflate in software),staged complaints_pseud.csv,openssl dgst -sha256 -hmac (CLI),266.5850534439087,0.0,1.0,0.12528740099514835,2127.788199982151
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",raw complaints ygpa-z7cr.csv,zlib compress level 1,344.8203182220459,106.942551612854,3.224350953120517,0.16849998700490687,2046.411541930887
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",raw complaints ygpa-z7cr.csv,zlib decompress level 1,106.942551612854,344.8203182220459,3.224350953120517,0.5062989069992909,681.0607596720109
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",raw complaints ygpa-z7cr.csv,zlib compress level 6,344.8203182220459,106.94254684448242,3.224351096888399,0.16493954400357325,2090.586101138825
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",raw complaints ygpa-z7cr.csv,zlib decompress level 6,106.94254684448242,344.8203182220459,3.224351096888399,0.5057767260004766,681.7639098358214
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",raw complaints ygpa-z7cr.csv,AES-256-GCM encrypt (64 MB chunks),344.8203182220459,344.8203182220459,1.0,3.18116277900117,108.39442750248496
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",raw complaints ygpa-z7cr.csv,SHA-256 digest (hashlib/OpenSSL),344.8203182220459,0.0,1.0,1.320240280998405,261.17997093777694
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",raw complaints ygpa-z7cr.csv,HMAC-SHA256 digest,344.8203182220459,0.0,1.0,1.3251137689949246,260.2194062805536
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged complaints_pseud.csv,zlib compress level 1,266.5850534439087,111.45817947387695,2.3917944353863203,0.15756596199935302,1691.8949375944744
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged complaints_pseud.csv,zlib decompress level 1,111.45817947387695,266.5850534439087,2.3917944353863203,0.37309895099315327,714.515687418271
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged complaints_pseud.csv,zlib compress level 6,266.5850534439087,111.45817947387695,2.3917944353863203,0.13338594601373188,1998.5992633471608
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged complaints_pseud.csv,zlib decompress level 6,111.45817947387695,266.5850534439087,2.3917944353863203,0.3520342249976238,757.270272359763
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged complaints_pseud.csv (zlib-6 stream),AES-256-GCM encrypt (OpenSSL via python cryptography),111.45817947387695,111.45819473266602,1.0,0.991779021002003,112.38207011201929
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged complaints_pseud.csv (zlib-6 stream),AES-256-GCM decrypt+verify,111.45819473266602,111.45817947387695,1.0,0.9770951099926606,114.0709623188209
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged complaints_pseud.csv,AES-256-GCM encrypt (64 MB chunks),266.5850534439087,266.5850534439087,1.0,2.431423113011988,109.64157246727395
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged complaints_pseud.csv,SHA-256 digest (hashlib/OpenSSL),266.5850534439087,0.0,1.0,1.0343701579986373,257.7269378688513
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged complaints_pseud.csv,HMAC-SHA256 digest,266.5850534439087,0.0,1.0,1.0380065890058177,256.82404742655694
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged violations_pseud.csv,zlib compress level 1,25.83087158203125,9.456374168395996,2.7315830700058603,0.010419901998830028,2478.9937165370275
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged violations_pseud.csv,zlib decompress level 1,9.456374168395996,25.83087158203125,2.7315830700058603,0.03867658000672236,667.8685544983966
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged violations_pseud.csv,zlib compress level 6,25.83087158203125,9.456374168395996,2.7315830700058603,0.0029857939953217283,8651.257127083845
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged violations_pseud.csv,zlib decompress level 6,9.456374168395996,25.83087158203125,2.7315830700058603,0.022481613006675616,1148.977681199348
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged violations_pseud.csv (zlib-6 stream),AES-256-GCM encrypt (OpenSSL via python cryptography),9.456374168395996,9.456389427185059,1.0,0.0854518939886475,110.66313134794062
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged violations_pseud.csv (zlib-6 stream),AES-256-GCM decrypt+verify,9.456389427185059,9.456374168395996,1.0,0.08506035400205292,111.17252307893955
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged violations_pseud.csv,AES-256-GCM encrypt (64 MB chunks),25.83087158203125,25.83087158203125,1.0,0.22262173199851532,116.03032350050856
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged violations_pseud.csv,SHA-256 digest (hashlib/OpenSSL),25.83087158203125,0.0,1.0,0.1005360700073652,256.9313837326136
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged violations_pseud.csv,HMAC-SHA256 digest,25.83087158203125,0.0,1.0,0.10014337899337988,257.9388856425429
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged complaints_pseud.csv,openssl enc -aes-256-ctr -pbkdf2 (CLI; enc has no GCM mode),266.5850534439087,266.5850534439087,1.0,1.525260973998229,174.77996093029142
+"CPACF masked (AES + SHA instructions off, OPENSSL_s390xcap)",staged complaints_pseud.csv,openssl dgst -sha256 -hmac (CLI),266.5850534439087,0.0,1.0,1.1155142310017254,238.97951817657838
