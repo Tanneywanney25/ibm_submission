@@ -37,30 +37,37 @@ Owns the +3 live-demo bonus and the Real-Time track qualification.
       public); open Flask port via iptables, persist to `/etc/iptables/rules.v4`
 - [ ] Keep the instance alive: snapshot state, push logs — guests have hung
 
-### 2. Frontend — map + tenant lookup (suggested: Allen)
-Owns presentation row's visual half. Spec is written: `docs/webapp-spec.md`.
+### 2. Inspector map (suggested: Allen)
+Owns the presentation row's visual half. Spec: `docs/webapp-spec.md` §inspector.
 - [ ] Folium/Leaflet map from `model/out/ranked_inspection_list.csv`
       (two sorts: p_calibrated, tenants_at_risk); poll `/queue` during replay
-- [ ] Tenant lookup: address → GeoSearch → BBL → `season_risk_2026.csv`
-      ("N% chance this winter") + complaint/violation history per season
-- [ ] The trust expander: `season_reliability.csv` as "how accurate is this?"
-- [ ] Building-level only; probabilities capped at 99%; bands above 20%
+- [ ] The replay panel beside it: ticker with events processed + p99 latency
+- [ ] Screen-record the map re-sorting during a replay run (video input)
+- [ ] Serve from the instance's public IP alongside role 1's Flask service
 
-### 3. Video producer (suggested: stream-1 owner, now free)
-Owns the 3-minute video — it MUST show the instance and the model.
-- [ ] Shoot list from `slides/presentation-script.md` (timed beats): s390x +
-      nnpa terminal, replay ticker, map re-sorting, tenant lookup, the ladder
-- [ ] Record narration from the script (or explainer-script.md for one voice)
-- [ ] Cut to <3:00 with a 10-second buffer; captions for the numbers
-- [ ] B-roll fallback if the live demo slips: pre-rendered queue screenshots
-      (the cut line in stream6-realtime.md)
+### 3. Tenant experience — lookup + alerts (suggested: stream-1 owner, now free)
+The webapp is two products; this role owns the tenant half (community-impact
+bonus lives here). Spec: `docs/webapp-spec.md` §tenant lookup + §alerts.
+- [ ] Lookup page: address → GeoSearch → BBL → `season_risk_2026.csv`
+      ("N% chance this winter") + complaint/violation history per season,
+      landlord portfolio, boiler chips
+- [ ] Trust expander from `season_reliability.csv`; probabilities capped at
+      99%, bands above 20%, building-level only
+- [ ] Register-for-alerts form (`POST /register`, SQLite) — email send can be
+      print-to-log for the demo
+- [ ] Risk-vs-temperature curve endpoint if time (`GET /risk_curve/<bbl>`)
 
-### 4. Slides + submission owner (suggested: Tanush — his report is half the deck)
-Owns storytelling (10 pts) + reproducibility (5) + repo bonus (2).
+### 4. Slides + video + submission (suggested: Tanush — his report is half the deck)
+Owns storytelling (10 pts) + reproducibility (5) + repo bonus (2) + the video.
+No separate video producer: roles 1–3 each record their own screen captures
+(replay ticker, map re-sort, tenant lookup, s390x/nnpa terminal) and drop them
+in the team Drive; this role assembles.
 - [ ] **FIRST, TODAY: confirm the deadline on Hack2skill/Discord** (readings
       differ ~10.5h) and post it in the team chat pinned
 - [ ] Deck in the order of `slides/presentation-script.md` §slide order; every
       number from `docs/SUBMISSION.md` §9's file index
+- [ ] Assemble the ≤3:00 video from the script's timed beats + the captures;
+      narration straight from `explainer-script.md`; captions for the numbers
 - [ ] Team number `[ONLXXX]` into README + project title; roster per Sid's
       six-member answer
 - [ ] Submit on Hack2skill with a 2-hour buffer; checklist at the bottom of
@@ -74,14 +81,16 @@ The floating fixer role, now pointed at consistency and glue.
       69.1 / 86.1 / 96.6 / 99, 6-of-6, 481k/sec — one wrong digit on a slide
       beats ten in a CSV
 - [ ] Dry-run the reproduce commands in README top-to-bottom on the instance
+- [ ] Collect roles 1–3's screen captures as they land; keep the shot list from
+      `presentation-script.md` checked off so role 4 never waits
 - [ ] Watch teammates' blockers; own the git tree (rebase conflicts, no force
       pushes, data stays out)
 
 ## Sync points
 
 1. **Now:** deadline confirmed and pinned (role 4) — blocks scheduling everything
-2. **Demo freeze:** map + replay working end to end on the public IP → video
-   shooting starts (roles 1+2 → 3)
+2. **Demo freeze:** map + replay + lookup working end to end on the public IP →
+   roles 1–3 record their screen captures and drop them for role 4
 3. **T-4h before deadline:** content freeze — only video upload and submission
    fields after this
 4. **T-2h:** submitted. Nothing lands on main after submission.
