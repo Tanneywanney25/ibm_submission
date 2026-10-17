@@ -5,22 +5,19 @@ Read this before touching anything in `web/`, `api/`, `public/`, `realtime/`, `v
 contract. The production site is **https://ibmsubmission.vercel.app** and it deploys
 automatically from every push to `main` of `emersoncortazar/ibm_submission`.
 
-## 1. Where things stand (checked October 17, 2026, late afternoon)
+## 1. Where things stand (updated October 17, 2026, evening)
 
-- Every route on https://ibmsubmission.vercel.app returns Vercel's own `404: NOT_FOUND`
-  (`/`, `/map`, `/monitor`, `/building`, `/api/...`). The project is connected to the repo,
-  but the repo has no Vercel entry point: no `vercel.json`, no `api/` function, no
-  `requirements.txt`, no `public/` folder. There is nothing for Vercel to serve.
-- `web/app.py` is a Flask app written for the LinuxONE instance. On Vercel it cannot start
-  as written: it reads `model/out/season_risk_2026.csv`, `model/out/ranked_inspection_list.csv`,
-  `model/out/season_reliability.csv`, `model/out/building_day_counts.csv` (2.0 million rows),
-  `data/hpd_heat_violations.csv` (28 MB) and `data/second_tier/bbl_landlord.csv`, all of
-  which are gitignored and absent from the deploy; it imports pandas and numpy; it writes a
-  SQLite file next to itself (Vercel's filesystem is read-only except `/tmp`); and it proxies
-  a realtime service on `127.0.0.1:5000`, which does not exist on Vercel.
-- The templates (`web/templates/*.html`) are fine as they are. They only call same-origin
-  `/api/...` paths and CDN scripts (maplibre, deck.gl), so they work unchanged once the
-  endpoints exist.
+- The Vercel entry point exists: `vercel.json`, `api/index.py`, `requirements.txt`,
+  `.vercelignore` and `public/data/` (132 files, 13.1 MB, built on the s390x guest by
+  `web/build_assets.py` from `season_risk_2026.csv` and `ranked_inspection_list.csv`
+  regenerated that afternoon; `public/data/meta.json` records the model files, their sizes
+  and the git sha they were built from).
+- `web/app.py` now runs in two modes. FULL runs on the instance as the `heatahead-web`
+  systemd service on port 8080 (open in iptables, rules persisted, Jupyter token rotated
+  first). LITE runs on Vercel and forwards registrations to the instance (section 8).
+- Before this, every route on the site returned Vercel's own `404: NOT_FOUND` because the
+  repo had no entry point, and `web/app.py` imported pandas and read gitignored CSVs at
+  import time, so it could not start on Vercel at all.
 
 ## 2. The architecture that fits Vercel (and keeps one codebase)
 
@@ -57,14 +54,29 @@ web/build_assets.py      run on the instance (where model/out and data exist) to
 | file | contents | size |
 |---|---|---|
 | `map_data.json` | `{columns:[lon,lat,p_season,c_last1,units], rows:[...], bbls:[...]}`, exactly what `/api/map_data` returns today | about 4 MB |
-| `b/NN.json` for NN in 0..127 | shard keyed by `bbl % 128`; each entry is the `building_payload(bbl)` dict (season risk, rank, cold-day risk, coords, complaints and violations by season, last dates, units, cd, chronic, landlord name and portfolio) | about 150 KB each, about 18 MB total |
+| `b/<n>.json` for n = `bbl % 128` (0 to 127) | `{bbl: [record]}` where the record is a positional list over `FIELDS` in `web/app.py` (season risk and rank, units, community district, chronic flag, complaints and violations by season, last dates, cold-day risk and rank, coordinates, landlord name and portfolio size); `building_payload()` turns a record into the `/api/building` JSON in both modes | about 78 KB each, 10.0 MB total |
 | `reliability.json` | the calibration table (`/api/reliability`) | tiny |
 | `top500.csv` | the government export (`/api/queue.csv?k=500`) | small |
 | `meta.json` | citywide median season risk, ranked count, build timestamp, git sha, model file names | tiny |
 
 In LITE mode the function reads `meta.json` and `reliability.json` at cold start and one
-shard per building request. The browser may also fetch `/data/b/NN.json` directly; the
-`/api/building/<bbl>` route stays so the templates do not change.
+shard per building request (32 shards cached per warm instance). Vercel's Python builder
+bundles the whole repo minus `.vercelignore`, so the shards are read from disk; if a future
+builder leaves `public/` out of the bundle, the function fetches the shard from its own CDN
+at `/data/b/<n>.json` instead. The `/api/building/<bbl>` route stays so the templates do
+not change.
+
+To rebuild after the model outputs change, on the instance:
+
+```
+cd ~/heatahead/site && git pull --rebase origin main
+~/datathon-env/bin/python web/build_assets.py     # about 11 s on the s390x guest
+```
+
+then copy `public/` back to a laptop clone with
+`ssh linux1@148.100.77.112 "cd ~/heatahead/site && tar czf - public" | tar xzf -`, commit it,
+and say in the commit message which model files produced it. `.gitignore` ignores every
+`data/` folder except `public/data/`.
 
 ## 3. The URL contract (do not break it; every page and task builds on these paths)
 
@@ -76,10 +88,13 @@ shard per building request. The browser may also fetch `/data/b/NN.json` directl
 | `/monitor` | GET | live monitor (`monitor.html`) | template |
 | `/api/lookup?address=` | GET | `{bbl, normalized}` from NYC GeoSearch; 502 when the geocoder is down | live call, same in both modes |
 | `/api/building/<bbl>` | GET | the building payload | `public/data/b/NN.json` |
-| `/api/map_data` | GET | map rows | `public/data/map_data.json` (static; the function must not return 4 MB bodies, Vercel caps function responses at 4.5 MB) |
+| `/api/map_data` | GET | map rows | 302 redirect to `/data/map_data.json` (static, 3.1 MB; the function must not return 4 MB bodies, Vercel caps function responses at 4.5 MB). `fetch` follows the redirect, so `map.html` is unchanged |
 | `/api/reliability` | GET | calibration table | `public/data/reliability.json` |
-| `/api/register` | POST | `{ok, role, bbl, p_season?}` | forwarded to `REGISTER_FORWARD_URL/api/register` when set, else `/tmp` SQLite |
-| `/api/my_buildings?email=` | GET | landlord portfolio | forwarded like register; empty list when no forward target |
+| `/api/register` | POST | `{ok, role, bbl, p_season?, normalized?, already_registered, stored_on, arch, durable}`; 400 with `{error}` for a bad role, email, phone or BBL, or an address GeoSearch cannot match on house number, street and borough; 502 when the geocoder is down | forwarded to `REGISTER_FORWARD_URL/api/register` when set (the instance geocodes, stores and sends the welcome email); if the instance is unreachable, held in `/tmp` SQLite with `durable:false` and the page says so |
+| `/api/my_buildings?email=` | GET | `{buildings, total}`: the registered buildings plus the registered owner's portfolio | forwarded like register; without a forward target, the email's own registered buildings only |
+| `/unsubscribe?email=&bbl=` | GET | deletes the registration rows, plain-text confirmation (linked from every email) | forwarded like register |
+| `/api/health` | GET | `{mode, host, arch, ranked, built_at, registrations_to, linuxone?}`; the footer of every page shows it | adds the instance's own `/api/health` under `linuxone` (3 s timeout, `{offline:true}` when down) |
+| `/data/<path>` | GET | the files in `public/data/` | Vercel's CDN serves them before any rewrite; Flask serves them for local runs |
 | `/api/queue.csv?k=` | GET | top-k CSV | `public/data/top500.csv` (k capped at 500 in LITE) |
 | `/api/draft_message/<bbl>` | GET | templated notice, never sent | computed from the shard |
 | `/api/live/stats`, `/api/live/queue?k=` | GET | proxy to the realtime service | `REALTIME_URL` env var; 503 `{offline:true}` when unreachable |
@@ -91,8 +106,8 @@ New endpoints go under `/api/` and get a row in this table in the same commit.
 
 | name | value | used by |
 |---|---|---|
-| `REALTIME_URL` | `http://148.100.77.112:5000` once the port is open on the instance | live monitor proxy |
-| `REGISTER_FORWARD_URL` | `http://148.100.77.112:8080` once the Flask port is open | registrations, landlord portfolio |
+| `REALTIME_URL` | `http://148.100.77.112:8080/api/live` (the instance's FULL app proxies its own realtime service on `127.0.0.1:5000`, so only port 8080 is open) | live monitor proxy |
+| `REGISTER_FORWARD_URL` | `http://148.100.77.112:8080` | registrations, landlord portfolio, unsubscribe, health |
 | `APP_MODE` | leave unset (auto); `lite` forces the JSON path | `web/app.py` |
 | `SMTP_*` | only if alerts ever send from Vercel (they should not; the alert worker runs on the instance) | `web/alerts.py` |
 
@@ -135,7 +150,7 @@ is blocked), which is exactly why the proxies exist.
 6. Before pushing to `main`: `python -m compileall web api` passes; `APP_MODE=lite python
    web/app.py` starts without `model/out/` present and `curl` returns 200 for `/`, `/map`,
    `/building`, `/monitor`, `/api/reliability`, `/api/building/2043190010` and
-   `/api/map_data`; then watch the Vercel deployment finish and open the production URL.
+   `/api/map_data` (with `curl -L`: LITE answers it with a 302 to the static file); then watch the Vercel deployment finish and open the production URL.
    If the deploy fails, read the build log before changing anything else.
 7. Secrets never enter the repo: SMTP credentials, tokens, API keys go in Vercel environment
    variables or the instance's environment. The Jupyter token is not a secret anyone should
@@ -150,6 +165,9 @@ is blocked), which is exactly why the proxies exist.
 
 ## 7. Bringing the site up from the current 404 (the order of work)
 
+Steps 1 to 4 were done on October 17, 2026; step 5 needs the two variables in section 4
+set once in the Vercel project settings; step 6 follows the first good deploy.
+
 1. On the instance, produce the two model outputs the site needs if they are missing:
    `python model/06_final_scores.py` (ranked_inspection_list.csv) and
    `python model/09_season_risk.py` (season_risk_2026.csv, season_reliability.csv).
@@ -163,7 +181,20 @@ is blocked), which is exactly why the proxies exist.
    instance ports are open (iptables, rules persisted, Jupyter token changed first), redeploy.
 6. Record the production URL and the deploy time in `docs/SUBMISSION.md`.
 
-## 8. Checking a deploy without the dashboard
+## 8. The instance side (what runs on `148.100.77.112`)
+
+| systemd unit | what | where |
+|---|---|---|
+| `heatahead-web` | `web/app.py` in FULL mode under waitress, `0.0.0.0:8080` | `~/heatahead/site` (a clone of `main`; `data` and `model/out` are symlinks into `~/heatahead/ibm_submission`), log `~/heatahead/logs/web.log`, SQLite `~/heatahead/site/web/heatahead.db` |
+| `heatahead-realtime` | `realtime/app.py` replaying `data/replay_feb7_9.csv` (14,018 complaints at 6,454 buildings, building-level columns only) on `127.0.0.1:5000` | same clone, log `~/heatahead/logs/realtime.log` |
+| `heatahead-jupyter` | JupyterLab on `127.0.0.1:8888`, reached through an SSH tunnel | token in `~/.config/heatahead/jupyter.env` (mode 600); read it in your own terminal with `ssh linux1@148.100.77.112 cat ~/.config/heatahead/jupyter.env` and never paste it into a chat |
+| cron, minute 7 of every hour | `web/alerts.py` against the same SQLite | log `~/heatahead/logs/alerts_cron.log` |
+
+After a push that changes `web/`: `cd ~/heatahead/site && git pull --rebase origin main &&
+sudo systemctl restart heatahead-web`. Port 8080 is the only port open besides 22
+(`sudo iptables -S INPUT`; persisted in `/etc/iptables/rules.v4`).
+
+## 9. Checking a deploy without the dashboard
 
 ```
 curl -sS -o /dev/null -w "%{http_code}\n" https://ibmsubmission.vercel.app/

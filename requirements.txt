@@ -1,0 +1,4 @@
+# Vercel installs these for api/index.py (LITE mode). pandas and numpy stay out:
+# they are only imported by FULL mode on the LinuxONE instance.
+flask==3.1.3
+requests==2.32.3

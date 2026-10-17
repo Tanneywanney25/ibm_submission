@@ -1,24 +1,33 @@
 """HeatAhead web app: signup (tenant/landlord/gov/viewer), 3D risk map,
 building lookup with history, live monitor on the realtime replay service.
 
+One app, two modes (docs/VERCEL.md section 2):
+  FULL  on the LinuxONE instance: pandas over model/out/ and data/, SQLite
+        registrations in web/heatahead.db. Chosen when model/out/season_risk_2026.csv
+        exists.
+  LITE  on Vercel: the JSON that web/build_assets.py precomputes into public/data/,
+        Flask + requests + the standard library only. Registrations are forwarded to
+        REGISTER_FORWARD_URL (the instance) when it is set, else kept in /tmp.
+Override with APP_MODE=full|lite.
+
 Run from the repo root:  python web/app.py          (port 8080)
-Expects model outputs in model/out/ and data in data/ (see web/README.md).
 The live monitor proxies the realtime service (realtime/app.py, port 5000);
 set REALTIME_URL to point elsewhere.
 """
 
+import json
 import os
+import platform
 import re
 import sqlite3
 import sys
 import threading
-import time
+from functools import lru_cache
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
 import requests
-from flask import Flask, g, jsonify, render_template, request
+from flask import (Flask, g, jsonify, redirect, render_template, request,
+                   send_from_directory)
 
 sys.path.append(str(Path(__file__).resolve().parent))
 import mailer  # noqa: E402
@@ -26,39 +35,148 @@ import mailer  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "model/out"
 DATA = ROOT / "data"
-DB = Path(__file__).resolve().parent / "heatahead.db"
-REALTIME_URL = os.environ.get("REALTIME_URL", "http://127.0.0.1:5000")
+ASSETS = ROOT / "public/data"
+ON_VERCEL = bool(os.environ.get("VERCEL"))
+DB = Path("/tmp/heatahead.db") if ON_VERCEL else Path(__file__).resolve().parent / "heatahead.db"
+MODE = (os.environ.get("APP_MODE") or
+        ("full" if (OUT / "season_risk_2026.csv").exists() else "lite")).lower()
+REALTIME_URL = os.environ.get("REALTIME_URL", "http://127.0.0.1:5000").rstrip("/")
+FORWARD_URL = os.environ.get("REGISTER_FORWARD_URL", "").rstrip("/") if MODE == "lite" else ""
+ARCH = platform.machine().lower()
+HOST = "vercel" if ON_VERCEL else ("linuxone" if ARCH == "s390x" else "local")
 GEOSEARCH = "https://geosearch.planninglabs.nyc/v2/search"
 ROLES = ("tenant", "landlord", "government", "viewer")
+SHARDS = 128
+# one building record; build_assets.py writes these as positional lists in public/data/b/
+FIELDS = ("p", "rank", "units", "cd", "chronic", "c_last1", "v_last1", "complaints",
+          "violations", "last_c", "last_v", "cold_p", "cold_rank", "lon", "lat",
+          "lord", "lord_n")
+QUEUE_COLS = ["rank", "p_calibrated", "tenants_at_risk", "unitsres", "cd",
+              "latitude", "longitude", "c_last1", "v_last1", "chronic"]
 
 app = Flask(__name__)
 
+
+def _int(x):
+    return None if x is None or x != x else int(x)
+
+
 # ------------------------------------------------------------------ data load
-print("loading model outputs...")
-season_risk = pd.read_csv(OUT / "season_risk_2026.csv").set_index("bbl")
-ranked = pd.read_csv(OUT / "ranked_inspection_list.csv").set_index("bbl")
-reliability = pd.read_csv(OUT / "season_reliability.csv")
+if MODE == "full":
+    import numpy as np
+    import pandas as pd
 
-bd = pd.read_csv(OUT / "building_day_counts.csv", parse_dates=["day"])
-bd["season"] = bd.day.dt.year - (bd.day.dt.month < 10)
-c_hist = bd.groupby(["bbl", "season"])["n"].sum()
-last_complaint = bd.groupby("bbl").day.max()
+    print("loading model outputs...")
+    season_risk = pd.read_csv(OUT / "season_risk_2026.csv").set_index("bbl")
+    ranked = pd.read_csv(OUT / "ranked_inspection_list.csv").set_index("bbl")
+    reliability = pd.read_csv(OUT / "season_reliability.csv")
 
-viol = pd.read_csv(DATA / "hpd_heat_violations.csv", low_memory=False,
-                   usecols=["bbl", "inspectiondate", "ordernumber"])
-viol = viol[viol.ordernumber.astype(str).isin(["666", "966", "674"])].dropna(subset=["bbl"])
-viol["bbl"] = viol.bbl.astype("int64")
-viol["day"] = pd.to_datetime(viol.inspectiondate)
-viol["season"] = viol.day.dt.year - (viol.day.dt.month < 10)
-v_hist = viol.groupby(["bbl", "season"]).size()
-last_violation = viol.groupby("bbl").day.max()
+    bd = pd.read_csv(OUT / "building_day_counts.csv", parse_dates=["day"])
+    bd["season"] = bd.day.dt.year - (bd.day.dt.month < 10)
+    c_hist = bd.groupby(["bbl", "season"])["n"].sum()
+    last_complaint = bd.groupby("bbl").day.max()
 
-lord = pd.read_csv(DATA / "second_tier/bbl_landlord.csv")
-lord["portfolio"] = lord.groupby("landlord").bbl.transform("nunique")
-lord = lord.drop_duplicates("bbl").set_index("bbl")
+    viol = pd.read_csv(DATA / "hpd_heat_violations.csv", low_memory=False,
+                       usecols=["bbl", "inspectiondate", "ordernumber"])
+    viol = viol[viol.ordernumber.astype(str).isin(["666", "966", "674"])].dropna(subset=["bbl"])
+    viol["bbl"] = viol.bbl.astype("int64")
+    viol["day"] = pd.to_datetime(viol.inspectiondate)
+    viol["season"] = viol.day.dt.year - (viol.day.dt.month < 10)
+    v_hist = viol.groupby(["bbl", "season"]).size()
+    last_violation = viol.groupby("bbl").day.max()
 
-CITYWIDE_SEASON_MEDIAN = float(season_risk.p_season.median())
-print(f"loaded: {len(season_risk):,} ranked buildings")
+    lord = pd.read_csv(DATA / "second_tier/bbl_landlord.csv")
+    lord["portfolio"] = lord.groupby("landlord").bbl.transform("nunique")
+    lord = lord.drop_duplicates("bbl").set_index("bbl")
+
+    # per-building history as plain dicts: one record costs a few dict lookups
+    C_BY = {}
+    for (b, s), n in c_hist.items():
+        C_BY.setdefault(int(b), []).append([int(s), int(n)])
+    V_BY = {}
+    for (b, s), n in v_hist.items():
+        V_BY.setdefault(int(b), []).append([int(s), int(n)])
+    LAST_C = {int(b): str(d)[:10] for b, d in last_complaint.items()}
+    LAST_V = {int(b): str(d)[:10] for b, d in last_violation.items()}
+
+    META = dict(median=float(season_risk.p_season.median()), ranked=len(season_risk),
+                cold_ranked=len(ranked), mode="full")
+    RELIABILITY = reliability.to_dict("records")
+    print(f"loaded: {len(season_risk):,} ranked buildings")
+else:
+    def _disk_asset(name):
+        f = ASSETS / name
+        return json.loads(f.read_text()) if f.exists() else None
+
+    META = _disk_asset("meta.json") or dict(median=None, ranked=0, cold_ranked=0)
+    RELIABILITY = _disk_asset("reliability.json") or []
+    print(f"lite mode: {META.get('ranked', 0):,} ranked buildings from public/data "
+          f"(built {META.get('built_at', 'never')}); "
+          f"registrations -> {FORWARD_URL or DB}")
+
+CITYWIDE_SEASON_MEDIAN = META["median"] or 0.0
+
+
+@lru_cache(maxsize=32)
+def _shard(n):
+    """LITE: one public/data/b/<n>.json shard, from the bundle or (if the bundle
+    left public/ out) from this deployment's own static CDN."""
+    f = ASSETS / "b" / f"{n}.json"
+    if f.exists():
+        return json.loads(f.read_text())
+    r = requests.get(f"{request.host_url}data/b/{n}.json", timeout=4)
+    r.raise_for_status()
+    return r.json()
+
+
+def building_record(bbl):
+    """Everything the site knows about one building, as a dict over FIELDS,
+    or None when the building is not in the season-risk ranking."""
+    bbl = int(bbl)
+    if MODE != "full":
+        row = _shard(bbl % SHARDS).get(str(bbl))
+        return dict(zip(FIELDS, row)) if row else None
+    if bbl not in season_risk.index:
+        return None
+    sr = season_risk.loc[bbl]
+    rec = dict.fromkeys(FIELDS)
+    rec.update(p=round(float(sr.p_season), 3), rank=int(sr["rank"]),
+               units=_int(sr.unitsres), cd=_int(sr.cd), chronic=int(sr.chronic == 1),
+               c_last1=_int(sr.c_last1), v_last1=_int(sr.v_last1),
+               complaints=C_BY.get(bbl, []), violations=V_BY.get(bbl, []),
+               last_c=LAST_C.get(bbl, "never"), last_v=LAST_V.get(bbl, "never"))
+    if bbl in ranked.index:
+        r = ranked.loc[bbl]
+        rec.update(cold_p=round(float(r.p_calibrated), 3), cold_rank=_int(r["rank"]))
+        if pd.notna(r.longitude) and pd.notna(r.latitude):
+            rec.update(lon=round(float(r.longitude), 5), lat=round(float(r.latitude), 5))
+    if bbl in lord.index:
+        lo = lord.loc[bbl]
+        rec.update(lord=str(lo.landlord).title(), lord_n=int(lo.portfolio))
+    return rec
+
+
+def map_rows():
+    """FULL: every ranked building with coordinates, for the risk map."""
+    m = season_risk.join(ranked[["latitude", "longitude", "p_calibrated"]], how="inner")
+    m = m.dropna(subset=["latitude", "longitude"])
+    cols = np.column_stack([m.longitude.round(5), m.latitude.round(5),
+                            m.p_season.round(3), m.c_last1.fillna(0).astype(int),
+                            m.unitsres.fillna(0).astype(int)])
+    return dict(columns=["lon", "lat", "p_season", "c_last1", "units"],
+                rows=cols.tolist(), bbls=m.index.astype(str).tolist())
+
+
+def queue_csv(k):
+    """The top-k inspection list as CSV (FULL computes it, LITE slices top500.csv)."""
+    if MODE == "full":
+        q = ranked.sort_values("rank").head(k)[QUEUE_COLS].copy()
+        q["p_calibrated"] = q.p_calibrated.clip(upper=0.99)
+        return q.to_csv()
+    f = ASSETS / "top500.csv"
+    if not f.exists():
+        return None
+    return "\n".join(f.read_text().splitlines()[:k + 1]) + "\n"
 
 
 # ------------------------------------------------------------------ database
@@ -82,138 +200,249 @@ def close_db(_):
         d.close()
 
 
+def forward(method, path, **kw):
+    """LITE: pass a request through to the instance; None when it is unreachable."""
+    try:
+        r = requests.request(method, f"{FORWARD_URL}{path}", timeout=8, **kw)
+        return (r.content, r.status_code, {"Content-Type": r.headers.get(
+            "Content-Type", "application/json")})
+    except requests.RequestException:
+        return None
+
+
 # ------------------------------------------------------------------ helpers
 def seasons_label(s):
     return f"{s}-{str(s + 1)[2:]}"
 
 
 def building_payload(bbl):
-    if bbl not in season_risk.index:
-        return dict(bbl=bbl, ranked=False,
+    rec = building_record(bbl)
+    if rec is None:
+        return dict(bbl=int(bbl), ranked=False,
                     note="No complaint or violation record; not individually "
                          "ranked. Citywide median winter risk is "
                          f"{CITYWIDE_SEASON_MEDIAN:.0%}.")
-    sr = season_risk.loc[bbl]
     out = dict(
         bbl=int(bbl), ranked=True,
-        season=dict(p=round(float(sr.p_season), 3),
-                    rank=int(sr["rank"]), of=len(season_risk),
-                    vs_median=round(float(sr.p_season) / CITYWIDE_SEASON_MEDIAN, 1)),
-        complaints={seasons_label(s): int(n) for (b, s), n in
-                    c_hist.loc[[bbl]].items()} if bbl in c_hist.index.get_level_values(0) else {},
-        violations={seasons_label(s): int(n) for (b, s), n in
-                    v_hist.loc[[bbl]].items()} if bbl in v_hist.index.get_level_values(0) else {},
-        last_complaint=str(last_complaint.get(bbl, "never"))[:10],
-        last_violation=str(last_violation.get(bbl, "never"))[:10],
-        units=int(sr.unitsres), cd=int(sr.cd) if pd.notna(sr.cd) else None,
-        chronic=bool(sr.chronic),
+        season=dict(p=rec["p"], rank=rec["rank"], of=META["ranked"],
+                    vs_median=round(rec["p"] / CITYWIDE_SEASON_MEDIAN, 1)
+                    if CITYWIDE_SEASON_MEDIAN else None),
+        complaints={seasons_label(s): n for s, n in rec["complaints"]},
+        violations={seasons_label(s): n for s, n in rec["violations"]},
+        last_complaint=rec["last_c"], last_violation=rec["last_v"],
+        units=rec["units"], cd=rec["cd"], chronic=bool(rec["chronic"]),
     )
-    if bbl in ranked.index:
-        r = ranked.loc[bbl]
-        out["cold_day"] = dict(p=round(float(r.p_calibrated), 3),
-                               rank=int(r["rank"]) if "rank" in r.index else None)
-        out["coords"] = [float(r.longitude), float(r.latitude)]
-    if bbl in lord.index:
-        lo = lord.loc[bbl]
-        other = int(lo.portfolio) - 1
-        out["landlord"] = dict(name=str(lo.landlord).title(), portfolio=int(lo.portfolio),
+    if rec["cold_p"] is not None:
+        out["cold_day"] = dict(p=rec["cold_p"], rank=rec["cold_rank"])
+    if rec["lon"] is not None:
+        out["coords"] = [rec["lon"], rec["lat"]]
+    if rec["lord"]:
+        other = rec["lord_n"] - 1
+        out["landlord"] = dict(name=rec["lord"], portfolio=rec["lord_n"],
                                note=f"owns {other} other registered building(s)" if other else
                                "single-building owner")
     return out
 
 
+# street-name words that say nothing about which street it is
+NOISE = {"st", "street", "ave", "av", "avenue", "rd", "road", "pl", "place", "blvd",
+         "boulevard", "dr", "drive", "ln", "lane", "ct", "court", "pkwy", "parkway",
+         "ter", "terrace", "e", "east", "w", "west", "n", "north", "s", "south", "the",
+         "of", "ny", "nyc", "new", "york", "usa", "us", "apt", "bronx", "brooklyn",
+         "manhattan", "queens", "staten", "island"}
+BOROUGHS = {"bronx": "Bronx", "brooklyn": "Brooklyn", "manhattan": "Manhattan",
+            "queens": "Queens", "staten island": "Staten Island"}
+
+
+def _words(s):
+    return {re.sub(r"^(\d+)(st|nd|rd|th)$", r"\1", t) for t in re.findall(r"[a-z0-9]+", s.lower())}
+
+
+def geocode(address):
+    """Address -> ({bbl, normalized}, 200) or ({error}, 4xx/502).
+
+    GeoSearch always answers with its nearest guess ("1600 Pennsylvania Ave" comes
+    back as 218 Pennsylvania Avenue), so a match must share the house number, a
+    street word and, when the address names one, the borough. A wrong building is
+    worse than no building."""
+    address = address.strip()
+    if len(address) < 4:
+        return dict(error="give a street address"), 400
+    try:
+        r = requests.get(GEOSEARCH, params={"text": address}, timeout=6)
+        r.raise_for_status()
+        feats = r.json().get("features") or []
+    except (requests.RequestException, ValueError):
+        return dict(error="geocoder unavailable - try the 10-digit BBL"), 502
+    q = address.lower()
+    m = re.match(r"\s*(\d+(?:-\d+)?[a-z]?)\b", q)
+    house = m.group(1) if m else None
+    words = {w for w in _words(q[m.end():] if m else q)
+             if w not in NOISE and not re.fullmatch(r"\d{5}", w)}
+    borough = next((v for k, v in BOROUGHS.items() if k in q), None)
+    for f in feats:
+        p = f.get("properties") or {}
+        bbl = ((p.get("addendum") or {}).get("pad") or {}).get("bbl")
+        if not bbl:
+            continue
+        if house and (p.get("housenumber") or "").lower() != house:
+            continue
+        if words and not words & _words(f"{p.get('street', '')} {p.get('name', '')}"):
+            continue
+        if borough and p.get("borough") != borough:
+            continue
+        return dict(bbl=int(bbl), normalized=p.get("label", address)), 200
+    return dict(error="address not found in New York City - check the house number "
+                      "and street, or enter the 10-digit BBL"), 404
+
+
+def clean_bbl(v):
+    s = str(v).strip()
+    return int(s) if re.fullmatch(r"[1-5]\d{9}", s) else None
+
+
 # ------------------------------------------------------------------ pages
 @app.get("/")
 def index():
-    return render_template("index.html", roles=ROLES)
+    return render_template("index.html", roles=ROLES, page="signup")
 
 
 @app.get("/map")
 def map_page():
-    return render_template("map.html")
+    return render_template("map.html", page="map")
 
 
 @app.get("/building")
 def building_page():
-    return render_template("building.html")
+    return render_template("building.html", page="building")
 
 
 @app.get("/monitor")
 def monitor_page():
-    return render_template("monitor.html")
+    return render_template("monitor.html", page="monitor")
+
+
+@app.get("/data/<path:name>")
+def data_file(name):
+    """public/data/ for local runs; on Vercel the CDN serves these before any rewrite."""
+    return send_from_directory(ASSETS, name, max_age=3600)
 
 
 # ------------------------------------------------------------------ api
+@app.get("/api/health")
+def api_health():
+    out = dict(ok=True, mode=MODE, host=HOST, arch=ARCH, ranked=META["ranked"],
+               built_at=META.get("built_at"),
+               registrations_to="linuxone" if FORWARD_URL else
+               ("sqlite in /tmp (ephemeral)" if ON_VERCEL else f"sqlite on {HOST}"))
+    if MODE == "full" or not FORWARD_URL:
+        out["registrations"] = db().execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    if FORWARD_URL:
+        try:
+            out["linuxone"] = requests.get(f"{FORWARD_URL}/api/health", timeout=3).json()
+        except (requests.RequestException, ValueError):
+            out["linuxone"] = dict(offline=True)
+    return jsonify(out)
+
+
 @app.get("/api/lookup")
 def api_lookup():
-    address = (request.args.get("address") or "").strip()
-    if len(address) < 4:
-        return jsonify(error="give a street address"), 400
-    try:
-        r = requests.get(GEOSEARCH, params={"text": address + ", New York"},
-                         timeout=6).json()
-        feats = r.get("features") or []
-        if not feats:
-            return jsonify(error="address not found"), 404
-        p = feats[0]["properties"]
-        bbl = int(p["addendum"]["pad"]["bbl"])
-        return jsonify(bbl=bbl, normalized=p.get("label", address))
-    except Exception:
-        return jsonify(error="geocoder unavailable - try the 10-digit BBL"), 502
+    body, status = geocode(request.args.get("address") or "")
+    return jsonify(body), status
 
 
 @app.get("/api/building/<int:bbl>")
 def api_building(bbl):
-    return jsonify(building_payload(bbl))
+    try:
+        return jsonify(building_payload(bbl))
+    except (requests.RequestException, ValueError, OSError):
+        return jsonify(error="building data unavailable right now"), 503
 
 
 @app.get("/api/reliability")
 def api_reliability():
-    return jsonify(reliability.to_dict("records"))
+    return jsonify(RELIABILITY)
 
 
 @app.get("/api/map_data")
 def api_map_data():
-    m = season_risk.join(ranked[["latitude", "longitude", "p_calibrated"]], how="inner")
-    m = m.dropna(subset=["latitude", "longitude"])
-    cols = np.column_stack([m.longitude.round(5), m.latitude.round(5),
-                            m.p_season.round(3), m.c_last1.astype(int),
-                            m.unitsres.astype(int)])
-    return jsonify(dict(columns=["lon", "lat", "p_season", "c_last1", "units"],
-                        rows=cols.tolist(), bbls=m.index.astype(str).tolist()))
+    if MODE != "full":
+        return redirect("/data/map_data.json", 302)
+    return jsonify(map_rows())
 
 
 @app.post("/api/register")
 def api_register():
     b = request.get_json(silent=True) or {}
-    role = str(b.get("role", "")).lower()
-    email = str(b.get("email", "")).strip()
-    phone = str(b.get("phone", "")).strip() or None
-    address = str(b.get("address", "")).strip() or None
+    role = str(b.get("role", "")).strip().lower()
+    email = str(b.get("email", "")).strip().lower()
+    phone = str(b.get("phone") or "").strip() or None
+    address = str(b.get("address") or "").strip() or None
+    raw_bbl = b.get("bbl")
     if role not in ROLES:
-        return jsonify(error=f"role must be one of {ROLES}"), 400
-    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        return jsonify(error=f"role must be one of {', '.join(ROLES)}"), 400
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email) or len(email) > 254:
         return jsonify(error="valid email required"), 400
-    bbl = b.get("bbl")
-    if bbl is None and address and role in ("tenant", "landlord"):
-        with app.test_request_context(f"/api/lookup?address={address}"):
-            looked = api_lookup()
-        if isinstance(looked, tuple):
-            return jsonify(error="could not resolve that address"), 400
-        bbl = looked.get_json()["bbl"]
+    if phone and not 7 <= len(re.sub(r"\D", "", phone)) <= 15:
+        return jsonify(error="phone looks wrong - leave it empty or give 7 to 15 digits"), 400
+    needs_building = role in ("tenant", "landlord")
+    bbl = None
+    if needs_building and raw_bbl not in (None, ""):
+        bbl = clean_bbl(raw_bbl)
+        if bbl is None:
+            return jsonify(error="a BBL is 10 digits starting with the borough (1-5)"), 400
+    if needs_building and bbl is None and not address:
+        return jsonify(error=f"a {role} sign-up needs the building's street address "
+                             "(or its 10-digit BBL)"), 400
+    if not needs_building:
+        address = None           # government and viewer accounts are not tied to a building
+
+    if FORWARD_URL:
+        sent = forward("POST", "/api/register",
+                       json=dict(role=role, email=email, phone=phone, address=address, bbl=bbl))
+        if sent is not None:
+            return sent
+        # the instance is down: hold the sign-up here and say so
+
+    normalized = None
+    if needs_building and bbl is None:
+        looked, status = geocode(address)
+        if status == 502:
+            return jsonify(error="the address lookup service is down - enter the "
+                                 "10-digit BBL instead"), 502
+        if status != 200:
+            return jsonify(error=looked["error"]), 400
+        bbl, normalized = looked["bbl"], looked["normalized"]
     try:
-        db().execute("INSERT OR IGNORE INTO users(role, email, phone, address, bbl) "
-                     "VALUES (?,?,?,?,?)", (role, email, phone, address, bbl))
-        db().commit()
+        con = db()
+        existed = con.execute(
+            "SELECT 1 FROM users WHERE email=? AND bbl IS ? AND (bbl IS NOT NULL OR role=?)",
+            (email, bbl, role)).fetchone() is not None
+        if bbl is not None:
+            con.execute("INSERT INTO users(role, email, phone, address, bbl) VALUES (?,?,?,?,?) "
+                        "ON CONFLICT(email, bbl) DO UPDATE SET role=excluded.role, "
+                        "phone=COALESCE(excluded.phone, phone), "
+                        "address=COALESCE(excluded.address, address)",
+                        (role, email, phone, normalized, bbl))
+        elif not existed:
+            con.execute("INSERT INTO users(role, email, phone) VALUES (?,?,?)",
+                        (role, email, phone))
+        con.commit()
     except sqlite3.Error as e:
-        return jsonify(error=str(e)), 500
-    resp = dict(ok=True, role=role, bbl=bbl)
-    if bbl and int(bbl) in season_risk.index:
-        resp["p_season"] = round(float(season_risk.loc[int(bbl)].p_season), 3)
-    # welcome email: confirms the signup is for real alerts (SMTP env on the
-    # instance; logged when SMTP is not configured). Never blocks the response.
-    msg = mailer.welcome_email(email, role, bbl, resp.get("p_season"))
-    threading.Thread(target=mailer.send, args=(msg,), daemon=True).start()
+        return jsonify(error=f"could not save the sign-up: {e}"), 500
+    resp = dict(ok=True, role=role, bbl=bbl, already_registered=existed,
+                stored_on=HOST, arch=ARCH, durable=HOST != "vercel")
+    if normalized:
+        resp["normalized"] = normalized
+    if bbl is not None:
+        rec = building_record(bbl)
+        if rec:
+            resp["p_season"] = rec["p"]
+    # welcome email (web/mailer.py: SMTP env on the instance, logged without it).
+    # Only where sign-ups are durable: a Vercel function must not outlive its request.
+    if not existed and not ON_VERCEL:
+        msg = mailer.welcome_email(email, role, bbl, resp.get("p_season"))
+        threading.Thread(target=mailer.send, args=(msg,), daemon=True).start()
     return jsonify(resp)
 
 
@@ -242,8 +471,12 @@ def api_live_start():
 
 @app.get("/unsubscribe")
 def unsubscribe():
-    email = (request.args.get("email") or "").strip()
+    email = (request.args.get("email") or "").strip().lower()
     bbl = request.args.get("bbl")
+    if FORWARD_URL:
+        sent = forward("GET", "/unsubscribe", params=dict(email=email, bbl=bbl))
+        if sent is not None:
+            return sent
     cur = db().execute("DELETE FROM users WHERE email=? AND (bbl=? OR ? IS NULL)",
                        (email, bbl, bbl))
     db().commit()
@@ -255,34 +488,45 @@ def unsubscribe():
 def api_my_buildings():
     """Landlord view: every building registered under this email, plus the
     rest of each building's landlord portfolio (public record)."""
-    email = (request.args.get("email") or "").strip()
+    email = (request.args.get("email") or "").strip().lower()
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        return jsonify(error="valid email required"), 400
+    if FORWARD_URL:
+        sent = forward("GET", "/api/my_buildings", params=dict(email=email))
+        if sent is not None:
+            return sent
     rows = db().execute("SELECT bbl FROM users WHERE email=? AND bbl IS NOT NULL",
                         (email,)).fetchall()
     own = {int(r[0]) for r in rows}
     portfolio = set(own)
-    for b in own:
-        if b in lord.index:
-            portfolio |= set(lord[lord.landlord == lord.loc[b].landlord].index)
+    if MODE == "full":           # LITE has no landlord index: registered buildings only
+        for b in own:
+            if b in lord.index:
+                portfolio |= set(lord[lord.landlord == lord.loc[b].landlord].index)
     out = []
-    for b in sorted(portfolio):
-        if b in season_risk.index:
-            sr = season_risk.loc[b]
-            out.append(dict(bbl=int(b), registered=b in own,
-                            p_season=round(float(sr.p_season), 3),
-                            rank=int(sr["rank"]), units=int(sr.unitsres),
-                            c_last1=int(sr.c_last1), v_last1=int(sr.v_last1)))
+    for b in portfolio:
+        rec = building_record(b)
+        if rec:
+            out.append(dict(bbl=int(b), registered=b in own, p_season=rec["p"],
+                            rank=rec["rank"], units=rec["units"], c_last1=rec["c_last1"],
+                            v_last1=rec["v_last1"], landlord=rec["lord"]))
         else:
             out.append(dict(bbl=int(b), registered=b in own, ranked=False))
-    return jsonify(buildings=out)
+    out.sort(key=lambda x: (not x["registered"], -(x.get("p_season") or 0), x["bbl"]))
+    return jsonify(buildings=out[:200], total=len(out))
 
 
 @app.get("/api/queue.csv")
 def api_queue_csv():
     """Government export: the current top-k inspection list as CSV."""
-    k = max(1, min(int(request.args.get("k", 500)), 5000))
-    cols = ["rank", "p_calibrated", "tenants_at_risk", "unitsres", "cd",
-            "latitude", "longitude", "c_last1", "v_last1", "chronic"]
-    body = ranked.sort_values("rank").head(k)[cols].to_csv()
+    try:
+        k = int(request.args.get("k", 500))
+    except ValueError:
+        return jsonify(error="k must be an integer"), 400
+    k = max(1, min(k, 5000 if MODE == "full" else 500))
+    body = queue_csv(k)
+    if body is None:
+        return jsonify(error="inspection list not built yet"), 503
     return (body, 200, {"Content-Type": "text/csv",
                         "Content-Disposition": f"attachment; filename=heatahead_top{k}.csv"})
 
@@ -297,9 +541,12 @@ def api_draft_message(bbl):
     name = p.get("landlord", {}).get("name", "Building owner")
     seasons = sorted(p["complaints"].keys())[-1:]
     recent = p["complaints"].get(seasons[0], 0) if seasons else 0
+    risk = p["season"]["p"]
+    risk_txt = (f"{risk:.0%}" if risk < 0.2 else
+                f"{'very high' if risk >= 0.5 else 'high'} (roughly {min(99, round(risk * 20) * 5)}%)")
     body = (f"Dear {name},\n\n"
             f"Our records show this building (BBL {bbl}) has a "
-            f"{p['season']['p']:.0%} modeled chance of a heat outage this "
+            f"{risk_txt} modeled chance of a heat outage this "
             f"winter (citywide rank {p['season']['rank']:,} of "
             f"{p['season']['of']:,}), with {recent} heat complaints last "
             f"season. NYC heat season requires 68F by day and 62F overnight "

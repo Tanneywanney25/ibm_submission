@@ -11,7 +11,7 @@ background:rgba(14,17,22,.9);padding:.6rem .9rem;border-radius:8px;font-size:.8r
 padding:.4rem .7rem;border-radius:7px;font-size:.82rem;z-index:6;display:none}</style>
 {% endblock %}
 {% block body %}
-<h1>Where the heat fails <span class="muted" style="font-size:1rem">(T2 — full build per docs/tasks/T2-risk-map-3d.md)</span></h1>
+<h1>Where the heat fails</h1>
 <p class="muted">Column height = complaints last season · color = this winter's risk.
 Click a column to open that building.</p>
 <div id="mapwrap"><div id="tip"></div>
@@ -20,7 +20,9 @@ Click a column to open that building.</p>
 </div>
 <script>
 (async () => {
-  const d = await (await fetch('/api/map_data')).json();
+  let d;
+  try { d = await (await fetch('/api/map_data')).json(); }
+  catch { document.getElementById('legend').textContent = 'map data unavailable right now'; return; }
   const idx = Object.fromEntries(d.columns.map((c,i)=>[c,i]));
   const rows = d.rows.map((r,i) => ({lon:r[idx.lon], lat:r[idx.lat],
     p:r[idx.p_season], c:r[idx.c_last1], u:r[idx.units], bbl:d.bbls[i]}));
@@ -42,7 +44,7 @@ Click a column to open that building.</p>
       if (!info.object) { t.style.display='none'; return; }
       t.style.display='block'; t.style.left=(info.x+12)+'px'; t.style.top=(info.y+12)+'px';
       const o=info.object;
-      t.innerHTML = `BBL ${o.bbl}<br>winter risk <b>${(o.p*100).toFixed(0)}%</b>` +
+      t.innerHTML = `BBL ${o.bbl}<br>winter risk <b>${fmtRisk(o.p)}</b>` +
         `<br>${o.c} complaints last season · ${o.u} units`;
     },
   });

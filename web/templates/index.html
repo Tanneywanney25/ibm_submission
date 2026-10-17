@@ -1,70 +1,222 @@
 {% extends "base.html" %}
+{% block head %}
+<style>
+.hero p { max-width:760px; }
+.stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:.8rem; margin:1.2rem 0 1.4rem; }
+.stats .card { margin:0; padding:.9rem 1rem; }
+.stats b { display:block; font-size:1.7rem; color:var(--accent); line-height:1.2; }
+.stats span { font-size:.84rem; color:var(--muted); }
+@media (max-width:760px){ .stats { grid-template-columns:1fr 1fr; } }
+.roles { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin:.4rem 0 .9rem; }
+.roles label { border:1px solid var(--line); border-radius:8px; padding:.55rem .7rem;
+               cursor:pointer; background:#0b0e13; font-size:.9rem; }
+.roles label:has(input:checked) { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+.roles input { accent-color:var(--accent); margin-right:.35rem; }
+.roles small { display:block; color:var(--muted); font-size:.78rem; margin-left:1.3rem; }
+form .row { margin:.55rem 0; } form .row input[type=email], form .row input[type=tel],
+form .row input[type=text] { width:100%; }
+.consent { font-size:.85rem; color:var(--muted); display:flex; gap:.5rem; align-items:flex-start; }
+.consent input { accent-color:var(--accent); margin-top:.25rem; }
+#reg_out .err { color:var(--bad); }
+#landing { display:none; border-color:var(--accent); }
+#landing .big { margin:.2rem 0; }
+.steps { display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; }
+.steps .card { margin:0; } .steps b { color:var(--accent); }
+@media (max-width:760px){ .steps { grid-template-columns:1fr; } }
+.btnlink { display:inline-block; background:var(--accent); color:#111; font-weight:600;
+           text-decoration:none; padding:.5rem .9rem; border-radius:7px; margin:.3rem .4rem .3rem 0; }
+.btnlink.ghost { background:transparent; color:var(--ink); border:1px solid var(--line); }
+</style>
+{% endblock %}
 {% block body %}
-<h1>Know before the cold hits.</h1>
-<p class="muted">New Yorkers filed 300,000+ no-heat complaints last winter.
-HeatAhead predicts which buildings fail <em>before</em> the cold snap —
-verified on every freezing day of last winter.</p>
+<div class="hero">
+  <h1>Know before the cold hits.</h1>
+  <p class="muted">New Yorkers filed 300,000+ no-heat complaints last winter.
+  HeatAhead reads the weather forecast and ranks every residential building by its
+  chance of losing heat <em>before</em> the cold snap arrives, so inspectors can knock
+  before tenants freeze. Every number below was measured on the 2025-26 winter, which
+  the model never saw in training.</p>
+</div>
+
+<div class="stats">
+  <div class="card"><b>86 of 100</b><span>top-ranked buildings lost heat during the cold spell they were flagged for</span></div>
+  <div class="card"><b>69.1%</b><span>of the top 100 failed within the exact 48 hours (best simple rule: 61.7%)</span></div>
+  <div class="card"><b>6 of 6</b><span>past winters where the model beat the 14-day recency baseline</span></div>
+  <div class="card"><b>481,356/s</b><span>buildings scored per second with Snap ML on an IBM z17 LinuxONE guest</span></div>
+</div>
 
 <div class="grid2">
-  <div class="card" id="signup_card">
-    <h2>Sign up for alerts</h2>
-    <p class="muted">When a cold snap approaches and your building is at risk,
-    we tell you first — one email per cold spell, never spam.</p>
-    <form id="reg" onsubmit="return register(event)">
-      <p><select id="role" required>
-        {% for r in roles %}<option value="{{r}}">{{ r.capitalize() }}</option>{% endfor %}
-      </select></p>
-      <p><input id="email" type="email" placeholder="email" required style="width:100%"></p>
-      <p><input id="phone" type="tel" placeholder="phone (optional)" style="width:100%"></p>
-      <p><input id="address" placeholder="building address (tenant / landlord)" style="width:100%"></p>
-      <p><button>Sign up</button></p>
+  <div class="card">
+    <h2>Sign up</h2>
+    <form id="reg" onsubmit="return register(event)" novalidate>
+      <div class="roles" id="roles">
+        <label><input type="radio" name="role" value="tenant" checked>Tenant
+          <small>your building's winter risk and cold-snap alerts</small></label>
+        <label><input type="radio" name="role" value="landlord">Landlord
+          <small>your buildings, your portfolio, inspection nudges</small></label>
+        <label><input type="radio" name="role" value="government">Government
+          <small>the ranked inspection queue and CSV export</small></label>
+        <label><input type="radio" name="role" value="viewer">Viewer
+          <small>the citywide risk map, no building alerts</small></label>
+      </div>
+      <div class="row"><input id="email" type="email" placeholder="email" autocomplete="email" required></div>
+      <div class="row"><input id="phone" type="tel" placeholder="phone (optional)" autocomplete="tel"></div>
+      <div class="row" id="addr_row"><input id="address" type="text"
+        placeholder="building street address, e.g. 330 E 139 St, Bronx (or a 10-digit BBL)"
+        autocomplete="street-address">
+        <div class="muted" style="font-size:.8rem; margin-top:.3rem">Building only: leave
+        out your apartment number. We never store or show one.</div></div>
+      <div class="row consent" id="consent_row"><input type="checkbox" id="consent" checked>
+        <label for="consent">Email me when a forecast cold snap puts this building at risk:
+        one email per cold spell, unsubscribe any time.</label></div>
+      <div class="row"><button id="submit">Sign up</button></div>
     </form>
     <div id="reg_out" class="muted"></div>
+    <p class="muted" style="font-size:.8rem; margin-bottom:0">Demo: no login and no
+    passwords. Sign-ups are stored on the team's IBM LinuxONE instance and used only for
+    cold-snap alerts.</p>
   </div>
-  <div class="card">
-    <h2>What you get</h2>
-    <div class="chips">
-      <span class="chip">Tenant — your building's winter risk + alerts</span>
-      <span class="chip">Landlord — portfolio watch + inspection nudges</span>
-      <span class="chip">Government — the ranked inspection queue</span>
-      <span class="chip">Viewer — the citywide risk map</span>
+
+  <div>
+    <div class="card" id="landing"></div>
+    <div class="card" id="whatyouget">
+      <h2>What each role gets</h2>
+      <table>
+        <tr><td><b>Tenant</b></td><td class="muted">your building's chance of losing heat this
+          winter, its complaint and violation history, and one alert per forecast cold spell</td></tr>
+        <tr><td><b>Landlord</b></td><td class="muted">every building you register plus the rest of
+          the registered owner's portfolio, ranked by risk, with inspection nudges</td></tr>
+        <tr><td><b>Government</b></td><td class="muted">the live inspector queue during a cold snap
+          and a top-500 CSV for routing inspectors</td></tr>
+        <tr><td><b>Viewer</b></td><td class="muted">the public citywide risk map</td></tr>
+      </table>
+      <p style="margin-bottom:0">Of the 100 buildings our model flags before a cold snap,
+      <b class="accent">86 lose heat during that snap</b> and
+      <b class="accent">99 lose heat that winter</b>.</p>
     </div>
-    <p>Of the 100 buildings our model flags before a cold snap,
-    <b class="accent">86 lose heat during that snap</b> and
-    <b class="accent">99 lose heat that winter</b> — measured on the held-out
-    2025-26 winter, validated across six winters.</p>
-    <p class="muted">Built on IBM LinuxONE: the whole city re-scores in 0.36 s.</p>
   </div>
 </div>
+
+<h2 style="margin-top:1.4rem">How it works</h2>
+<div class="steps">
+  <div class="card"><b>1. Detect.</b> <span class="muted">An hourly job on the LinuxONE
+    instance reads the Open-Meteo 7-day forecast and looks for two or more freezing days in a row.</span></div>
+  <div class="card"><b>2. Decide.</b> <span class="muted">The model re-scores every building under
+    the forecast temperatures (the whole city in about a third of a second on the s390x guest) and
+    ranks them for inspection.</span></div>
+  <div class="card"><b>3. Respond.</b> <span class="muted">Registered tenants and landlords over the
+    calibrated threshold get one email for that spell; inspectors get the ranked queue.</span></div>
+</div>
+
 <script>
+const $ = id => document.getElementById(id);
+const roleOf = () => document.querySelector('input[name=role]:checked').value;
+function syncRole(){
+  const needs = ['tenant', 'landlord'].includes(roleOf());
+  $('addr_row').style.display = needs ? '' : 'none';
+  $('consent_row').style.display = needs ? '' : 'none';
+}
+document.querySelectorAll('input[name=role]').forEach(r => r.addEventListener('change', syncRole));
+syncRole();
+
+function fail(msg){
+  $('reg_out').innerHTML = '<span class="err">' + esc(msg) + '</span>';
+}
+
 async function register(e){
   e.preventDefault();
-  const out = document.getElementById('reg_out');
-  out.textContent = 'registering...';
-  const body = { role: role.value, email: email.value,
-                 phone: phone.value, address: address.value };
-  const r = await fetch('/api/register', {method:'POST',
-      headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-  const j = await r.json();
-  if (!r.ok) { out.textContent = j.error; return false; }
-  const riskLine = j.p_season !== undefined
-    ? `<p>Your building's winter risk:
-         <span class="big accent">${(j.p_season*100).toFixed(0)}%</span></p>
-       <p class="muted">chance of at least one heat outage this winter</p>
-       <p><a href="/building?bbl=${j.bbl}"><button>See your building's full picture</button></a></p>`
-    : `<p class="muted">You'll get access as a ${j.role}.
-         ${j.role === 'government' ? '<a href="/monitor">Open the inspector queue</a>' :
-           '<a href="/map">Explore the risk map</a>'}</p>`;
-  document.getElementById('signup_card').innerHTML = `
-    <div style="text-align:center; padding:1.2rem 0">
-      <div style="font-size:3rem; color:var(--ok)">&#10003;</div>
-      <h2 style="margin:.4rem 0">You're registered</h2>
-      <p class="muted">${body.email} · ${j.role}${j.bbl ? ' · BBL ' + j.bbl : ''}</p>
-      ${riskLine}
-      <p class="muted" style="font-size:.85rem">One email per cold spell when risk is high.
-         Unsubscribe any time from the alert email.</p>
-    </div>`;
+  const role = roleOf(), email = $('email').value.trim(), addr = $('address').value.trim();
+  const needs = ['tenant', 'landlord'].includes(role);
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail('Enter a valid email address.'), false;
+  if (needs && !addr) return fail('Enter the building\'s street address (or its 10-digit BBL).'), false;
+  if (needs && !$('consent').checked) return fail('Tick the alert box: tenant and landlord sign-ups exist to send cold-snap alerts.'), false;
+  const body = { role, email, phone: $('phone').value.trim() };
+  if (needs) { if (/^\d{10}$/.test(addr)) body.bbl = addr; else body.address = addr; }
+  $('submit').disabled = true;
+  $('reg_out').textContent = needs ? 'finding your building and registering…' : 'registering…';
+  let r, j;
+  try {
+    r = await fetch('/api/register', {method:'POST',
+        headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    j = await r.json();
+  } catch { $('submit').disabled = false; return fail('Could not reach the server. Try again in a moment.'), false; }
+  $('submit').disabled = false;
+  if (!r.ok) return fail(j.error || 'Sign-up failed.'), false;
+  $('reg_out').innerHTML = '';
+  await landing(j, email);
   return false;
+}
+
+function storedLine(j){
+  if (j.durable && j.arch === 's390x')
+    return '<span class="dot ok"></span>Saved on the IBM LinuxONE instance (s390x).';
+  if (j.durable) return '<span class="dot warn"></span>Saved on ' + esc(j.stored_on) + ' (' + esc(j.arch) + ').';
+  return '<span class="dot bad"></span>The LinuxONE instance could not be reached, so this sign-up is ' +
+         'held temporarily on Vercel and may be lost. Please sign up again later so alerts reach you.';
+}
+
+async function landing(j, email){
+  const L = $('landing'); L.style.display = 'block';
+  $('whatyouget').style.display = 'none';
+  const again = j.already_registered ? ' <span class="muted">(you were already signed up; details updated)</span>' : '';
+  let h = '';
+  if (j.role === 'tenant') {
+    h = '<h2>You\'re signed up, tenant' + again + '</h2>';
+    h += '<p class="muted" style="margin:.2rem 0">' + esc(j.normalized || ('BBL ' + j.bbl)) +
+         (j.normalized ? ' · BBL ' + esc(j.bbl) : '') + '</p>';
+    if (j.p_season !== undefined) {
+      h += '<div class="big accent">' + riskHTML(j.p_season) + '</div>' +
+           '<p class="muted" style="margin-top:0">chance this building has at least one heat outage this winter</p>';
+    } else {
+      h += '<p>This building has no heat complaint or violation on record, so it is not ' +
+           'individually ranked; the building page shows the citywide median instead.</p>';
+    }
+    h += '<a class="btnlink" href="/building?bbl=' + encodeURIComponent(j.bbl) + '">See the full building record</a>' +
+         '<a class="btnlink ghost" href="/map">Risk map</a>' +
+         '<p class="muted">When the 7-day forecast shows two or more freezing days in a row and your ' +
+         'building is over the alert threshold, you get one email for that cold spell.</p>';
+  } else if (j.role === 'landlord') {
+    h = '<h2>You\'re signed up, landlord' + again + '</h2><div id="portfolio" class="muted">loading your buildings…</div>';
+  } else if (j.role === 'government') {
+    h = '<h2>You\'re signed up, government' + again + '</h2>' +
+        '<p class="muted">The inspector queue re-sorts live as complaints arrive during a cold snap.</p>' +
+        '<a class="btnlink" href="/monitor">Open the live inspector queue</a>' +
+        '<a class="btnlink ghost" href="/api/queue.csv?k=500">Download the top-500 CSV</a>' +
+        '<a class="btnlink ghost" href="/map">Risk map</a>';
+  } else {
+    h = '<h2>You\'re signed up, viewer' + again + '</h2>' +
+        '<p class="muted">Viewers get the public citywide map. No building-level alerts are sent.</p>' +
+        '<a class="btnlink" href="/map">Open the risk map</a>' +
+        '<a class="btnlink ghost" href="/building">Check a building</a>';
+  }
+  if (['tenant', 'landlord'].includes(j.role))
+    h += '<p class="muted" style="font-size:.85rem">One email per cold spell when risk is high; ' +
+         'unsubscribe any time from the alert email.</p>';
+  L.innerHTML = h + '<p class="muted" style="font-size:.85rem; margin-bottom:0">' + storedLine(j) + '</p>';
+  if (j.role === 'landlord') await portfolio(email, j.bbl);
+}
+
+async function portfolio(email, bbl){
+  const P = $('portfolio');
+  try {
+    const r = await fetch('/api/my_buildings?email=' + encodeURIComponent(email));
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    const rows = d.buildings || [];
+    if (!rows.length) { P.textContent = 'No buildings on record for this email yet.'; return; }
+    const owner = (rows.find(x => x.landlord) || {}).landlord;
+    let h = owner ? '<p style="margin:.2rem 0">Registered owner on file: <b>' + esc(owner) + '</b> · ' +
+        d.total.toLocaleString() + ' building(s), riskiest first</p>' : '';
+    h += '<table><tr><th>BBL</th><th>winter risk</th><th>rank</th><th>units</th><th>complaints last season</th></tr>' +
+      rows.slice(0, 25).map(b => '<tr><td><a href="/building?bbl=' + b.bbl + '">' + b.bbl + '</a>' +
+        (b.registered ? ' <span class="chip" style="padding:0 .45rem">yours</span>' : '') + '</td><td>' +
+        (b.ranked === false ? 'not ranked' : esc(fmtRisk(b.p_season))) + '</td><td>' +
+        (b.rank ? b.rank.toLocaleString() : '') + '</td><td>' + (b.units ?? '') + '</td><td>' +
+        (b.c_last1 ?? '') + '</td></tr>').join('') + '</table>';
+    if (rows.length > 25) h += '<p class="muted">showing the 25 riskiest of ' + d.total.toLocaleString() + '</p>';
+    h += '<a class="btnlink" href="/building?bbl=' + encodeURIComponent(bbl) + '">Open your building</a>';
+    P.innerHTML = h;
+  } catch (err) { P.textContent = 'Could not load your buildings right now.'; }
 }
 </script>
 {% endblock %}

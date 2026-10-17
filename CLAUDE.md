@@ -47,7 +47,10 @@ Read `README.md` for the story and `docs/README.md` for the document map.
 `linux1@148.100.77.112` (s390x, machine type 9175, 3 cores, 8 GB, account expires
 2026-11-15, no backups). Non-interactive SSH shells do not activate the venv: call
 `~/datathon-env/bin/python` explicitly. The Stream 2 pipeline lives in `~/heatahead/stream2/`,
-a clone of this repo with the Stream 5 pipeline run in `~/heatahead/ibm_submission/`.
+a clone of this repo with the Stream 5 pipeline run in `~/heatahead/ibm_submission/`, and the
+site's backend runs from a third clone, `~/heatahead/site/`, as systemd services
+(`heatahead-web` on port 8080, `heatahead-realtime`, `heatahead-jupyter`; see
+`docs/VERCEL.md` section 8).
 Change the Jupyter token before opening any port. Push results to GitHub as soon as they exist.
 
 ## How to work

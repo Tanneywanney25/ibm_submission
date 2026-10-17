@@ -19,10 +19,12 @@
 </div>
 <script>
 const $ = id => document.getElementById(id);
+let wait = 1500;
 async function tick(){
   try {
     const s = await (await fetch('/api/live/stats')).json();
     if (s.offline) { offline(); return; }
+    wait = 1500;
     $('banner').style.display='none';
     $('clock').textContent = s.replay_clock ? s.replay_clock.replace('T',' ') : s.status;
     $('processed').textContent = (s.processed||0).toLocaleString();
@@ -35,18 +37,27 @@ async function tick(){
       '<tr><th>#</th><th>BBL</th><th>score</th><th>replay complaints</th><th>units</th></tr>' +
       (q.buildings||[]).map((b,i)=>`<tr><td>${i+1}</td>
         <td><a href="/building?bbl=${b.bbl}">${b.bbl}</a></td>
-        <td>${b.score.toFixed(3)}</td><td>${b.replay_complaints}</td>
+        <td>${Number(b.score).toFixed(3)}</td><td>${b.replay_complaints}</td>
         <td>${b.unitsres ?? ''}</td></tr>`).join('');
   } catch { offline(); }
 }
 function offline(){
   const b = $('banner'); b.style.display='block';
-  b.textContent = 'Realtime service offline — start realtime/app.py (port 5000) on this host.';
+  b.textContent = 'The live replay service on the LinuxONE instance is offline right now. ' +
+    'The rest of the site works; this page retries every 15 seconds.';
+  wait = 15000;
 }
 async function startReplay(){
-  await fetch('/api/live/replay/start', {method:'POST',
-    headers:{'Content-Type':'application/json'}, body: JSON.stringify({speedup:1200})});
+  try {
+    const r = await fetch('/api/live/replay/start', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({speedup:1200})});
+    const j = await r.json();
+    if (j.offline) offline();
+    else if (!r.ok && j.error) $('mode').textContent = j.error;
+  } catch { offline(); }
+  wait = 1500;
 }
-tick(); setInterval(tick, 1500);
+async function loop(){ await tick(); setTimeout(loop, wait); }
+loop();
 </script>
 {% endblock %}

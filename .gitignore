@@ -1,6 +1,8 @@
 # data stays out of git (345 MB complaints file exceeds GitHub's 100 MB limit)
 data/
 Data/
+# ...except the site's precomputed assets, the one data folder that ships (docs/VERCEL.md)
+!public/data/
 Data_IBMZ*/
 *.zip
 output/

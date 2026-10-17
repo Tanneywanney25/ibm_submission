@@ -6,7 +6,7 @@ your PRs. Roles doc: `docs/roles-endgame.md`.
 
 | task | what | status | owner |
 |---|---|---|---|
-| [T1](T1-website-signup.md) | website core: signup + roles (tenant/landlord/gov/viewer) | starter code in `web/` | — |
+| [T1](T1-website-signup.md) | website core: signup + roles (tenant/landlord/gov/viewer) | done: live on Vercel, sign-ups stored on LinuxONE | Tanush |
 | [T2](T2-risk-map-3d.md) | the risk map (3D hexagons / heat map, deck.gl) | spec + `/api/map_data` ready | — |
 | [T3](T3-live-monitor.md) | live monitor on the realtime replay + real model swap | stub running (Sid) | — |
 | [T4](T4-alerts.md) | forecast-triggered email alerts | specced, DB ready | — |

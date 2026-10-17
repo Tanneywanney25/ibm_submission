@@ -38,9 +38,36 @@ skeleton — pages, `/api/register` with role validation, SQLite schema
 
 ## Acceptance
 
-- [ ] Register each of the four roles end to end; rows visible in SQLite
-- [ ] Tenant with a Bronx address sees their p_season immediately after signup
-- [ ] Bad email / unknown role / garbage address all return clean errors
-- [ ] Runs on the LinuxONE instance behind the opened port (after token change)
+- [x] Register each of the four roles end to end; rows visible in SQLite
+- [x] Tenant with a Bronx address sees their p_season immediately after signup
+- [x] Bad email / unknown role / garbage address all return clean errors
+- [x] Runs on the LinuxONE instance behind the opened port (after token change)
+
+## Built (October 17, 2026)
+
+The signup page at `/` is the landing page of https://ibmsubmission.vercel.app. The site
+runs on Vercel in LITE mode and forwards every registration to the LinuxONE instance, which
+geocodes the address, stores the row in `~/heatahead/site/web/heatahead.db` on the s390x
+guest and answers with the building's winter risk. How the two halves fit is in
+`docs/VERCEL.md` sections 2, 3 and 8.
+
+- Role-aware landing after signup: a tenant sees the building's winter risk (banded above
+  20%, capped at 99%) and a link to the building page; a landlord sees every registered
+  building plus the registered owner's portfolio, riskiest first (Parkchester South,
+  BBL 2039437501, lists its sister buildings); government gets the live queue and the
+  top-500 CSV; a viewer gets the map.
+- Address matching is strict on purpose: GeoSearch always returns its nearest guess, so
+  "1600 Pennsylvania Ave" used to resolve to 218 Pennsylvania Avenue in Brooklyn. A match
+  now has to share the house number, a street word and, when the address names one, the
+  borough; anything else is a clean 400 that suggests the 10-digit BBL. Only GeoSearch's
+  normalized building address is stored, so an apartment number typed into the box never
+  reaches the database.
+- Re-registering is idempotent for every role (government and viewer rows have no BBL, so
+  `UNIQUE(email, bbl)` alone did not catch them) and says so on the page.
+- Practice signups verified through the whole chain (local LITE mode forwarding to the
+  instance, and the browser UI): four roles stored on the s390x guest, a second tenant
+  signup returned `already_registered`, and bad email, unknown role, a phone with two
+  digits, a nine-digit BBL, "123 Fake Street" and "1600 Pennsylvania Ave" each returned a
+  400 with a readable message.
 
 **Depends on:** model outputs (done). **Feeds:** T2, T3, T4, T5.

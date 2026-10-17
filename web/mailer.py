@@ -55,10 +55,19 @@ def send(msg, dry=False):
         return False
 
 
+def band(p):
+    """Display rule: exact below 20%, a band at 20% and up, never above 99%."""
+    p = min(p, 0.99)
+    if p < 0.2:
+        return f"{p * 100:.0f}%"
+    return (f"{'very high' if p >= 0.5 else 'high'} "
+            f"(roughly {min(99, round(p * 20) * 5)}%)")
+
+
 def welcome_email(email, role, bbl=None, p_season=None):
     lines = [f"You're signed up for HeatAhead alerts as a {role}.", ""]
     if bbl and p_season is not None:
-        pct = f"{p_season * 100:.0f}%"
+        pct = band(p_season)
         lines += [f"Your building (BBL {bbl}) has a {pct} modeled chance of at "
                   f"least one heat outage this winter.", ""]
     lines += [

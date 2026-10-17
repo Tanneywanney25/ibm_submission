@@ -36,6 +36,14 @@
     </div>
   </div>
   <div class="card">
+    <h2>If the heat fails</h2>
+    <p class="muted" style="margin-bottom:0">Call 311 (or file at portal.311.nyc.gov) and
+    give your name and apartment number: since October 1, 2026, HPD must attempt an
+    inspection for every non-anonymous heat complaint. From October 1 to May 31 landlords
+    must keep apartments at 68&deg;F by day when it is below 55&deg;F outside, and 62&deg;F
+    overnight. This page describes the building's record; it is not an accusation.</p>
+  </div>
+  <div class="card">
     <details><summary>How accurate is this number?</summary>
       <p class="muted">Verified on last winter, which the model never trained on —
       grouped by what we predicted vs what happened:</p>
@@ -49,15 +57,20 @@ const $ = id => document.getElementById(id);
 async function lookup(e){
   if (e) e.preventDefault();
   let q = $('q').value.trim();
+  if (!q) { $('status').textContent = 'type a street address or a 10-digit BBL'; return false; }
   $('status').textContent = 'looking up...';
-  let bbl = /^\d{10}$/.test(q) ? q : null;
-  if (!bbl) {
-    const r = await fetch('/api/lookup?address=' + encodeURIComponent(q));
-    const j = await r.json();
-    if (!r.ok) { $('status').textContent = j.error; return false; }
-    bbl = j.bbl; $('status').textContent = j.normalized;
-  } else $('status').textContent = 'BBL ' + bbl;
-  const b = await (await fetch('/api/building/' + bbl)).json();
+  let bbl = /^\d{10}$/.test(q) ? q : null, b;
+  try {
+    if (!bbl) {
+      const r = await fetch('/api/lookup?address=' + encodeURIComponent(q));
+      const j = await r.json();
+      if (!r.ok) { $('status').textContent = j.error; return false; }
+      bbl = j.bbl; $('status').textContent = j.normalized + ' · BBL ' + bbl;
+    } else $('status').textContent = 'BBL ' + bbl;
+    const r = await fetch('/api/building/' + bbl);
+    b = await r.json();
+    if (!r.ok) { $('status').textContent = b.error || 'building data unavailable'; return false; }
+  } catch { $('status').textContent = 'could not reach the server - try again'; return false; }
   window._bbl = bbl;
   if (!b.ranked) {
     $('result').style.display = 'none';
@@ -66,47 +79,45 @@ async function lookup(e){
     return false;
   }
   $('notranked').style.display = 'none'; $('result').style.display = 'block';
-  const p = b.season.p;
-  $('p_season').textContent = p >= 0.2
-      ? bandLabel(p) : (p*100).toFixed(1) + '%';
+  $('p_season').innerHTML = riskHTML(b.season.p);
   $('vs_median').textContent = b.season.vs_median;
   $('rank').textContent = b.season.rank.toLocaleString() + ' of ' + b.season.of.toLocaleString();
   $('coldday').textContent = b.cold_day
-      ? `On the next freezing day: ${(b.cold_day.p*100).toFixed(0)}% chance of failing within 48 hours`
+      ? `On the next freezing day: ${fmtRisk(b.cold_day.p)} chance of failing within 48 hours` +
+        (b.cold_day.rank ? ` (rank ${b.cold_day.rank.toLocaleString()} for that day)` : '')
       : '';
   $('chips').innerHTML = [
-      b.units + ' units', 'district ' + b.cd,
+      b.units != null ? b.units + ' units' : null, b.cd ? 'community district ' + b.cd : null,
       b.chronic ? 'chronic' : null,
       b.landlord ? 'owner holds ' + b.landlord.portfolio + ' building(s)' : null
-    ].filter(Boolean).map(t => `<span class="chip">${t}</span>`).join('');
+    ].filter(Boolean).map(t => `<span class="chip">${esc(t)}</span>`).join('');
   $('lastc').textContent = b.last_complaint; $('lastv').textContent = b.last_violation;
   $('landlord').textContent = b.landlord ? 'Registered owner: ' + b.landlord.name : '';
   bars('cbars', b.complaints); bars('vbars', b.violations);
   reliability();
   return false;
 }
-function bandLabel(p){
-  if (p >= .5) return 'very high (~' + Math.round(p*100/5)*5 + '%)';
-  return 'high (~' + Math.round(p*100/5)*5 + '%)';
-}
 function bars(el, obj){
   const seasons = Object.keys(obj).sort();
   const max = Math.max(1, ...Object.values(obj));
   $(el).innerHTML = seasons.map(s =>
     `<div style="height:${Math.max(3, 66*obj[s]/max)}px" title="${s}: ${obj[s]}">
-       <span>${s.slice(2,4)}-${s.slice(7)}</span></div>`).join('')
+       <span>${s.slice(2,4)}-${s.slice(5)}</span></div>`).join('')
     || '<span class="muted">none on record</span>';
 }
 async function reliability(){
-  const rows = await (await fetch('/api/reliability')).json();
+  let rows = [];
+  try { rows = await (await fetch('/api/reliability')).json(); } catch { return; }
   $('rel').innerHTML = '<tr><th>we said</th><th>buildings</th><th>actually failed</th></tr>' +
     rows.map(r => `<tr><td>${(r.predicted*100).toFixed(0)}%</td>
       <td>${r.buildings.toLocaleString()}</td>
       <td>${(r.actually_failed*100).toFixed(1)}%</td></tr>`).join('');
 }
 async function draft(){
-  const j = await (await fetch('/api/draft_message/' + window._bbl)).json();
+  let j;
+  try { j = await (await fetch('/api/draft_message/' + window._bbl)).json(); } catch { return false; }
   const o = $('draft_out'); o.style.display = 'block';
+  if (j.error) { o.textContent = j.error; return false; }
   o.textContent = 'To: ' + j.to + '\nSubject: ' + j.subject + '\n\n' + j.body;
   return false;
 }
