@@ -23,6 +23,13 @@ same risk presentation as clicking the map, minus the map.
   list; address resolves to a BBL we don't score (non-residential, outside
   universe) → an honest "not in our universe, here's why" page, never a 404.
 - Keyboard complete: arrows + enter, visible focus, works on mobile widths.
+- **The map comes to the search, too**: resolving an address also pulls up
+  the risk heat map (T2) as part of the result UI — centered and zoomed on
+  the searched building, its hex/marker highlighted, surrounding block risk
+  visible for context. On the building page this is an embedded map panel;
+  from the search box it deep-links as `/map?bbl=…` so the map opens already
+  focused. Search without the map still works (the map panel lazy-loads and
+  LITE/slow connections get the building page first, map after).
 
 ## Contracts
 
@@ -39,13 +46,19 @@ same risk presentation as clicking the map, minus the map.
 1. Search component (T13-styled) with debounce, keyboard nav, loading state.
 2. BBL resolution endpoint + the out-of-universe page.
 3. Place on landing hero and nav; wire the map's building page as target.
-4. Test the fallbacks (throttle GeoSearch, unknown BBL) and mobile.
+4. Map integration: `/map?bbl=` focus param on the T2 map + the embedded,
+   lazy-loaded map panel on the building page, searched building highlighted.
+5. Test the fallbacks (throttle GeoSearch, unknown BBL, map unavailable)
+   and mobile.
 
 ## Acceptance
 
 - [ ] Typing 5 characters of a real address surfaces it; enter lands on the
       same building page the map opens.
 - [ ] Out-of-universe address gets the explainer page, not a 404.
+- [ ] Search result shows the heat map centered on the searched building,
+      highlighted, with neighborhood risk visible; page still usable if the
+      map fails to load.
 - [ ] Works in LITE mode on the Vercel deploy; mobile keyboard flow works.
 - [ ] No apartment-level text anywhere in suggestions or results.
 - [ ] VERCEL.md §3 updated with any new endpoint in the same commit.
