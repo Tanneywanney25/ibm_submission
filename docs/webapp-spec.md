@@ -47,8 +47,12 @@ Search box: address → BBL → that building's risk and full history.
   `https://geosearch.planninglabs.nyc/v2/search?text=330 E 139 St, Bronx`
   → take `features[0].properties.addendum.pad.bbl` (10-digit string). Cache results.
 - **Page contents, top to bottom:**
-  1. Risk on the next freezing day: calibrated %, plus "that is N× the citywide
-     average" and the citywide rank ("#312 of 67,125 ranked buildings").
+  1. **"Chance this building loses heat this winter": `p_season` from
+     `model/out/season_risk_2026.csv`** — the headline number, verified bin-by-bin
+     on the held-out 2025-26 winter (`season_reliability.csv`: predicted 89% ->
+     actual 89%; every bin within ~2 points). 3,927 buildings sit at >=80%.
+     Below it, the sharper number: risk on the next freezing day (calibrated %,
+     "N× the citywide average", rank "#312 of 67,125").
   2. **Complaint history:** complaints per season (bar row, 2017-18 → now), last
      complaint date, count of whole-building (ENTIRE BUILDING) complaints.
   3. **Violation history:** heat violations per season, last violation date.
