@@ -16,6 +16,8 @@ precision@100/500/1000/2500.
 | **M8** enforcement ranker | same recipe, target = verified violation ≤7d | **30.2% @100 vs 16.5%** best baseline (2×); 48% confirmed ≤30d | **kept as a second product** — the enforcement queue beside the tenant queue |
 | **M9** GraphSAGE | 2-layer GNN over landlord/block hub graph, **trained on LinuxONE (s390x PyTorch)** | 84.9 / 63.0 / 49.4 / 33.8 — **1–2pp below M1 at every k** | **not adopted** — M1 already carries the graph as explicit features |
 | earlier: perfect-forecast check | observed temps vs archived 48h forecasts | 48h forecast ≈ 2.2°F MAE; detection 118/123 freezing days | forecast-driven design validated |
+| **M11** spell-direct | train on the spell-level task itself (54 snapshots) | **89.9% @100 (+3.8)**, no depth regression | **adopted** for the per-spell queue |
+| **M12** tuned day-model | first randomized HPO, validated on 2024-25 spells only | 89.2 / 65.2 / 51.8 / 34.8 — ≥ frozen at every k | **adopted** as the post-freeze config |
 
 ## What each one taught us (the Q&A ammunition)
 

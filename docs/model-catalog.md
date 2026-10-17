@@ -135,6 +135,32 @@ All metrics are on the held-out 2025-26 winter unless marked otherwise.
   not signal. Kept as the measured answer to "why not deep learning / GNNs?"
   — tried, on IBM Z, under the frozen protocol; the disciplined GBM held.
 
+## M11 — Spell-direct (ADOPTED as the per-spell queue; the biggest late gain)
+
+- Same 31 features, but trained **directly on the evaluated task**: the 54
+  full-universe spell snapshots (label = fails during the spell), early-stopped
+  on the 2024-25 winter (30 trees sufficed), refit, test touched once.
+  `model/21_spell_direct.py` → `heat_model_spell.json`, `m11_results.csv`.
+- **Result (8 held-out spells): p@100 89.9% (+3.8 over the frozen 86.1)** with
+  no regression at depth (64.8 / 51.3 / 34.9 vs 64.6 / 51.4 / 34.8) — unlike
+  M7, the top-of-list gain costs nothing below it. Clears the adoption bar.
+- **Role:** powers the per-spell inspector list going forward; the frozen
+  submission numbers stay frozen, and the deck may add one line: "our latest
+  spell-level model reaches 89.9% precision@100 (submission figure: 86.1%)."
+
+## M12 — The tuned day-model (first hyperparameter search; ADOPTED variant)
+
+- 20-trial randomized search, each config scored by spell p@100 on the
+  **validation winter only**; the single winner alone touched the test spells.
+  Winner: shallower and more regularized than the hand config (depth 4,
+  800 trees, lr 0.05, min_child_weight 20). `model/22_hpo.py` →
+  `heat_model_hpo.json`, `hpo_trials.csv`.
+- **Result: 89.2 / 65.2 / 51.8 / 34.8** — improvement or tie at every k, and
+  val→test held (0.896 → 0.892, no selection overfit). The protocol note is
+  the point: the search never saw the test winter.
+- **Role:** the tuned successor to M1's day-level config for anything built
+  after the freeze; M1/M2 remain the cited submission models.
+
 ## B1–B3 — The baselines (every eval runs them under the identical protocol)
 
 - **B1 last-season complaints:** rank by prior season's distinct complaints.
