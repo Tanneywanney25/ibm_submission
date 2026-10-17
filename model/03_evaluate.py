@@ -31,7 +31,18 @@ viol = viol[viol.ordernumber.astype(str).isin(["666", "966", "674"])].dropna(sub
 viol["bbl"] = viol["bbl"].astype(float).astype("int64")
 viol["inspectiondate"] = pd.to_datetime(viol["inspectiondate"])
 
-# models (ensemble when both backends were trained)
+VERIFIED = "--label" in sys.argv and sys.argv[sys.argv.index("--label") + 1] == "verified"
+
+# models (ensemble when both backends were trained); --model PATH overrides
+if "--model" in sys.argv:
+    import xgboost as xgblib
+    _b = xgblib.Booster()
+    _b.load_model(sys.argv[sys.argv.index("--model") + 1])
+
+    def predict(A):
+        return _b.inplace_predict(np.ascontiguousarray(A, dtype=np.float32))
+else:
+    predict = None
 models = []
 if (OUT / "heat_model.json").exists():
     try:
@@ -47,8 +58,9 @@ if (OUT / "heat_model.joblib").exists():
 print(f"{len(models)} model(s) in the ensemble")
 
 
-def predict(A):
-    return np.mean([mm.predict_proba(A)[:, 1] for mm in models], axis=0)
+if predict is None:
+    def predict(A):
+        return np.mean([mm.predict_proba(A)[:, 1] for mm in models], axis=0)
 
 # ------------------------------------------------------------------ static pieces
 # history features as of end of 2024-25 (identical to the panel's 2025 rows)
@@ -124,7 +136,7 @@ truth = truth[(truth.n + truth.n_next) >= 2]
 # ------------------------------------------------------------------ test days
 test_days = days[(days.heat_season) & (days.TMIN < 32) &
                  (season(days.day) == 2025)].sort_values("TMIN")
-if len(sys.argv) > 1:
+if len(sys.argv) > 1 and sys.argv[1].isdigit():
     test_days = test_days.head(int(sys.argv[1]))   # coldest first
 print(f"{len(test_days)} test cold days")
 
@@ -134,6 +146,9 @@ for _, drow in test_days.iterrows():
     pos = set(truth.loc[truth.day == d, "bbl"])
     pos30 = set(truth.loc[truth.day.between(d, d + pd.Timedelta(days=29)), "bbl"])
     ver = set(viol.loc[viol.inspectiondate.between(d, d + pd.Timedelta(days=7)), "bbl"])
+    if VERIFIED:   # M8 mode: the truth IS the verified violation
+        pos = set(ver)
+        pos30 = set(viol.loc[viol.inspectiondate.between(d, d + pd.Timedelta(days=29)), "bbl"])
 
     X = X0.copy()
     a = asof_at(d - pd.Timedelta(days=1), bdc[["bbl", "day", "csum", "lastd"]],

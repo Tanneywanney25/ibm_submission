@@ -31,7 +31,17 @@ viol["bbl"] = viol["bbl"].astype(float).astype("int64")
 viol["inspectiondate"] = pd.to_datetime(viol["inspectiondate"])
 viol["season"] = season(viol.inspectiondate)
 
-# ---- models (same loading as 03)
+# ---- models (same loading as 03); --model PATH scores with that single model
+# (classifier probabilities or ranker margins - either orders the list)
+if "--model" in sys.argv:
+    import xgboost as xgblib
+    _b = xgblib.Booster()
+    _b.load_model(sys.argv[sys.argv.index("--model") + 1])
+
+    def predict(A):
+        return _b.inplace_predict(np.ascontiguousarray(A, dtype=np.float32))
+else:
+    predict = None
 models = []
 if (OUT / "heat_model.json").exists():
     try:
@@ -44,8 +54,9 @@ if (OUT / "heat_model.joblib").exists():
     models.append(joblib.load(OUT / "heat_model.joblib"))
 
 
-def predict(A):
-    return np.mean([mm.predict_proba(A)[:, 1] for mm in models], axis=0)
+if predict is None:
+    def predict(A):
+        return np.mean([mm.predict_proba(A)[:, 1] for mm in models], axis=0)
 
 
 # ---- static features as of 2025-26 (same as 03)
