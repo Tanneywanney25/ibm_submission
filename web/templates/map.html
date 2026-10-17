@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Winter risk map — HeatAhead{% endblock %}
 {% block head %}
+<script>
+/* T17: /map?embed=1 is the chrome-free embed the building page's map panel uses.
+   The class lands on <html> before first paint so the nav never flashes. */
+try {
+  if (new URLSearchParams(window.location.search || '').has('embed'))
+    document.documentElement.classList.add('hm-embed');
+} catch (error) {}
+</script>
 <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
 <script defer src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
 <script defer src="https://unpkg.com/deck.gl@8.9.36/dist.min.js"></script>
@@ -58,7 +66,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
 .hm-coverage-note a { display:inline-block; color:var(--ink); text-decoration:underline; text-underline-offset:3px; pointer-events:auto; padding:.25rem 0; }
 .hm-coverage-note a:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .hm-message { position:absolute; z-index:4; inset:0; display:flex; align-items:center; justify-content:center; padding:1.4rem; background:rgba(11,17,24,.68); }
-.hm-message[hidden], #hm-tip[hidden], #hm-data-note[hidden], #hm-tile-note[hidden], #hm-render-note[hidden], #hm-geometry-note[hidden] { display:none; }
+.hm-message[hidden], #hm-tip[hidden], #hm-data-note[hidden], #hm-tile-note[hidden], #hm-render-note[hidden], #hm-geometry-note[hidden], #hm-focus-note[hidden] { display:none; }
 .hm-message-box { max-width:350px; text-align:center; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1.4rem; }
 .hm-message-box h2 { margin:0 0 .4rem; font-size:1rem; }
 .hm-message-box p { margin:.3rem 0 1rem; color:var(--muted); font-size:.84rem; }
@@ -99,6 +107,13 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   .hm-map-toolbar { gap:.4rem; top:10px; right:10px; max-width:calc(100% - 20px); } .hm-view-label { font-size:.65rem; }
 }
 @media(prefers-reduced-motion:reduce) { .hm-loader { animation:none; } }
+/* T17 embed mode: just the map, sized to the iframe */
+html.hm-embed nav, html.hm-embed footer, html.hm-embed .skyfoot, html.hm-embed .hm-heading,
+html.hm-embed .hm-sidebar, html.hm-embed .hm-footer, html.hm-embed .hm-note,
+html.hm-embed .hm-legend, html.hm-embed #hg-launcher, html.hm-embed #hg-dialog { display:none !important; }
+html.hm-embed main { max-width:none; padding:0; }
+html.hm-embed .hm-shell { display:block; border:0; border-radius:0; }
+html.hm-embed .hm-view { height:100svh; min-height:300px; max-height:none; }
 </style>
 {% endblock %}
 {% block body %}
@@ -196,6 +211,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
       </div>
     </div>
   </div>
+  <p id="hm-focus-note" class="hm-note" hidden></p>
   <p id="hm-data-note" class="hm-note" hidden></p>
   <p id="hm-render-note" class="hm-note" hidden></p>
   <p id="hm-geometry-note" class="hm-note" hidden></p>
@@ -274,6 +290,17 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   let selectionFocus = null;
   const el = id => document.getElementById(id);
   const hideTip = () => { el('hm-tip').hidden = true; };
+
+  // T17: /map?bbl= opens the map centered on that building with a highlight
+  // ring; ?embed=1 is the building page's embedded panel, where any link out
+  // must escape the iframe. Both parse defensively: no URL, no focus.
+  let FOCUS_BBL = null, EMBED = false;
+  try {
+    const query = new URLSearchParams(window.location.search || '');
+    const requested = (query.get('bbl') || '').trim();
+    if (/^[1-5]\d{9}$/.test(requested)) FOCUS_BBL = requested;
+    EMBED = query.has('embed');
+  } catch (error) {}
 
   function detailBlend(zoom) {
     const t = Math.max(0, Math.min(1, (zoom - DETAIL_START) / (DETAIL_END - DETAIL_START)));
@@ -493,7 +520,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     el('hm-area-list').innerHTML = state.selectedRows.slice(start,end).map(row => {
       // All fields came through parseRows: BBL is digits only; the rest are numbers.
       const color = riskColor(row.p).join(',');
-      return `<li><a href="${buildingURL(row)}"><span class="hm-area-risk" style="background:rgb(${color})" aria-hidden="true"></span>BBL ${row.bbl} ↗</a>` +
+      return `<li><a href="${buildingURL(row)}"${EMBED ? ' target="_top"' : ''}><span class="hm-area-risk" style="background:rgb(${color})" aria-hidden="true"></span>BBL ${row.bbl} ↗</a>` +
         `<p>${BOROUGHS[row.bbl[0]]} · Winter risk ${riskLabel(row.p)}</p>` +
         `<p>${number.format(row.u)} residential units · ${number.format(row.c)} complaints last season</p></li>`;
     }).join('');
@@ -541,7 +568,8 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   function onClick(info) {
     const summary = info.object && summarize(info.object);
     if (!summary) return;
-    if (summary.individual) window.location.assign(buildingURL(summary.highest));
+    // In the embed, the record opens the real page, not a page inside the panel.
+    if (summary.individual) (EMBED && window.top ? window.top : window).location.assign(buildingURL(summary.highest));
     else openArea(info.object,summary);
   }
   function makeLayers() {
@@ -566,7 +594,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
       autoHighlight:true, highlightColor:[255,255,255,90],
       material:{ambient:.65, diffuse:.55, shininess:15}
     });
-    return [hex('winter-risk-overview',OVERVIEW_RADIUS,(1 - grid) * (1 - blend),'overview'),
+    const layers = [hex('winter-risk-overview',OVERVIEW_RADIUS,(1 - grid) * (1 - blend),'overview'),
       hex('winter-risk-hexagons',NEIGHBORHOOD_RADIUS,grid * (1 - blend),'neighborhood'),
       new deck.ScatterplotLayer({
       id:'winter-risk-properties', data:state.filtered,
@@ -577,6 +605,16 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
       opacity:.95 * blend, autoHighlight:true, highlightColor:[255,255,255,100],
       parameters:{depthTest:false}
     })];
+    // T17: the searched building keeps its ring at every zoom and filter;
+    // the layer is not pickable, so the dot underneath still opens the record.
+    if (state.focusRow) layers.push(new deck.ScatterplotLayer({
+      id:'winter-risk-focus', data:[state.focusRow], pickable:false,
+      getPosition:POSITION, filled:false, stroked:true,
+      getLineColor:[255,196,107,235], lineWidthMinPixels:3,
+      getRadius:10, radiusMinPixels:11, radiusMaxPixels:24,
+      parameters:{depthTest:false}
+    }));
+    return layers;
   }
   function onViewStateChange({viewState}) {
     const zoomChanged = state.view.zoom !== viewState.zoom;
@@ -702,7 +740,22 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
       state.totalComplaints = state.rows.reduce((sum,row) => sum + row.c, 0);
       state.elevationDomain = [0,Math.max(1,state.totalComplaints)];
       state.areaBounds = collectAreaBounds(state.rows);
-      state.view = {...state.view,...areaView('city')};
+      // T17: an address search deep-links here; open already centered on it.
+      state.focusRow = FOCUS_BBL ? state.rows.find(row => row.bbl === FOCUS_BBL) || null : null;
+      if (state.focusRow) {
+        state.view = {...state.view, longitude:state.focusRow.position[0],
+          latitude:state.focusRow.position[1], zoom:16.2, pitch:0};
+        el('hm-focus-note').hidden = false;
+        el('hm-focus-note').textContent = 'Centered on BBL ' + state.focusRow.bbl +
+          ' — the ring marks the searched building.';
+      } else {
+        state.view = {...state.view,...areaView('city')};
+        if (FOCUS_BBL) {
+          el('hm-focus-note').hidden = false;
+          el('hm-focus-note').textContent = 'BBL ' + FOCUS_BBL + ' has no mapped risk score, ' +
+            'so it is not highlighted here. Its building page explains why.';
+        }
+      }
       el('hm-coverage').textContent = number.format(state.rows.length) + ' properties with a mapped risk score.';
       if (parsed.skipped) {
         el('hm-data-note').hidden = false;

@@ -22,7 +22,7 @@ your PRs. Roles doc: `docs/roles-endgame.md`.
 | [T14](T14-account-platform.md) | clean sign-in/profile; roles → customizable dashboard panels | new | — |
 | [T15](T15-live-data.md) | live polling: NYC Open Data complaints/violations/buildings + weather | new | — |
 | [T16](T16-info-methods.md) | public About/Methods section: models, bootstrap ranges, open source | copy drafted (docs/about-copy.md, numbers from frozen docs); build + open-source sign-off open | Emerson (copy) |
-| [T17](T17-address-search.md) | address search with autocomplete, map-free path to building pages | new | — |
+| [T17](T17-address-search.md) | address search with autocomplete, map-free path to building pages | built: GeoSearch autocomplete in nav + landing + building page, `/map?bbl=` focus, embedded map panel | Emerson |
 
 Build order: T1–T6 are landed or owned; the rigor sprint runs **T11c (leakage
 tests) → T7 → T9 ∥ T12 → T8 → T10**. The submission needs T1–T3 for the video;

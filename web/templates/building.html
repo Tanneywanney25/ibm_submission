@@ -46,10 +46,13 @@
 {% block body %}
 <h1>Check a building</h1>
 <div class="card">
-  <form onsubmit="return lookup(event)" style="display:flex; gap:.6rem; flex-wrap:wrap">
-    <input id="q" placeholder="street address, or a 10-digit BBL" style="flex:1; min-width:260px">
-    <button>Look up</button>
+  <form id="lookupform" data-ha-search class="ha-search" role="search"
+        aria-label="Find a building by address" style="flex-wrap:wrap">
+    <input id="q" name="q" type="search" placeholder="street address, or a 10-digit BBL"
+           aria-label="Street address or 10-digit BBL" style="min-width:220px">
+    <button type="submit">Look up</button>
   </form>
+  <div class="ha-search-status" role="status" aria-live="polite"></div>
   <div id="status" class="muted"></div>
 </div>
 <div id="result" style="display:none">
@@ -100,6 +103,18 @@
       <div class="bars" id="vbars"></div>
       <p class="muted" style="margin-top:1.6rem">
         last complaint: <span id="lastc"></span> · last violation: <span id="lastv"></span></p>
+    </div>
+  </div>
+  <div class="card" id="mappanel" style="display:none">
+    <h2>On the risk map</h2>
+    <p class="muted" style="margin-top:0">The searched building is highlighted with a ring;
+    the color around it is its neighbors' estimated winter risk.
+    <a id="fullmap" href="/map">Open the full map ↗</a></p>
+    <div id="mapslot" style="position:relative; height:430px; border:1px solid var(--line);
+         border-radius:8px; overflow:hidden; background:var(--well)">
+      <p class="muted" style="position:absolute; inset:0; display:flex; align-items:center;
+         justify-content:center; margin:0; padding:1rem; text-align:center">The map loads when
+         this panel comes into view. If it does not, open the full map above.</p>
     </div>
   </div>
   <div class="card" id="who"></div>
@@ -238,6 +253,42 @@ function retryPropertyImagery(){
   if (imageryBuilding) loadPropertyImagery(imageryBuilding);
 }
 
+// T17: the map comes to the search — a lazy, embedded panel of the T2 map
+// (/map?bbl=…&embed=1) centered on this building. The record renders first;
+// the map only loads once the panel approaches the viewport, so slow
+// connections and LITE mode get the building page immediately.
+let mapObserver = null;
+function resetMapPanel(){
+  if (mapObserver) { mapObserver.disconnect(); mapObserver = null; }
+  const frame = $('mapslot').querySelector('iframe');
+  if (frame) frame.remove();
+  $('mappanel').style.display = 'none';
+}
+function setupMapPanel(bbl, coords){
+  resetMapPanel();
+  if (!Array.isArray(coords)) return;    // no mapped location: no panel, page still works
+  $('fullmap').href = '/map?bbl=' + encodeURIComponent(bbl);
+  $('mappanel').style.display = 'block';
+  const load = () => {
+    if ($('mapslot').querySelector('iframe')) return;
+    const frame = document.createElement('iframe');
+    frame.src = '/map?bbl=' + encodeURIComponent(bbl) + '&embed=1';
+    frame.title = 'Risk map centered on BBL ' + bbl;
+    frame.loading = 'lazy';
+    frame.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; border:0';
+    $('mapslot').appendChild(frame);
+  };
+  if ('IntersectionObserver' in window) {
+    mapObserver = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        load();
+        if (mapObserver) { mapObserver.disconnect(); mapObserver = null; }
+      }
+    }, {rootMargin: '300px'});
+    mapObserver.observe($('mappanel'));
+  } else load();
+}
+
 async function lookup(e){
   if (e) e.preventDefault();
   let q = $('q').value.trim();
@@ -245,6 +296,7 @@ async function lookup(e){
   const version = ++lookupVersion;
   draftVersion++;
   clearPropertyImagery();
+  resetMapPanel();
   window._bbl = null;
   $('result').style.display = 'none'; $('notranked').style.display = 'none';
   $('draftbox').style.display = 'none'; $('draftstatus').textContent = '';
@@ -280,6 +332,7 @@ async function lookup(e){
   }
   $('notranked').style.display = 'none'; $('result').style.display = 'block';
   loadPropertyImagery(b);
+  setupMapPanel(bbl, b.coords);
   $('p_season').innerHTML = riskHTML(b.season.p);
   $('vs_median').textContent = b.season.vs_median;
   $('rank').textContent = b.season.rank.toLocaleString() + ' of ' + b.season.of.toLocaleString();
@@ -394,6 +447,14 @@ function openMail(){
 document.querySelectorAll('input[name=as]').forEach(x => x.addEventListener('change',
   () => { if ($('draftbox').style.display === 'block') draft(); }));
 
+// T17: the shared search component runs in place on this page instead of navigating.
+// Selecting a suggestion looks its BBL up here; plain Enter runs the existing lookup
+// (which keeps the geocoder-down message and the 10-digit-BBL path).
+$('lookupform').addEventListener('ha-search', e => {
+  e.preventDefault(); $('q').value = e.detail.bbl; lookup();
+});
+$('lookupform').addEventListener('ha-search-query', e => { e.preventDefault(); lookup(); });
+
 const params = new URLSearchParams(location.search);
 if (params.get('as') === 'landlord') document.querySelector('input[name=as][value=landlord]').checked = true;
 const urlBBL = params.get('bbl');
@@ -404,6 +465,10 @@ if (urlBBL) {
     if (window._bbl === urlBBL && location.hash === '#draft' && $('result').style.display === 'block')
       draft().then(() => $('draft').scrollIntoView({behavior: 'smooth'}));
   });
+} else if (params.get('q')) {
+  // T17: the nav/landing search box lands here with the typed text
+  $('q').value = params.get('q');
+  lookup();
 }
 </script>
 {% endblock %}

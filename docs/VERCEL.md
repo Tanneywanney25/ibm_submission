@@ -101,8 +101,8 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | route | method | serves | LITE mode source |
 |---|---|---|---|
 | `/` | GET | Google sign-in or signed-in account, saved buildings and registration (`index.html`) | template + authenticated account API |
-| `/building` | GET | lookup page (`building.html`) | template |
-| `/map` | GET | risk map (`map.html`) | template |
+| `/building` | GET | lookup page (`building.html`); `?bbl=` opens a building directly, `?q=` runs an address search on arrival (T17) | template |
+| `/map` | GET | risk map (`map.html`); `?bbl=` opens centered on that building with a highlight ring, `?embed=1` is the chrome-free embed the building page's map panel uses (T17) | template |
 | `/monitor` | GET | live monitor (`monitor.html`) | template |
 | `/learn-more` | GET | how the site works, map reading, prediction windows, actions, data and privacy | template + shared guide content |
 | `/faq` | GET | 26 searchable, categorized questions with deep links and official sources | shared guide content, server-rendered answers (works without JavaScript) |
@@ -169,8 +169,10 @@ instance. Full setup and coordinated rollout: [GOOGLE_LOGIN.md](GOOGLE_LOGIN.md)
 ## 6. Rules for every prompt that touches the site (Claude: follow these)
 
 1. Keep the URL contract in section 3 intact. Templates only call same-origin `/api/...`
-   paths and `/data/...` static files. Never reference `localhost`, `127.0.0.1` or the
-   instance IP from browser code.
+   paths and `/data/...` static files, plus the public third-party services already in use
+   (basemap/tile CDNs, ArcGIS imagery, and NYC Planning GeoSearch autocomplete for the T17
+   search box — the query string is the only thing sent). Never reference `localhost`,
+   `127.0.0.1` or the instance IP from browser code.
 2. Code that runs on Vercel imports the standard library, Flask, requests and the pinned
    Google auth libraries in `requirements.txt`. Google SDK imports are lazy, used only by
    sign-in; the LinuxONE registration service does not need them. Put any
