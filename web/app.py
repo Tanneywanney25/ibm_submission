@@ -231,6 +231,17 @@ def api_live_start():
         return jsonify(offline=True, error="realtime service unreachable"), 503
 
 
+@app.get("/unsubscribe")
+def unsubscribe():
+    email = (request.args.get("email") or "").strip()
+    bbl = request.args.get("bbl")
+    cur = db().execute("DELETE FROM users WHERE email=? AND (bbl=? OR ? IS NULL)",
+                       (email, bbl, bbl))
+    db().commit()
+    return (f"Unsubscribed {cur.rowcount} registration(s) for {email}. "
+            "You can re-register any time.", 200, {"Content-Type": "text/plain"})
+
+
 @app.get("/api/my_buildings")
 def api_my_buildings():
     """Landlord view: every building registered under this email, plus the
