@@ -95,7 +95,9 @@ that of the first 100 buildings the list says to visit, about 90 genuinely
 lose heat during the spell — the hit rate of roughly the first day of
 inspections. And we never report the top 100 alone: every evaluation shows
 the top 100, 500, 1,000 and 2,500, so no single flattering cutoff can carry
-the story. (That discipline has teeth — we rejected a model that *won* at
+the story. The ranking holds up beyond the top too: the top 1% of our list
+captures 26% of all heat failures in a spell, and the top 10% captures 75% —
+against 1% and 10% for random inspection (mean over the 8 held-out spells). (That discipline has teeth — we rejected a model that *won* at
 the top 100 because it lost at the depths where the city actually inspects.)
 Ranking quality and per-building percentages are two different promises:
 the list is graded by precision at depth, and the percentages are graded by
