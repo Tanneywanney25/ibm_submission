@@ -39,6 +39,7 @@
     const normalized=normalize(question);
     if(/\b(gas leak|smell gas|carbon monoxide|co alarm|911|fire)\b/.test(normalized))return items.find(i=>i.id==='emergency');
     if(/\b(no heat|no hot water|heat is out|heat stopped|heat not working|heat died|heating is broken|heat failed|311)\b/.test(normalized))return items.find(i=>i.id==='no-heat');
+    if(/\b(no hexagons?|without hexagons?|missing hexagons?|no colored overlay|no coloured overlay|no color|no colour|blank areas?|empty areas?|uncolored buildings?|uncoloured buildings?|gray buildings?|grey buildings?|gaps on the map|gaps in the map)\b/.test(normalized))return items.find(i=>i.id==='unranked');
     if(/\b(height|heights|tall|taller|tallest)\b/.test(normalized))return items.find(i=>i.id==='heights');
     if(/\b(color|colors|colour|colours|blue|gradient|legend)\b/.test(normalized))return items.find(i=>i.id==='colors');
     if(/\b(?:stop|remove|delete|cancel|disable)\b.*\b(?:alerts?|notifications?|emails?|registration|building)\b|\b(?:alerts?|notifications?)\b.*\boff\b|\bunsubscribe\b/.test(normalized))return items.find(i=>i.id==='remove-alerts');
