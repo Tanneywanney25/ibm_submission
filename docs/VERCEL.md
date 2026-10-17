@@ -121,6 +121,7 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/api/queue.csv?k=` | GET | top-k CSV | `public/data/top500.csv` (k capped at 500 in LITE) |
 | `/api/draft_message/<bbl>?as=&address=` | GET | `{to, recipients, subject, body, framing, note}`: a notice the user copies or opens in their own mail client, never sent. `as=tenant` (default) is a resident's request to the registered owner care of the managing agent; `as=landlord` is the owner's pre-winter self-audit; `address` names the building in the text (units are cut). 400 for another `as`, 404 for an unranked building | computed from the shard |
 | `/api/live/stats`, `/api/live/queue?k=` | GET | proxy to the realtime service | `REALTIME_URL` env var; 503 `{offline:true}` when unreachable |
+| `/api/current/stats`, `/api/current/queue?k=`, `/api/current/events` | GET | latest published HPD heat reports, distinct complaint counts and collection freshness; no current model probabilities | `COMPLAINT_URL` proxy; 503 JSON when unavailable |
 | `/api/live/replay/start` | POST | proxy | same |
 
 New endpoints go under `/api/` and get a row in this table in the same commit.
@@ -252,3 +253,85 @@ Clicking a hexagon opens all its current-filter buildings in a paginated list; o
 an individual marker or list link navigates to a building. Wheel easing is disabled, wheel
 speed is explicit, both map canvases use CSS pixels, and camera updates coalesce per frame.
 Panning reuses existing data layers; the flat/3D choice is preserved when zooming to buildings.
+
+
+## 12. Current published heat complaints (Sid)
+
+`/monitor` shows current public HPD heat-complaint observations. The historical model
+replay remains at `/monitor?mode=replay`, with its existing `/api/live/*` routes unchanged.
+
+Residents report through NYC311: call 311 or the official residential heat/hot-water page
+https://portal.311.nyc.gov/article/?kanumber=KA-01036 . HPD handles residential maintenance
+complaints. The public 311 dataset `erm2-nwe9` is updated daily, not a direct streaming
+subscription. The monitor uses HPD `ygpa-z7cr`, matching the existing model's NO HEAT and
+NO HEAT AND NO HOT WATER filter. A live API check on October 17 found HPD's newest published
+records newer than the general 311 heat feed. The collector selects building-level fields
+only and does not scrape the complaint-submission form, submit reports, or fetch resident
+contact/unit details.
+
+Poll every five minutes, refresh the page every 15 seconds. A fast poll does not remove
+the publisher's delay. Show complaint received time and collector check time separately;
+never claim the page receives a resident's submission instantly. A report does not prove
+an outage is still active. The current page contains distinct-complaint volume and recent
+reports, not calibrated October predictions. The February features and replay stay separate.
+The source combines heat-only and heat-plus-hot-water reports; water-only reports are excluded.
+
+### Collector and durability
+
+`realtime/complaint_pipeline.py` provides `poll`, `serve`, and `check`. It runs under
+waitress on loopback 5001 and stores data in ignored `data/live_complaints.sqlite3`.
+Initial pull: 35 days. Polls overlap seven days and extend backward after downtime.
+Reconciliation rereads 90 days daily. Numeric problem_id plus received_date supplies
+keyset pagination. All pages must validate before an atomic SQLite window replacement;
+failed pages retain the prior successful data. Problems deduplicate by problem_id and
+reports by complaint_id. Conflicting or missing BBLs remain unlocated. Counts and the
+feed cover received times in the preceding seven days; the 24-hour total is also shown.
+The feed lists at most 100 reports and the building table at most 25 tax lots by observed
+complaint count. Arbitrarily old changes beyond the reconciliation window and concurrent
+upstream edits during pagination are not guaranteed captured. This is a published-data
+monitor rather than a full historical archive or streaming city integration.
+
+`realtime/deploy_complaint_automation.py` generates reviewable systemd units under ignored
+`data/complaint-automation-units`. Install with `--install`: an initial source pull must
+succeed before units change. Poll every five minutes, reconcile at 04:20 New York daily,
+run temporary-database tests every six hours and collector health checks every ten minutes.
+Existing complaint units are backed up before replacement. Web/replay units, model files,
+registration SQLite, SMTP, firewall and Vercel settings are untouched by this deployer.
+A failed health unit is visible in systemctl/journal; external notifications are not configured.
+Optional SOCRATA_APP_TOKEN goes only in ~/.config/heatahead/complaints.env (mode 600).
+
+### Sid's development server (148.100.78.43)
+
+Use ~/ibm_submission and ~/jupyter-env/bin/python. Install the guarded live-monitor patch,
+then:
+
+```
+cd ~/ibm_submission
+~/jupyter-env/bin/python -m pip install --only-binary=:all: waitress
+~/jupyter-env/bin/python realtime/deploy_complaint_automation.py
+~/jupyter-env/bin/python realtime/deploy_complaint_automation.py --install
+curl --fail --retry 10 --retry-connrefused --retry-delay 2 -sS localhost:5001/stats
+```
+
+Restart Sid's web process so it picks up the new proxy/template. If it is systemd-managed,
+`sudo systemctl restart heatahead-web`. If it is still manually launched, stop that web
+process with Ctrl+C and start `APP_MODE=lite ~/jupyter-env/bin/python web/app.py`. Do not
+start a second process on 8080. The web app defaults COMPLAINT_URL to localhost:5001 on the
+same guest; no Vercel setting is needed for the SSH-tunneled development monitor.
+Verify localhost:8080/api/current/stats and /monitor before requesting a production cutover.
+
+### Public deployment on the existing team guest
+
+Commit only the listed source files on a branch, preserving unrelated notebook edits;
+merge after checks. This deploys templates/proxy to Vercel, but the LinuxONE checkout must
+also pull and start its own collector, with its own venv and data. Set Production Vercel
+COMPLAINT_URL=http://148.100.77.112:8080/api/current and redeploy the existing project only
+after this guest's checks pass. REGISTER_FORWARD_URL and REALTIME_URL stay unchanged.
+Running the collector on Sid's guest does not change the public backend. If production
+later deliberately uses Sid's collector, point only COMPLAINT_URL at his reachable
+8080/api/current endpoint and update this document; do not move registrations implicitly.
+
+All frontend calls remain same-origin `/api/current/*`. No pandas/scientific packages
+enter the Vercel import path. The public collector API is read-only; no synthetic inputs
+are accepted. Automated tests use temporary databases and offline source fixtures. No
+emails or NYC complaints are sent by tests, checks, installation, or page polling.

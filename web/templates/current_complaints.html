@@ -1,0 +1,85 @@
+<h1>Live complaint monitor</h1>
+<p class="muted">Latest published NYC heat complaints · New York local time</p>
+<div class="card" id="current-banner" role="status">Connecting to the complaint collector…</div>
+<div class="card" style="display:flex;gap:2rem;flex-wrap:wrap">
+  <div><div class="muted">Latest heat complaint received</div><b id="current-source">—</b></div>
+  <div><div class="muted">Collector last checked</div><b id="current-poll">—</b></div>
+  <div><div class="muted">Received in past 24 hours</div><b id="current-day">—</b></div>
+  <div><div class="muted">Received in past 7 days</div><b id="current-week">—</b></div>
+</div>
+<p>Residents report problems through <a href="https://portal.311.nyc.gov/article/?kanumber=KA-01036" target="_blank" rel="noopener">NYC311</a>.
+  This page checks <a href="https://data.cityofnewyork.us/Housing-Development/Housing-Maintenance-Code-Complaint-Problems/ygpa-z7cr" target="_blank" rel="noopener">HPD's public complaint data</a> every five minutes.
+  Public data arrives after submission; refreshing this page cannot remove NYC's publication delay.
+  A report is not confirmation that an outage is still active.</p>
+<div class="card">
+  <h2>Most recently published heat reports</h2>
+  <p class="muted">Ordered by complaint received time · past 7 days · up to 100 reports</p>
+  <div style="overflow-x:auto"><table><thead><tr><th>Received (NYC)</th><th>Building BBL</th><th>Reported problem</th></tr></thead>
+    <tbody id="current-events"></tbody></table></div>
+  <p id="current-empty"></p>
+</div>
+<div class="card">
+  <h2>Buildings with the most reported complaints</h2>
+  <p class="muted">Unique complaints received in the past 7 days. This is observed volume; current model risk is unavailable until features and weather are refreshed.</p>
+  <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Building BBL</th><th>Complaints (7 days)</th><th>Latest received (NYC)</th></tr></thead>
+    <tbody id="current-queue"></tbody></table></div>
+  <p id="current-unlocated" class="muted"></p>
+</div>
+<script>
+(() => {
+  const el = id => document.getElementById('current-' + id);
+  const floatingTime = value => value ? value.slice(0,19).replace('T',' ') : '—';
+  function showOffline() {
+    el('banner').textContent = 'Current complaint collector offline. Displayed data may be stale. Retrying in 15 seconds.';
+  }
+  async function get(path) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 7000);
+    try {
+      const response = await fetch(path,{cache:'no-store',signal:controller.signal});
+      if (!response.ok) throw new Error('service unavailable');
+      const data = await response.json();
+      if (!data || data.offline) throw new Error('service unavailable');
+      return data;
+    } finally { clearTimeout(timer); }
+  }
+  function cell(row,value) {
+    const td = document.createElement('td'); td.textContent=value; row.append(td); return td;
+  }
+  function building(row,bbl) {
+    const td = cell(row,'');
+    if (!bbl) { td.textContent = 'Location unavailable'; return; }
+    const a = document.createElement('a');
+    a.href = '/building?bbl=' + encodeURIComponent(bbl); a.textContent=bbl; td.append(a);
+  }
+  async function tick() {
+    try {
+      const [s,q,feed] = await Promise.all([
+        get('/api/current/stats'),get('/api/current/queue?k=25'),get('/api/current/events')]);
+      el('source').textContent=floatingTime(s.latest_heat_received);
+      el('poll').textContent=s.last_successful_poll ? new Date(s.last_successful_poll).toLocaleString('en-US',{timeZone:'America/New_York'}) : 'No successful poll';
+      el('day').textContent=Number(s.complaints_24h || 0).toLocaleString();
+      el('week').textContent=Number(s.complaints_7d || 0).toLocaleString();
+      const age=s.source_lag_hours == null ? '' : ` The newest record in the source is ${s.source_lag_hours.toFixed(1)} hours old.`;
+      el('banner').textContent=s.status === 'ok'
+        ? 'Collector running. Showing complaints published by NYC; these are not an instant outage feed.'+age
+        : `Collector status: ${s.status}. Last successful data may be stale or incomplete.`+age;
+      el('events').replaceChildren();
+      for (const event of feed.events || []) {
+        const tr=document.createElement('tr');
+        cell(tr,floatingTime(event.received_date));building(tr,event.bbl);
+        cell(tr,event.reported_problem);el('events').append(tr);
+      }
+      el('queue').replaceChildren();
+      for (const [i,b] of (q.buildings || []).entries()) {
+        const tr=document.createElement('tr');cell(tr,i+1);building(tr,b.bbl);
+        cell(tr,b.complaints_7d);cell(tr,floatingTime(b.latest_received));el('queue').append(tr);
+      }
+      el('empty').textContent=(feed.events || []).length ? '' : 'No published reports in this window. This does not mean no residents submitted complaints.';
+      el('unlocated').textContent=`${Number(s.unlocated_complaints_7d || 0).toLocaleString()} complaints could not be assigned to one building and are excluded from the building list.`;
+    } catch { showOffline(); }
+    setTimeout(tick,15000);
+  }
+  tick();
+})();
+</script>

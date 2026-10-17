@@ -44,6 +44,7 @@ DB = Path("/tmp/heatahead.db") if ON_VERCEL else Path(__file__).resolve().parent
 MODE = (os.environ.get("APP_MODE") or
         ("full" if (OUT / "season_risk_2026.csv").exists() else "lite")).lower()
 REALTIME_URL = os.environ.get("REALTIME_URL", "http://127.0.0.1:5000").rstrip("/")
+COMPLAINT_URL = os.environ.get("COMPLAINT_URL", "http://127.0.0.1:5001").rstrip("/")
 FORWARD_URL = os.environ.get("REGISTER_FORWARD_URL", "").rstrip("/") if MODE == "lite" else ""
 ARCH = platform.machine().lower()
 HOST = "vercel" if ON_VERCEL else ("linuxone" if ARCH == "s390x" else "local")
@@ -582,6 +583,21 @@ def api_live_start():
         return (r.text, r.status_code, {"Content-Type": "application/json"})
     except requests.RequestException:
         return jsonify(offline=True, error="realtime service unreachable"), 503
+
+
+@app.get("/api/current/<path:endpoint>")
+def api_current(endpoint):
+    """Published HPD heat complaints; separate from historical model replay."""
+    if endpoint not in ("stats", "queue", "events"):
+        return jsonify(error="unknown endpoint"), 404
+    try:
+        r = requests.get(f"{COMPLAINT_URL}/{endpoint}",params=request.args,timeout=3)
+        payload=r.json()
+        if not isinstance(payload,dict):
+            raise ValueError("invalid response")
+        return jsonify(payload),r.status_code,{"Cache-Control":"no-store"}
+    except (requests.RequestException,ValueError):
+        return jsonify(offline=True,error="current complaint service unreachable"),503
 
 
 @app.get("/unsubscribe")
