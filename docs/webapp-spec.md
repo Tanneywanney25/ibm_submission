@@ -141,6 +141,36 @@ def building(bbl):
 illustrative. Open the Flask port with iptables and persist to
 `/etc/iptables/rules.v4`; only 22 is open by default.)
 
+## Forecast-driven alerts — "register your building"
+
+The model takes temperature as input, so risk under a *predicted* temperature list
+is just scoring with forecast values — no retraining.
+
+- **Register:** address (→ BBL via GeoSearch) + email + consent checkbox, stored in
+  SQLite on the instance. Unsubscribe link in every mail.
+- **Hourly job:** pull the Open-Meteo 7-day forecast. When it shows a freezing day,
+  score all buildings under those forecast temperatures (0.4 s batch) and alert
+  registered buildings whose risk crosses the threshold.
+- **Alert on the spell/30-day probability, not the 48h one** — "high risk during
+  this cold snap" is the actionable claim (and the one at 96% in the top ranks).
+- **Threshold = calibrated bands** (e.g. alert at ≥20%): the reliability table
+  states alert precision in advance — that is the alert-accuracy guarantee.
+- **One alert per cold spell**, 7-day cooldown; never one email per cold day.
+- Email copy: risk band, citywide rank, spell dates, and the action line: "call
+  311 non-anonymously — since Oct 1, 2026 HPD must attempt an inspection."
+
+Extra endpoints:
+
+```
+POST /register             {address, email}            -> {bbl, ok}
+GET  /risk_curve/<bbl>     -> [{tmin: 30, p: ...}, {tmin: 20, ...}, {tmin: 10, ...}, {tmin: 0, ...}]
+```
+
+`/risk_curve` sweeps TMIN through 30/20/10/0°F (adjusting roll/lag fields
+consistently) and returns the model's output - the per-building "risk vs
+temperature" chart that shows temperature is the live input. SMTP: any free-tier
+sender works for a demo; print-to-log is fine for the video.
+
 ## Demo beats (30 seconds in the video)
 
 1. Type a Bronx address → page shows 62% risk band, 11 straight seasons of
