@@ -112,7 +112,7 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/api/building/<bbl>` | GET | the building payload | `public/data/b/NN.json` |
 | `/api/map_data` | GET | map rows | 302 redirect to `/data/map_data.json` (static, 3.1 MB; the function must not return 4 MB bodies, Vercel caps function responses at 4.5 MB). `fetch` follows the redirect, so `map.html` is unchanged |
 | `/api/reliability` | GET | calibration table | `public/data/reliability.json` |
-| `/api/register` | POST | existing registration result; signed-in Google identity and `X-CSRF-Token` required; email comes from the session; 400 invalid building/role/phone, 401 signed out, 403 other email or bad CSRF, 503 unavailable account service | signed request forwarded to the instance; no ephemeral fallback |
+| `/api/register` | POST | save a building to the signed-in account (`{address or bbl, phone?}`); `role` is optional since T14 (one account type) and defaults to `tenant`, the value the `users.role` column and `web/alerts.py` use for building alerts; older clients may still send one of the four legacy roles; signed-in identity and `X-CSRF-Token` required; email comes from the session; 400 missing/invalid building, unknown role or bad phone, 401 signed out, 403 other email or bad CSRF, 503 unavailable account service | signed request forwarded to the instance; no ephemeral fallback |
 | `/api/my_buildings` | GET | `{buildings, total, registrations:[{role,bbl}]}` for the signed-in email, plus public portfolio context; optional legacy `email=` must equal that account | signed request forwarded to the instance; 503 when unavailable |
 | `/api/account/panels` | GET, POST | the signed-in account's dashboard panel set (T14: `buildings`, `audit`, `queue`, `stats`); GET returns `{panels}` where null means "never customized" (the page derives defaults from the account's registration roles); POST `{panels:[...]}` stores a distinct subset in fixed display order; 400 unknown panel, 401 signed out, 403 bad CSRF, 503 account service unavailable (the page then falls back to role defaults and a per-device copy) | signed request forwarded to the instance; 503 when unavailable |
 | `/unsubscribe?email=&bbl=` | GET | sign-in followed by a confirmation form; GET never deletes data | signed-in website template |
@@ -275,8 +275,10 @@ place the form says it is being set up and `/api/health` reports `email_sign_in:
 The instance only mails links that point at its own `SITE_URL`, so preview deploys cannot
 send sign-in email. Remembered sessions last up to 30 days; browser cookies are Secure,
 HttpOnly and SameSite=Lax.
-No Google access, refresh or ID token is stored in the cookie. Roles choose public views and
-alert registrations, not verified inspector/owner privileges. Alert registration rows remain
+No Google access, refresh or ID token is stored in the cookie. There is one account type
+(T14): the dashboard shows the panels each user turns on in their profile, and no panel
+grants verified inspector or owner privileges. A role stored by an older registration only
+picks that account's default panels until the user changes them. Alert registration rows remain
 in the existing instance SQLite database and reload after a fresh Google sign-in.
 
 The map uses a fixed pale-blue to deep-blue risk scale, interpolated into 256 steps for
