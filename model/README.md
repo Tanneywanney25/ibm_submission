@@ -68,11 +68,13 @@ Confirmed on the instance (`uname -m` = s390x, `nnpa` present in /proc/cpuinfo, 
 
 - **Evaluation (71 cold days of 2025-26): model 65.7% precision@100 vs 61.8% for the 14-day baseline** — beats all three baselines at every k; recall 64.0% of all failures at k=2500. Matches the laptop run.
 - Rolling backtest with XGBoost: model ahead at k=500/1000/2500 in all six seasons; at k=100 it wins 4 of 6 coldest-day sets.
-- **Throughput (172,485 buildings × 22 features, measured):**
+- **Throughput (172,485 buildings, final 29-column matrix, measured):**
 
 | engine | batch scoring | p99 single-row |
 |---|---|---|
-| XGBoost 3.4.1 | 351,610 buildings/sec | 0.33 ms |
-| **Snap ML 1.17** | **487,293 buildings/sec (1.4×)** | 0.41 ms |
+| XGBoost 3.4.1 | 355,395 buildings/sec | 0.46 ms |
+| **Snap ML 1.17** | **466,579 buildings/sec (1.3×)** | 0.62 ms |
+
+Final-run detail and the iteration story: `docs/model-iterations.md`.
 
 The entire city re-ranks in ~0.35 s on a 3-core guest. Snap ML was trained natively on the instance (XGBoost 3.x JSON lacks the objective field its importer wants). Honest caveat for the pitch: nnpa (the Telum accelerator) is present on the guest, but the gain shown is Snap ML's CPU tree engine; we don't claim accelerator offload.
