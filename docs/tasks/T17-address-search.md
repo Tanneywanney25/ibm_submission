@@ -19,9 +19,15 @@ same risk presentation as clicking the map, minus the map.
   `/v2/autocomplete`, free, no key): queried from the browser as the user
   types (debounced ~250ms), returns candidates with BBL attached.
 - Selecting a suggestion → resolve BBL → straight to that building's page.
-- Fallbacks: GeoSearch down → server-side prefix match over our own address
-  list; address resolves to a BBL we don't score (non-residential, outside
-  universe) → an honest "not in our universe, here's why" page, never a 404.
+- Fallbacks: GeoSearch down → the box says suggestions are unavailable and
+  Enter still searches through `/api/lookup` (our server-side GeoSearch match);
+  if that is down too, the building page's existing guidance offers the
+  10-digit BBL path (VERCEL.md §6 rule 4). A server-side prefix match over our
+  own address list was dropped: the LITE snapshot carries no address strings,
+  and shipping one would grow `public/data/` for a rare failure mode. An
+  address that resolves to a BBL we don't score (non-residential, outside
+  universe) gets the honest "not individually ranked, here's the citywide
+  median" note on the building page, never a 404.
 - Keyboard complete: arrows + enter, visible focus, works on mobile widths.
 - **The map comes to the search, too**: resolving an address also pulls up
   the risk heat map (T2) as part of the result UI — centered and zoomed on
@@ -53,12 +59,19 @@ same risk presentation as clicking the map, minus the map.
 
 ## Acceptance
 
-- [ ] Typing 5 characters of a real address surfaces it; enter lands on the
+- [x] Typing 5 characters of a real address surfaces it; enter lands on the
       same building page the map opens.
-- [ ] Out-of-universe address gets the explainer page, not a 404.
-- [ ] Search result shows the heat map centered on the searched building,
+- [x] Out-of-universe address gets the explainer page, not a 404 (verified
+      live: searching "100 Centre St" resolves to the unranked courthouse lot
+      and shows the citywide-median note).
+- [x] Search result shows the heat map centered on the searched building,
       highlighted, with neighborhood risk visible; page still usable if the
-      map fails to load.
-- [ ] Works in LITE mode on the Vercel deploy; mobile keyboard flow works.
-- [ ] No apartment-level text anywhere in suggestions or results.
-- [ ] VERCEL.md §3 updated with any new endpoint in the same commit.
+      map fails to load (record renders first; the map panel is a lazy
+      `/map?bbl=…&embed=1` iframe with a full-map fallback link).
+- [ ] Works in LITE mode on the Vercel deploy; mobile keyboard flow works
+      (LITE verified locally and at 375px width; check the Vercel preview
+      before merging).
+- [x] No apartment-level text anywhere in suggestions or results (GeoSearch
+      suggestions are tax-lot addresses: label, borough, zip only).
+- [x] VERCEL.md §3 updated with any new endpoint in the same commit (no new
+      endpoint; the new `/building` and `/map` query params are documented).
