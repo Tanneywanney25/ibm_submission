@@ -105,8 +105,11 @@ def _city(city):
 
 
 def _locality(city, state):
-    """'Brooklyn, NY': all that is shown for an agent who files as a person."""
-    return ", ".join(p for p in (_city(city), str(state or "").strip().upper()) if p)
+    """'Brooklyn, NY': all that is shown for an agent who files as a person. A city with
+    a digit in it is dropped, since it may be a street typed into the wrong field."""
+    city = _city(city)
+    return ", ".join(p for p in ("" if re.search(r"\d", city) else city,
+                                 str(state or "").strip().upper()) if p)
 
 
 def address(df):
