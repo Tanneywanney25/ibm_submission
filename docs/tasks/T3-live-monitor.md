@@ -38,6 +38,30 @@ m = XGBClassifier(); m.load_model("model/out/heat_model_final.json")  # never pi
   units; animate row moves if cheap, skip if not
 - A "Start replay" button (speedup 600–3600) + graceful "service offline" state
 
+## Handoff from stream 5 (DELIVERED — Oct 17, evening)
+
+Everything 3a needs is staged, so the model swap is wiring, not feature work:
+
+- **Bundle:** `/home/linux1/replay_assets.tar.gz` on the pipeline guest
+  (`148.100.108.101`, 4 MB). Contents: `replay/static_features.csv` (62,716
+  rows: `bbl` + the **31 features in exact model column order**, frozen as of
+  **2026-02-06**, the eve of the replayed snap), `replay/features_schema.json`,
+  `heat_model_final.json` (M2), `calibration.csv`.
+- **Pull it onto the site guest** (from `~/heatahead/site`):
+  `scp linux1@148.100.108.101:/home/linux1/replay_assets.tar.gz . && mkdir -p model/out && tar -xzf replay_assets.tar.gz -C model/out`
+  (Or regenerate anywhere with `data/` + `model/out/`:
+  `python model/10_export_replay_assets.py`.)
+- **The schema file is the contract.** `features_schema.json` lists
+  `feats_in_model_order` (predict with exactly that column order),
+  `rolling_fields` (the seven fields the loop mutates per event:
+  `c_prev2/7/14/30`, `days_since_c`, `bw_prev14`, `nb_block_2d`),
+  `weather_fields` (overwrite once per replay-day from `days.csv`), and the
+  update rules per replayed complaint. Static fields never change mid-replay.
+- Load M2 with `XGBClassifier().load_model(...)` — never a pickle (s390x).
+  Keep `scoring_mode` honest: set it to `model_v5_m2` when the swap lands.
+- A bbl absent from the matrix is outside the history universe: keep the stub
+  score or show it unranked — do not invent features for it.
+
 ## Acceptance
 
 - [ ] `/stats` shows `scoring_mode` ≠ temporary and real p50/p99
