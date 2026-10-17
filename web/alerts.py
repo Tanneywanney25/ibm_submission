@@ -42,7 +42,7 @@ def log(msg):
 def find_spell(force=None):
     """First day of a run of >=2 consecutive forecast days with TMIN < 32F."""
     if force:
-        return force, [force, force]
+        return force, [force]
     r = requests.get(FORECAST_URL, timeout=10).json()["daily"]
     days = list(zip(r["time"], r["temperature_2m_min"]))
     run = []
