@@ -91,12 +91,13 @@ def heat_priority(day):
 
 
 # ---------------- the engine (deterministic queue; analytic outcomes)
-def simulate(policy, capacity, kscale):
+def simulate(policy, capacity, kscale, expire=EXPIRE):
     backlog = {}                   # bbl -> dict(arrival, tier, p_rel)
     arrivals = cases.groupby("day")
     days = pd.date_range(SEASON_START, SEASON_END)
-    stats = dict(viol_mean=0.0, viol_var=0.0, waits=[], cold_days=0.0, inspected=0,
-                 expired=0, cum=[])
+    stats = dict(viol_mean=0.0, viol_var=0.0, waits=[], waits_fail=[],
+                 expired_fail=0, cold_days=0.0, inspected=0,
+                 expired=0, cum=[], daily=[])
     for day in days:
         if day in arrivals.groups:
             for r in arrivals.get_group(day).itertuples():
@@ -105,11 +106,13 @@ def simulate(policy, capacity, kscale):
                     backlog[r.bbl] = dict(arrival=b["arrival"] if b else day,
                                           tier=r.tier, p_rel=r.p_rel)
         # expire stale cases (they waited the full window, uninspected)
-        for b in [k for k, v in backlog.items() if (day - v["arrival"]).days > EXPIRE]:
+        for b in [k for k, v in backlog.items() if (day - v["arrival"]).days > expire]:
             v = backlog.pop(b)
             stats["expired"] += 1
             if v["tier"] >= 2:
-                stats["cold_days"] += UNITS.get(b, 3) * EXPIRE
+                stats["cold_days"] += UNITS.get(b, 3) * expire
+                stats["expired_fail"] += 1
+                stats["waits_fail"].append(expire)   # expiry counts as a full wait
         # dispatch today's capacity
         if backlog:
             keys = list(backlog.keys())
@@ -121,25 +124,36 @@ def simulate(policy, capacity, kscale):
                 pr = heat_priority(day)
                 order = (sorted(keys, key=lambda b: (-pr.get(b, -1.0), b)) if pr else
                          sorted(keys, key=lambda b: (-LAST.get(b, 0), b)))
+            day_viol = 0.0
             for b in order[:capacity]:
                 v = backlog.pop(b)
                 wait = (day - v["arrival"]).days
                 p = min(1.0, kscale * v["p_rel"])
                 stats["viol_mean"] += p
+                day_viol += p
                 stats["viol_var"] += p * (1 - p)
                 stats["waits"].append(wait)
                 stats["inspected"] += 1
                 if v["tier"] >= 2:
                     stats["cold_days"] += UNITS.get(b, 3) * wait
+                    stats["waits_fail"].append(wait)
+        else:
+            day_viol = 0.0
+        ncompl = int(arrivals.get_group(day).n.sum()) if day in arrivals.groups else 0
+        stats["daily"].append((day, ncompl, day_viol))
         stats["cum"].append((day, stats["viol_mean"]))
     w = np.array(stats["waits"])
+    wf = np.array(stats["waits_fail"])     # failing buildings, expiries included
     return dict(policy=policy,
                 violations=round(stats["viol_mean"], 1),
                 viol_ci=round(1.96 * np.sqrt(stats["viol_var"]), 1),
                 median_wait=float(np.median(w)) if len(w) else np.nan,
                 mean_wait=round(float(w.mean()), 2) if len(w) else np.nan,
+                fail_median_wait=float(np.median(wf)) if len(wf) else np.nan,
+                fail_mean_wait=round(float(wf.mean()), 2) if len(wf) else np.nan,
                 cold_household_days=int(stats["cold_days"]),
-                inspected=stats["inspected"], expired=stats["expired"]), stats["cum"]
+                inspected=stats["inspected"], expired=stats["expired"],
+                expired_fail=stats["expired_fail"]), stats["cum"], stats["daily"]
 
 
 # ---------------- calibrate (capacity, kscale) so FCFS reproduces reality:
@@ -150,7 +164,7 @@ print("calibrating FCFS to the real total "
       f"({REAL_VIOLATIONS:,} violations) AND the measured ~{REAL_BUSY_LAG}-day lag...")
 best = None
 for capacity in (300, 400, 500, 600, 700, 800, 1000, 1200):
-    r, _ = simulate("fcfs", capacity, 1.0)
+    r, _, _ = simulate("fcfs", capacity, 1.0)
     k = REAL_VIOLATIONS / r["violations"]       # linear in kscale by construction
     if k * TIER_RATE[3] > 1:                    # P(viol|insp) must stay a probability
         continue
@@ -165,11 +179,12 @@ print(f"calibrated: capacity {CAP}/day (FCFS mean wait {W:.2f}d ~ measured "
       f"(tier P(viol|insp): {[round(K*v,3) for v in TIER_RATE.values()]})")
 
 # ---------------- run the three policies under identical calibration
-rows, cums = [], {}
+rows, cums, dailies = [], {}, {}
 for pol in ("fcfs", "last_season", "heatahead"):
-    r, cum = simulate(pol, CAP, K)
+    r, cum, daily = simulate(pol, CAP, K)
     rows.append(r)
     cums[pol] = cum
+    dailies[pol] = daily
     print(r)
 
 res = pd.DataFrame(rows)
@@ -188,3 +203,42 @@ print(f"  cold-household-days:  FCFS {f.cold_household_days:,} -> HeatAhead "
       f"{h.cold_household_days:,}  ({(h.cold_household_days/f.cold_household_days-1)*100:+.1f}%)")
 print(f"  (last-season policy: {l.violations:,.0f} violations, "
       f"median wait {l.median_wait:.0f})")
+print(f"  waits for FAILING buildings, expiries counted as {EXPIRE}d: "
+      f"median FCFS {f.fail_median_wait:.0f}d -> HeatAhead {h.fail_median_wait:.0f}d "
+      f"(mean {f.fail_mean_wait:.2f} -> {h.fail_mean_wait:.2f})")
+print(f"  expired uninspected cases: FCFS {f.expired:,} ({f.expired_fail:,} failing) -> "
+      f"HeatAhead {h.expired:,} ({h.expired_fail:,} failing)")
+
+# ---------------- verification 1: does FCFS reproduce the measured saturation SHAPE?
+# Stream 2 measured yield per 100 complaints dropping roughly one-third on 4k+
+# complaint days. The sim must show the same congestion, not just the total.
+dd = pd.DataFrame(dailies["fcfs"], columns=["day", "complaints", "viol"])
+heavy = dd[dd.complaints >= 4000]
+mod = dd[(dd.complaints >= 500) & (dd.complaints < 2000)]
+y_h = 100 * heavy.viol.sum() / max(heavy.complaints.sum(), 1)
+y_m = 100 * mod.viol.sum() / max(mod.complaints.sum(), 1)
+print(f"\nsaturation shape (FCFS): {y_m:.2f} violations/100 complaints on moderate "
+      f"days -> {y_h:.2f} on 4k+ days ({(y_h / y_m - 1) * 100:+.0f}%; "
+      f"stream 2 measured about -32%)")
+
+# ---------------- verification 2: sensitivity grid (same outcome model K;
+# capacity +/-15% and expiry window 7/14/28 - does the policy ranking hold?)
+if "--sensitivity" in sys.argv:
+    print("\n--- sensitivity: HeatAhead vs FCFS across capacity x expiry ---")
+    sens = []
+    for cap in (600, 700, 800):
+        for exp in (7, 14, 28):
+            rf, _, _ = simulate("fcfs", cap, K, expire=exp)
+            rh, _, _ = simulate("heatahead", cap, K, expire=exp)
+            dv = (rh["violations"] / rf["violations"] - 1) * 100
+            dc = (rh["cold_household_days"] / max(rf["cold_household_days"], 1) - 1) * 100
+            sens.append(dict(capacity=cap, expire=exp,
+                             fcfs_viol=rf["violations"], ha_viol=rh["violations"],
+                             d_viol_pct=round(dv, 1), d_cold_pct=round(dc, 1),
+                             fcfs_cold=rf["cold_household_days"],
+                             ha_cold=rh["cold_household_days"],
+                             ha_expired=rh["expired"]))
+            print(f"  cap {cap} expire {exp:2d}: violations {dv:+5.1f}%, "
+                  f"cold-household-days {dc:+5.1f}%, HA expired {rh['expired']:,}")
+    pd.DataFrame(sens).to_csv(SIM / "sensitivity.csv", index=False)
+    print("wrote sim/out/sensitivity.csv")
