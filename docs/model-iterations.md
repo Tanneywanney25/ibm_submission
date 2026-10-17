@@ -249,9 +249,16 @@ per-spell results (no re-runs, frozen numbers annotated not altered):
   buildings. Significance by one-sided paired tests on per-unit model−baseline
   deltas: sign-flip permutation (100k draws) for days, exact enumeration (all
   256 sign patterns) for spells. Calibration bins get Wilson intervals.
-- **Daily (71 cold days): p < 10⁻⁵ at every k, both horizons** — in 100,000
-  permutations, chance never once matched the model's edge over the 14-day
-  baseline. 48h p@100 ≈ 0.69 [0.68, 0.71]; 30-day p@100 0.97 [0.97, 0.98].
+- **Daily (71 cold days): p = 10⁻⁵ at every k, both horizons** (add-one
+  smoothed — a finite test never reports zero; in 100,000 permutations chance
+  never matched the model's edge). The raw ledger behind it: the model beats
+  the 14-day baseline on **67 of 71 days** @100 (1 tie, 3 losses), mean edge
+  +7.7pp. 48h p@100 0.69 [0.68, 0.71].
+- **Sensitivity — block bootstrap.** Days inside one cold snap are correlated,
+  so we also resampled the 16 blocks of consecutive cold days instead of
+  single days. CIs widen (@100: [0.66, 0.71] vs [0.68, 0.71]) but every
+  conclusion stands — even the block-CI lower bound at k=100 sits above the
+  baseline's point estimate. Both CIs ship in `stats_inference.csv`.
 - **Spell (8 spells): exact p = 1/256 at every k** — the smallest p-value an
   8-spell test can produce, which happens only when the model beats the
   baseline in ALL eight spells. p@100 0.87 [0.81, 0.92]; with n=8 the CI is
