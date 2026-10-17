@@ -156,6 +156,8 @@ for _, sp in spells.iterrows():
 
     pos = set(truth.loc[truth.day.between(s, e), "bbl"]) & set(X.bbl)
     pos30 = set(truth.loc[truth.day.between(s, s + pd.Timedelta(days=29)), "bbl"]) & set(X.bbl)
+    season_end = pd.Timestamp(f"{season(pd.Series([s]))[0] + 1}-05-31")
+    pos_season = set(truth.loc[truth.day.between(s, season_end), "bbl"]) & set(X.bbl)
     any48 = set(bd.loc[bd.day.between(s, s + pd.Timedelta(days=1)), "bbl"]) & set(X.bbl)
     rank = {"model": pd.Series(predict(X[FEATS]), index=X.bbl),
             "base_14d": pd.Series(X.c_prev14.to_numpy(), index=X.bbl)}
@@ -166,6 +168,8 @@ for _, sp in spells.iterrows():
             rows.append(dict(start=sp.start.date(), days=sp.days, k=k, method=method,
                              n_failures=len(pos),
                              precision_spell=len(top & pos) / k,
+                             precision_30d=len(top & pos30) / k,
+                             precision_rest_of_season=len(top & pos_season) / k,
                              recall_spell=len(top & pos) / max(len(pos), 1)))
     # autopsy of the model's top-100
     top = set(rank["model"].sort_values(ascending=False).index[:100])
@@ -181,7 +185,11 @@ for _, sp in spells.iterrows():
 res = pd.DataFrame(rows)
 res.to_csv(OUT / "spell_results.csv", index=False)
 print("\nspell-level precision (mean over spells):")
-print(res.groupby(["method", "k"])[["precision_spell", "recall_spell"]]
+print(res.groupby(["method", "k"])[["precision_spell", "precision_30d",
+                                    "precision_rest_of_season", "recall_spell"]]
       .mean().round(3).to_string())
+print("\nfirst spell of the season only (the preseason watchlist view):")
+print(res[res.start == res.start.min()].set_index(["method", "k"])
+      [["precision_spell", "precision_30d", "precision_rest_of_season"]].round(3).to_string())
 print("\nautopsy of the model's top-100 per spell:")
 print(pd.DataFrame(autopsy).to_string(index=False))
