@@ -86,6 +86,36 @@ All metrics are on the held-out 2025-26 winter unless marked otherwise.
   scoring. Results: `model/out/backtest_by_season.csv` — model ahead of the
   14-day baseline in all six winters.
 
+## M7 — The ranking-objective experiment (T6a; NOT adopted)
+
+- XGBRanker, `rank:pairwise` grouped by calendar day — optimizes list order
+  directly. Same 31 features, split and budget as M1; no tuning.
+  `model/11_ranker.py` → `heat_model_ranker.json` (margins, not probabilities).
+- **Result (8 test spells, vs M1's frozen 86.1/96.1 @100):** spell p@100
+  **87.9%** (+1.8), 30d **97.4%** (+1.3) — it met the k=100 adoption bar — but
+  it *regresses deeper in the list*: k=1000 50.7 vs 51.4, k=2500 33.7 vs 34.8,
+  rest-of-season @2500 73.1 vs 76.8.
+- **Decision: not adopted.** Sharper top-100, worse everywhere below it, and
+  margins would need fresh calibration for display. Kept in the catalog as the
+  honest answer to "did you try learning-to-rank?" — yes, measured, trade-off
+  documented. Frozen numbers unchanged.
+
+## M8 — The enforcement ranker (T6b; a second product surface)
+
+- M1's recipe, target = **verified failure** (heat violation within 7 days).
+  `model/12_verified_model.py` → `heat_model_verified.json`; evaluated with
+  `03_evaluate.py --model ... --label verified` (identical protocol, truth =
+  violations).
+- **Result (71 test cold days, verified-violation truth):** precision@100
+  **30.2%** vs 16.5% for the best baseline (last season's violations) and
+  14.8% for 14-day recency — roughly **2× the best simple rule**, and 48.0% of
+  its top-100 produce a confirmed violation within 30 days. Panel AUC-PR 0.307
+  on an 8.7% base.
+- **Role:** the second queue — M1/M2 rank "who loses heat" (tenant protection),
+  M8 ranks "who will produce a confirmed violation" (enforcement targeting).
+  Stream 2's confirmation analysis is its validation story. Not part of the
+  frozen headline; reported as its own entry.
+
 ## B1–B3 — The baselines (every eval runs them under the identical protocol)
 
 - **B1 last-season complaints:** rank by prior season's distinct complaints.
