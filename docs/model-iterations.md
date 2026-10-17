@@ -98,18 +98,51 @@ over the recency baseline at 48h, and the rolling backtest wins **all six season
 Snapshot caveat: landlord and boiler tables are current-day snapshots, so past
 seasons inherit today's owner/boiler state in the backtest.
 
+## Iteration 5 — velocity, neighbor heat, season clock (final feature set)
+
+Added `c_prev2` (own complaints, last 48h), `nb_block_2d` (complaints on the same
+tax block in the last 48h, excluding self - shared systems and landlords cluster)
+and `days_into_cold` (days since the season's first sub-55F day; early snaps catch
+unprepared boilers - instantly a top-4 feature). Every metric improved; final
+numbers below are from the LinuxONE XGBoost+sklearn ensemble.
+
+## The validation: 6-fold forward-chaining cross-validation
+
+"Is the idea sound, or one lucky winter?" For each winter 2020-21 through
+2025-26, train ONLY on seasons before it, test on it, roll forward (time-respecting
+cross-validation; classic leave-one-out would train on the future and is invalid
+for time-series). Same features, same recipe, every fold - no per-fold tuning.
+
+| Test winter | model p@100 | 14-day baseline |
+|---|---|---|
+| 2020-21 | **0.558** | 0.540 |
+| 2021-22 | **0.650** | 0.629 |
+| 2022-23 | **0.665** | 0.604 |
+| 2023-24 | **0.691** | 0.644 |
+| 2024-25 | **0.744** | 0.685 |
+| 2025-26 | **0.728** | 0.703 |
+| **mean of 6 folds** | **0.673** | 0.634 |
+
+**6 of 6 winters won.** (Per-spell-day scoring at k=100 on each winter's 10
+coldest days; full grid in `model/out/backtest_by_season.csv`.)
+
 ## Spell-level evaluation + the error autopsy (the accuracy story)
 
 Inspectors work a cold snap, not a calendar day — so the operational metric is one
 ranked list per cold spell (8 spells in 2025-26), a building counting as caught if
 it fails at any point during the spell:
 
-| k | model | 14-day baseline |
-|---|---|---|
-| 100 | **85.9%** | 77.1% |
-| 500 | **64.2%** | 59.9% |
-| 1000 | **51.2%** | 47.8% |
-| 2500 | **34.7%** (recall 53.7%) | 31.9% |
+| k | spell | within 30d | rest of season | baseline (spell) |
+|---|---|---|---|---|
+| 100 | **86.1%** | 96.1% | 98.2% | 77.1% |
+| 500 | **64.6%** | 87.8% | 92.9% | 59.9% |
+| 1000 | **51.4%** | 79.4% | 88.1% | 47.8% |
+| 2500 | **34.8%** (recall 53.9%) | 63.5% | 76.8% | 31.9% |
+
+**Preseason watchlist** (rank once at the season's FIRST cold spell, ask who fails
+at any point that winter): top-100 **99%**, top-500 97.6%, top-1000 **95.4%**,
+top-2500 87.3%. The city's Heat Sensors Program covers ~50 buildings/year; this
+names a thousand at 95% confidence before winter starts.
 
 **The autopsy of every spell's top-100** shows the remaining "misses" are mostly
 timing, not wrong buildings: 70-86 fail within the first 48h, 72-96 within the
@@ -118,8 +151,11 @@ household cold, below our 2-complaint bar). Truly clean buildings — no failure
 within 30 days — are **1-7 per 100**. The model's building selection is ~95%+
 right; the 48-hour number is strict because tenants' call timing is noise.
 
-Three honest horizons, one slide: 68.7% (exact 48h) -> 85.9% (during the spell)
--> 96.5% (within 30 days).
+The honest ladder, one slide: **69.1%** (exact 48h, 71 days) -> **86.1%** (during
+the spell) -> **96.6%** (within 30 days) -> **99%** (preseason top-100, that
+winter). Final throughput on the instance: XGBoost 358,629 buildings/sec (p99
+0.71 ms), Snap ML 481,356/sec (p99 0.51 ms). Calibrated probabilities on the
+ranked list top out around 0.72 - honest 48-hour odds, not inflated scores.
 
 ## Why gradient boosting (and not something fancier)
 
