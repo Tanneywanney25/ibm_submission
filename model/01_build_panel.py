@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from common import NEVER, band_prep, band_rates
+from common import NEVER, add_second_tier, band_prep, band_rates, second_tier
 
 DATA = Path("data")
 OUT = Path("model/out")
@@ -127,6 +127,14 @@ sb = bw.groupby(["bbl", "season"])["n"].sum().rename("b").reset_index()
 panel = panel.merge(sb.assign(season=sb.season + 1).rename(columns={"b": "bw_last1"}),
                     on=["bbl", "season"], how="left")
 panel["bw_last1"] = panel.bw_last1.fillna(0)
+
+# -- landlord portfolio + boiler facts (second-tier data)
+lord, boiler = second_tier()
+sc_df = sc.rename(columns={})  # bbl, season, c
+st = pd.concat([add_second_tier(pd.DataFrame({"bbl": buildings.bbl}), lord, boiler,
+                                sc_df, S).assign(season=S)
+                for S in range(2018, 2026)], ignore_index=True)
+panel = panel.merge(st, on=["bbl", "season"], how="left")
 
 # -- reaction rates by weather band: share of the prior two seasons' frigid /
 #    freezing / cold days on which this building complained (stream 1's bands)

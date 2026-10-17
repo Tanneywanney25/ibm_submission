@@ -13,7 +13,8 @@ Writes: model/out/results_precision_at_k.csv, model/out/scores_<day>.csv (coldes
 import sys
 import numpy as np
 import pandas as pd
-from common import DATA, FEATS, NEVER, OUT, band_prep, band_rates, load_days, season
+from common import (DATA, FEATS, NEVER, OUT, add_second_tier, band_prep, band_rates,
+                    load_days, season, second_tier)
 
 KS = (100, 500, 1000, 2500)
 
@@ -30,14 +31,24 @@ viol = viol[viol.ordernumber.astype(str).isin(["666", "966", "674"])].dropna(sub
 viol["bbl"] = viol["bbl"].astype(float).astype("int64")
 viol["inspectiondate"] = pd.to_datetime(viol["inspectiondate"])
 
-# model (whichever 02_train saved)
+# models (ensemble when both backends were trained)
+models = []
 if (OUT / "heat_model.json").exists():
-    from xgboost import XGBClassifier
-    m = XGBClassifier()
-    m.load_model(OUT / "heat_model.json")
-else:
+    try:
+        from xgboost import XGBClassifier
+        m = XGBClassifier()
+        m.load_model(OUT / "heat_model.json")
+        models.append(m)
+    except ImportError:
+        pass
+if (OUT / "heat_model.joblib").exists():
     import joblib
-    m = joblib.load(OUT / "heat_model.joblib")
+    models.append(joblib.load(OUT / "heat_model.joblib"))
+print(f"{len(models)} model(s) in the ensemble")
+
+
+def predict(A):
+    return np.mean([mm.predict_proba(A)[:, 1] for mm in models], axis=0)
 
 # ------------------------------------------------------------------ static pieces
 # history features as of end of 2024-25 (identical to the panel's 2025 rows)
@@ -66,6 +77,8 @@ X0 = X0.merge(band_rates(num, den, 2025, X0.bbl), on="bbl", how="left")
 bw["season"] = season(bw.day)
 sbw = bw.groupby(["bbl", "season"])["n"].sum()
 X0["bw_last1"] = hist_col(sbw, 2024)
+lord, boiler = second_tier()
+X0 = add_second_tier(X0, lord, boiler, sc.rename("c").reset_index(), 2025)
 
 # per-building cumulative complaint counts + last-event days, for trailing windows
 bdc = bd.sort_values(["bbl", "day"]).copy()
@@ -109,7 +122,7 @@ if len(sys.argv) > 1:
     test_days = test_days.head(int(sys.argv[1]))   # coldest first
 print(f"{len(test_days)} test cold days")
 
-rows, coldest_scores = [], None
+rows, coldest_scores, calib = [], None, []
 for _, drow in test_days.iterrows():
     d = drow.day
     pos = set(truth.loc[truth.day == d, "bbl"])
@@ -143,7 +156,7 @@ for _, drow in test_days.iterrows():
         X[c] = drow[c]
 
     rank = {
-        "model": pd.Series(m.predict_proba(X[FEATS])[:, 1], index=X.bbl),
+        "model": pd.Series(predict(X[FEATS]), index=X.bbl),
         "base_last_season": pd.Series(X.c_last1.to_numpy(), index=X.bbl),
         "base_14d": pd.Series(X.c_prev14.to_numpy(), index=X.bbl),
         "base_viol_last_season": pd.Series(X.v_last1.to_numpy(), index=X.bbl),
@@ -170,11 +183,17 @@ for _, drow in test_days.iterrows():
                          recall=len(new & pos) / max(len(pos), 1),
                          verified_precision=len(new & ver) / max(len(new), 1),
                          n_new=len(new)))
+    # real-universe calibration pairs (2,000 random buildings per day)
+    cs = rank["model"].sample(min(2000, len(X)), random_state=len(calib))
+    calib.append(pd.DataFrame({"score": cs.to_numpy(),
+                               "y": [b in pos for b in cs.index]}))
     if coldest_scores is None:                      # test_days is coldest-first
         coldest_scores = X[["bbl"]].assign(score=rank["model"].to_numpy(), day=d.date())
 
 res = pd.DataFrame(rows)
 res.to_csv(OUT / "results_precision_at_k.csv", index=False)
+pd.concat(calib, ignore_index=True).assign(weight=1.0) \
+    .to_csv(OUT / "calibration.csv", index=False)       # replaces 02's panel-based pairs
 coldest_scores.to_csv(OUT / "scores_coldest_day.csv", index=False)
 
 print("\nmean over test days:")

@@ -15,8 +15,8 @@ Writes: model/out/heat_model_final.json (or .joblib),
 import sys
 import numpy as np
 import pandas as pd
-from common import (DATA, FEATS, NEVER, OUT, band_prep, band_rates, load_days,
-                    make_model, season)
+from common import (DATA, FEATS, NEVER, OUT, add_second_tier, band_prep, band_rates,
+                    load_days, make_model, season, second_tier)
 
 REPLAY = pd.Timestamp(sys.argv[1] if len(sys.argv) > 1 else "2026-02-08")
 
@@ -70,6 +70,10 @@ bw["season"] = season(bw.day)
 X["bw_last1"] = X.bbl.map(bw[bw.season == LAST].groupby("bbl")["n"].sum()).fillna(0)
 X["bw_prev14"] = X.bbl.map(bw[bw.day > bw.day.max() - pd.Timedelta(days=14)]
                            .groupby("bbl")["n"].sum()).fillna(0)
+lord, boiler = second_tier()
+X = add_second_tier(X, lord, boiler,
+                    bd.groupby(["bbl", "season"])["n"].sum().rename("c").reset_index(),
+                    LAST + 1)
 X["days_since_c"] = ((today - X.bbl.map(bd.groupby("bbl").day.max())).dt.days
                      .fillna(NEVER))
 vdate = pd.to_datetime(pd.read_csv(DATA / "hpd_heat_violations.csv", low_memory=False,
@@ -91,9 +95,19 @@ for c in ["TMIN", "TMAX", "tmin_lag1", "tmin_roll3", "tmin_drop", "SNOW", "AWND"
 print(f"weather replayed from {REPLAY.date()} (TMIN {drow.TMIN:.0f}F)")
 
 X["score"] = m.predict_proba(X[FEATS])[:, 1]
-X["tenants_at_risk"] = X.score * X.unitsres             # the second map view
-out = X[["bbl", "score", "tenants_at_risk", "unitsres", "cd",
-         "latitude", "longitude", "c_last1", "chronic"]].sort_values(
+# calibrated probability (isotonic fit on the held-out season; monotone, so the
+# ranking is identical - this is the number the map should display)
+if (OUT / "calibration.csv").exists():
+    from sklearn.isotonic import IsotonicRegression
+    cp = pd.read_csv(OUT / "calibration.csv")
+    iso = IsotonicRegression(out_of_bounds="clip")
+    iso.fit(cp.score, cp.y, sample_weight=cp.weight)
+    X["p_calibrated"] = iso.predict(X.score)
+else:
+    X["p_calibrated"] = X.score
+X["tenants_at_risk"] = X.p_calibrated * X.unitsres       # the second map view
+out = X[["bbl", "score", "p_calibrated", "tenants_at_risk", "unitsres", "cd",
+         "latitude", "longitude", "c_last1", "v_last1", "chronic"]].sort_values(
     "score", ascending=False).reset_index(drop=True)
 out.index += 1
 out.to_csv(OUT / "ranked_inspection_list.csv", index_label="rank")

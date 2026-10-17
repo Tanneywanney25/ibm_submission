@@ -10,8 +10,8 @@ Writes: model/out/backtest_by_season.csv
 
 import numpy as np
 import pandas as pd
-from common import (DATA, FEATS, NEVER, OUT, band_prep, band_rates, load_days,
-                    make_model, season)
+from common import (DATA, FEATS, NEVER, OUT, add_second_tier, band_prep, band_rates,
+                    load_days, make_model, season, second_tier)
 
 KS = (100, 500, 1000, 2500)
 SEASONS = range(2020, 2026)        # 2020 is the first with two full prior seasons + 2018 training
@@ -51,6 +51,8 @@ bwc = bw.sort_values(["bbl", "day"]).copy()
 bwc["csum"] = bwc.groupby("bbl")["n"].cumsum()
 bwc = bwc.sort_values("day")
 bw_active = bwc.bbl.unique()
+lord, boiler = second_tier()
+sc_df = sc.rename("c").reset_index()
 
 nxt = bd[["bbl", "day", "n"]].copy()
 nxt["day"] -= pd.Timedelta(days=1)
@@ -94,6 +96,7 @@ for S in SEASONS:
     X0["chronic"] = ((X0.c_last1 >= 5) & (hist_col(sc, S - 2) >= 5)).astype(int)
     X0 = X0.merge(band_rates(num, den, S, X0.bbl), on="bbl", how="left")
     X0["bw_last1"] = hist_col(sbw, S - 1)
+    X0 = add_second_tier(X0, lord, boiler, sc_df, S)
 
     td = days[days.heat_season & (days.TMIN < 32) & (season(days.day) == S)]
     td = td.sort_values("TMIN").head(DAYS_PER_SEASON)
