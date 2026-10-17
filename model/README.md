@@ -39,3 +39,18 @@ Full-universe precision@k (all 172,485 buildings ranked per TMIN<32 day), mean o
 The model beats all three baselines at every k. On only the 10 coldest days it ties the 14-day baseline (everyone chronic is already complaining); the edge comes from ordinary freezing days, where recency is a weaker signal. **New-to-list cut:** among the model's top-100 picks the 14-day baseline missed, **56.3% still failed** — the failures recency cannot see coming.
 
 Numbers to beat on LinuxONE with real XGBoost. Next feature to try: per-building reaction rates by weather band (stream 1 handoff).
+
+## All-season rolling backtest (05, 10 coldest days per season)
+
+Train strictly on earlier seasons, test on the full universe — model vs the 14-day baseline, precision@100:
+
+| Test season | Model | 14-day baseline |
+|---|---|---|
+| 2020-21 | **0.571** | 0.551 |
+| 2021-22 | **0.642** | 0.625 |
+| 2022-23 | **0.633** | 0.600 |
+| 2023-24 | **0.653** | 0.646 |
+| 2024-25 | **0.714** | 0.685 |
+| 2025-26 | 0.693 | 0.699 |
+
+The model wins 5 of 6 seasons on their coldest days (and wins 2025-26 too once all 71 cold days count, not just the 10 coldest — see above). The edge holds at k=500/1000/2500 in every season. Full table: `model/out/backtest_by_season.csv`.
