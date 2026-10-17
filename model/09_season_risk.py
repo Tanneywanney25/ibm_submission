@@ -116,9 +116,12 @@ rel.to_csv(OUT / "season_reliability.csv")
 # refit on everything through 2024-25 + calibration from 2025-26, predict 2026-27
 m.fit(pd.concat([train, test])[SFEATS], pd.concat([train, test]).y)
 cur = frames[2026].copy()
-cur["p_season"] = iso.predict(m.predict_proba(cur[SFEATS])[:, 1])
-out = cur[["bbl", "p_season", "c_last1", "v_last1", "chronic", "unitsres", "cd"]] \
-    .sort_values("p_season", ascending=False)
+cur["raw_score"] = m.predict_proba(cur[SFEATS])[:, 1]
+# calibrated, but never show certainty: cap at 0.99 (nothing is 100%)
+cur["p_season"] = np.minimum(iso.predict(cur.raw_score), 0.99)
+out = cur[["bbl", "p_season", "raw_score", "c_last1", "v_last1", "chronic",
+           "unitsres", "cd"]].sort_values("raw_score", ascending=False)
+out.insert(1, "rank", np.arange(1, len(out) + 1))
 out.to_csv(OUT / "season_risk_2026.csv", index=False)
 print(f"\nwrote season_risk_2026.csv: {len(out):,} buildings | "
       f"p_season>=0.8: {(out.p_season >= .8).sum():,} | >=0.5: {(out.p_season >= .5).sum():,} "
