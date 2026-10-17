@@ -2,3 +2,7 @@
 # they are only imported by FULL mode on the LinuxONE instance.
 flask==3.1.3
 requests==2.32.3
+# Google sign-in runs on Vercel's Python 3.12. An older LinuxONE Python can
+# still run the signed registration service without importing these SDKs.
+google-auth==2.62.0; python_version >= "3.10"
+google-auth-oauthlib==1.5.0; python_version >= "3.10"

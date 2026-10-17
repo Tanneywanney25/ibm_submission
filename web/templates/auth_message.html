@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — HeatAhead{% endblock %}
+{% block body %}
+<section class="card" style="max-width:620px; margin:2rem auto">
+  <h1>{{ title }}</h1>
+  <p class="muted">{{ message }}</p>
+  {% if confirm_remove %}
+  <form action="/api/account/remove" method="post">
+    <input type="hidden" name="csrf_token" value="{{ account_csrf }}">
+    {% if bbl %}<input type="hidden" name="bbl" value="{{ bbl }}">{% endif %}
+    <button type="submit">Confirm unsubscribe</button>
+  </form>
+  {% endif %}
+  <p><a href="/">Back to my account</a> · <a href="/map">Explore the map</a></p>
+</section>
+{% endblock %}
