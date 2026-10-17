@@ -98,6 +98,29 @@ over the recency baseline at 48h, and the rolling backtest wins **all six season
 Snapshot caveat: landlord and boiler tables are current-day snapshots, so past
 seasons inherit today's owner/boiler state in the backtest.
 
+## Spell-level evaluation + the error autopsy (the accuracy story)
+
+Inspectors work a cold snap, not a calendar day — so the operational metric is one
+ranked list per cold spell (8 spells in 2025-26), a building counting as caught if
+it fails at any point during the spell:
+
+| k | model | 14-day baseline |
+|---|---|---|
+| 100 | **85.9%** | 77.1% |
+| 500 | **64.2%** | 59.9% |
+| 1000 | **51.2%** | 47.8% |
+| 2500 | **34.7%** (recall 53.7%) | 31.9% |
+
+**The autopsy of every spell's top-100** shows the remaining "misses" are mostly
+timing, not wrong buildings: 70-86 fail within the first 48h, 72-96 within the
+spell, **93-99 within 30 days**; 5-11 of the rest logged a single complaint (one
+household cold, below our 2-complaint bar). Truly clean buildings — no failure
+within 30 days — are **1-7 per 100**. The model's building selection is ~95%+
+right; the 48-hour number is strict because tenants' call timing is noise.
+
+Three honest horizons, one slide: 68.7% (exact 48h) -> 85.9% (during the spell)
+-> 96.5% (within 30 days).
+
 ## Why gradient boosting (and not something fancier)
 
 Gradient-boosted trees are the consistent state of the art for tabular data at this
