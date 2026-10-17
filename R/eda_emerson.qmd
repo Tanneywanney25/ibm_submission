@@ -1,0 +1,241 @@
+---
+title: "eda_emerson"
+format: html
+---
+
+```{r}
+#| label: load-pkgs
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(rvest)
+library(dplyr)
+library(scales)
+library(broom)
+```
+
+
+```{r}
+#| label: load-data
+#| message: false
+#| warning: false
+
+pluto <- read_csv("../data/pluto_res3plus.csv")
+noaa_daily <- read_csv("../data/noaa_daily_centralpark.csv")
+registrations <- read_csv("../data/hpd_registrations.csv")
+violations <- read_csv("../data/hpd_heat_violations.csv")
+complaints <- read_csv("../data/hpd_heat_complaints.csv")
+```
+
+```{r}
+noaa_daily <- noaa_daily |>
+  mutate(TAVG = (TMAX + TMIN) / 2)
+```
+
+
+```{r}
+daily_complaints <- complaints |>
+  mutate(day = as_date(received_date)) |>
+  count(day, name = "n")
+
+ggplot(daily_complaints, aes(day, n)) +
+  geom_line() +
+  labs(x = NULL, y = "Heat complaints per day")
+
+```
+
+```{r}
+daily_complaints |>
+  filter(month(day) %in% c(12, 1, 2), n < 100) |>
+  arrange(n)
+```
+
+```{r}
+daily <- daily_complaints |>
+  left_join(noaa_daily |> mutate(day = as_date(DATE)), by = "day")
+
+ggplot(daily, aes(TMIN, n)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth() +
+  labs(x = "Daily low (F)", y = "Heat complaints per day")
+
+```
+```{r}
+
+daily |>
+  filter(month(day) %in% c(11, 12, 1, 2, 3)) |>
+  mutate(wday = wday(day, label = TRUE)) |>
+  group_by(wday) |>
+  summarise(avg = round(mean(n)), median = median(n))
+```
+
+
+```{r}
+bad_days <- as_date(c("2017-12-31", "2018-12-30", "2019-12-29",
+                      "2020-12-27", "2020-12-28", "2021-12-26"))
+
+daily_clean <- daily |> filter(!day %in% bad_days)
+```
+
+```{r}
+heat <- complaints |>
+  filter(problem_code %in% c("NO HEAT", "NO HEAT AND NO HOT WATER"))
+
+by_bldg <- heat |>
+  count(bbl, name = "n") |>
+  arrange(desc(n))
+
+nrow(by_bldg)
+
+by_bldg |>
+  mutate(share = cumsum(n) / sum(n)) |>
+  slice(c(100, 500, 1000, 5000))
+
+```
+
+```{r}
+heat_viol <- violations |>
+  filter(as.character(ordernumber) %in% c("666", "966", "674"))
+
+buildings <- pluto |>
+  left_join(heat |> count(bbl, name = "complaints"), by = "bbl") |>
+  left_join(heat_viol |> count(bbl, name = "violations"), by = "bbl") |>
+  mutate(across(c(complaints, violations), ~ replace_na(.x, 0)))
+
+glimpse(buildings)
+
+```
+
+```{r}
+buildings <- buildings |>
+  mutate(
+    per_unit = complaints / unitsres,
+    size = cut(unitsres,
+               breaks = c(2, 5, 19, 49, 99, Inf),
+               labels = c("3-5", "6-19", "20-49", "50-99", "100+"))
+  )
+
+buildings |>
+  group_by(size) |>
+  summarise(
+    buildings      = n(),
+    avg_complaints = round(mean(complaints), 1),
+    avg_per_unit   = round(mean(per_unit), 2),
+    pct_ever       = round(mean(complaints > 0) * 100)
+  )
+
+```
+
+
+```{r}
+bad_days <- as_date(c("2017-12-31", "2018-12-30", "2019-12-29",
+                      "2020-12-27", "2020-12-28", "2021-12-26"))
+
+days <- heat |>
+  mutate(day = as_date(received_date)) |>
+  group_by(day) |>
+  summarise(complaints = n_distinct(complaint_id)) |>
+  right_join(noaa_daily |> mutate(day = as_date(DATE)), by = "day") |>
+  filter(day >= as_date("2017-07-01")) |>
+  mutate(
+    complaints  = replace_na(complaints, 0),
+    TAVG        = (TMAX + TMIN) / 2,
+    wday        = wday(day, label = TRUE),
+    heat_season = month(day) %in% c(10, 11, 12, 1, 2, 3, 4, 5)
+  ) |>
+  filter(!day %in% bad_days) |>
+  arrange(day) |>
+  mutate(tmin_lag1 = lag(TMIN, 1)) |>
+  select(day, complaints, TMAX, TMIN, TAVG, SNOW, AWND, wday, heat_season, tmin_lag1)
+
+glimpse(days)
+
+
+```
+
+
+```{r}
+buildings <- buildings |>
+  mutate(size = cut(unitsres,
+                    breaks = c(2, 9, 29, 99, 299, 999, Inf),
+                    labels = c("3-9", "10-29", "30-99", "100-299", "300-999", "1000+")))
+
+buildings |>
+  group_by(size) |>
+  summarise(
+    buildings      = n(),
+    avg_complaints = round(mean(complaints), 1),
+    avg_per_unit   = round(mean(per_unit), 2),
+    pct_ever       = round(mean(complaints > 0) * 100)
+  )
+
+```
+
+
+```{r}
+buildings |>
+  summarise(
+    zero    = sum(yearbuilt == 0),
+    is_1900 = sum(yearbuilt == 1900),
+    total   = n()
+  )
+
+```
+
+```{r}
+buildings |>
+  filter(yearbuilt > 0) |>
+  mutate(era = cut(yearbuilt,
+                   breaks = c(0, 1899, 1900, 1939, 1969, 1999, Inf),
+                   labels = c("pre-1900", "1900", "1901-1939",
+                              "1940-1969", "1970-1999", "2000+"))) |>
+  group_by(era) |>
+  summarise(
+    buildings    = n(),
+    avg_per_unit = round(mean(per_unit), 2),
+    pct_ever     = round(mean(complaints > 0) * 100)
+  )
+```
+
+```{r}
+buildings <- buildings |>
+  mutate(yearbuilt = na_if(yearbuilt, 0))
+```
+
+
+```{r}
+
+days |>
+  filter(heat_season) |>
+  summarise(
+    same_day = cor(TMIN,      complaints, use = "complete.obs"),
+    one_day  = cor(tmin_lag1, complaints, use = "complete.obs")
+  )
+```
+
+```{r}
+buildings |>
+  filter(!is.na(yearbuilt)) |>
+  mutate(
+    altered = yearalter1 > 0,
+    prewar  = yearbuilt < 1940
+  ) |>
+  group_by(prewar, altered) |>
+  summarise(
+    buildings    = n(),
+    avg_per_unit = round(mean(per_unit), 2),
+    .groups = "drop"
+  )
+```
+
+```{r}
+buildings |>
+  group_by(size) |>
+  summarise(
+    buildings      = n(),
+    avg_complaints = round(mean(complaints), 1),
+    avg_per_unit   = round(mean(per_unit), 2),
+    pct_ever       = round(mean(complaints > 0) * 100)
+  )
+```

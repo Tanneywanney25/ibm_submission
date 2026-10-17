@@ -1,0 +1,19 @@
+# data stays out of git (345 MB complaints file exceeds GitHub's 100 MB limit)
+data/
+Data/
+Data_IBMZ*/
+*.zip
+output/
+
+# R
+.Rproj.user/
+.Rhistory
+.RData
+R/.quarto/
+R/*_files/
+R/*.html
+*.rds
+
+# Python
+__pycache__/
+.ipynb_checkpoints/
