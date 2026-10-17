@@ -124,6 +124,13 @@ shown measured s390x performance at all.
 - **Alerts:** register a building + email; when the 7-day forecast shows a freezing
   run, buildings crossing the calibrated threshold get one email per spell with the
   311 action line.
+- **Live site:** https://ibmsubmission.vercel.app, first good production deploy
+  October 17, 2026 at about 18:03 UTC (commit `fa541b1`), redeployed at about 18:08 UTC
+  with the LinuxONE link. The page is served by Vercel; every sign-up is forwarded to the
+  s390x guest, geocoded and stored there, and the live monitor reads the replay service
+  running on the guest. Layout and rules: `docs/VERCEL.md`. The replay the live monitor
+  runs is keyed by BBL, so it holds 13,186 of the 13,222 complaints above (36 have no
+  BBL) at 6,133 tax lots.
 
 ## 8. Honest limitations (say them before the judges ask)
 

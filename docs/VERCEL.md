@@ -15,6 +15,10 @@ automatically from every push to `main` of `emersoncortazar/ibm_submission`.
 - `web/app.py` now runs in two modes. FULL runs on the instance as the `heatahead-web`
   systemd service on port 8080 (open in iptables, rules persisted, Jupyter token rotated
   first). LITE runs on Vercel and forwards registrations to the instance (section 8).
+- `REGISTER_FORWARD_URL` and `REALTIME_URL` are set as Production variables in the Vercel
+  project (type Config, values in section 4) and production was redeployed with them at
+  about 18:08 UTC on October 17, 2026. `/api/health` on the live site reports
+  `"registrations_to": "linuxone"` and the instance's own health under `linuxone`.
 - Before this, every route on the site returned Vercel's own `404: NOT_FOUND` because the
   repo had no entry point, and `web/app.py` imported pandas and read gitignored CSVs at
   import time, so it could not start on Vercel at all.
@@ -176,8 +180,7 @@ is blocked), which is exactly why the proxies exist.
 
 ## 7. Bringing the site up from the current 404 (the order of work)
 
-Steps 1 to 4 were done on October 17, 2026; step 5 needs the two variables in section 4
-set once in the Vercel project settings; step 6 follows the first good deploy.
+All six steps were done on October 17, 2026.
 
 1. On the instance, produce the two model outputs the site needs if they are missing:
    `python model/06_final_scores.py` (ranked_inspection_list.csv) and
@@ -197,7 +200,7 @@ set once in the Vercel project settings; step 6 follows the first good deploy.
 | systemd unit | what | where |
 |---|---|---|
 | `heatahead-web` | `web/app.py` in FULL mode under waitress, `0.0.0.0:8080` | `~/heatahead/site` (a clone of `main`; `data` and `model/out` are symlinks into `~/heatahead/ibm_submission`), log `~/heatahead/logs/web.log`, SQLite `~/heatahead/site/web/heatahead.db` |
-| `heatahead-realtime` | `realtime/app.py` replaying `data/replay_feb7_9.csv` (14,018 complaints at 6,454 buildings, building-level columns only) on `127.0.0.1:5000` | same clone, log `~/heatahead/logs/realtime.log` |
+| `heatahead-realtime` | `realtime/app.py` replaying `data/replay_feb7_9.csv` on `127.0.0.1:5000`: the model's own complaint filter (`problem_code` NO HEAT or NO HEAT AND NO HOT WATER, as in `model/01_build_panel.py`), columns `received_date, complaint_id, bbl` only, 13,186 complaints at 6,133 tax lots (`docs/SUBMISSION.md` counts 13,222 at 6,382 HPD building ids; 36 of those complaints carry no BBL) | same clone, log `~/heatahead/logs/realtime.log`, checkpoint `data/realtime_checkpoint.json` |
 | `heatahead-jupyter` | JupyterLab on `127.0.0.1:8888`, reached through an SSH tunnel | token in `~/.config/heatahead/jupyter.env` (mode 600); read it in your own terminal with `ssh linux1@148.100.77.112 cat ~/.config/heatahead/jupyter.env` and never paste it into a chat |
 | cron, minute 7 of every hour | `web/alerts.py` against the same SQLite | log `~/heatahead/logs/alerts_cron.log` |
 
