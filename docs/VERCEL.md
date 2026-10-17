@@ -118,7 +118,10 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/api/account/remove` | POST | `{ok,removed}`; JSON/form optional `bbl` (omit to remove all own registrations), signed-in identity and CSRF required; form success redirects home | signed request to durable instance storage |
 | `/api/auth/google` | GET | start Google sign-in; optional safe local `next`, `remember=1` (30 days) or `0` (browser session, maximum 12 hours); 503 when unconfigured | Google library authorization-code flow with PKCE, state and nonce |
 | `/api/auth/callback` | GET | verifies Google code and ID token, establishes signed session, redirects to safe local destination | exact registered Google redirect URI |
-| `/api/auth/session` | GET | `{user,google_ready,csrf_token}`; user is null when signed out | signed cookie, private/no-store |
+| `/api/auth/email` | POST | `{email, remember}` → sends a signed one-use 15-minute sign-in link (passwordless, T14); 400 invalid email, 429 per-worker budget, 503 unconfigured or backend unreachable | token signed on Vercel with the shared secret; the email is sent by the instance via a signed forward to `/api/account/email_link` |
+| `/api/auth/email/callback` | GET | verifies the link token and consumes its nonce one-use, establishes the same signed session as Google, redirects home | nonce consumed on the instance (`/api/account/email_consume`); 503 fail-closed when it is unreachable |
+| `/api/account/email_link`, `/api/account/email_consume` | POST | instance side of email sign-in: mail the website's link / consume a link nonce; 403 for anything but the signed website-to-backend protocol | FULL mode only (the instance) |
+| `/api/auth/session` | GET | `{user,google_ready,email_ready,csrf_token}`; user is null when signed out | signed cookie, private/no-store |
 | `/api/auth/logout` | POST | clear session, redirect home; form or `X-CSRF-Token` required | website session |
 | `/api/health` | GET | existing health fields plus `account_protocol` (1 when shared secret configured), `google_sign_in` | adds instance health under `linuxone` (3 s timeout, `{offline:true}` when down) |
 | `/data/<path>` | GET | the files in `public/data/` | Vercel's CDN serves them before any rewrite; Flask serves them for local runs |
@@ -263,7 +266,14 @@ All four must return 200 and the building call must mention `"ranked": true`.
 ## 10. Accounts and map interactions
 
 Google sign-in configuration and release checks are in [GOOGLE_LOGIN.md](GOOGLE_LOGIN.md).
-Remembered sessions last up to 30 days; browser cookies are Secure, HttpOnly and SameSite=Lax.
+Email sign-in (T14) is passwordless: the site emails a signed link that works once for
+15 minutes; no password is ever stored or accepted. It needs `FLASK_SECRET_KEY` (the same
+value on Vercel and the instance), `REGISTER_FORWARD_URL`, `SMTP_*` on the instance, and
+the instance's `~/heatahead/site` clone pulled and restarted; until all of those are in
+place the form says it is being set up and `/api/health` reports `email_sign_in: false`.
+The instance only mails links that point at its own `SITE_URL`, so preview deploys cannot
+send sign-in email. Remembered sessions last up to 30 days; browser cookies are Secure,
+HttpOnly and SameSite=Lax.
 No Google access, refresh or ID token is stored in the cookie. Roles choose public views and
 alert registrations, not verified inspector/owner privileges. Alert registration rows remain
 in the existing instance SQLite database and reload after a fresh Google sign-in.

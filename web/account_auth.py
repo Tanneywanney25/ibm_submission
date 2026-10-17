@@ -22,9 +22,16 @@ from flask.sessions import SecureCookieSessionInterface
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 
 bp = Blueprint("accounts", __name__)
-PRIVATE_ENDPOINTS = {"api_register", "api_my_buildings", "api_remove_registration"}
-FORWARD_PATHS = {"/api/register", "/api/my_buildings", "/api/account/remove"}
+PRIVATE_ENDPOINTS = {"api_register", "api_my_buildings", "api_remove_registration",
+                     "api_account_email_link", "api_account_email_consume"}
+FORWARD_PATHS = {"/api/register", "/api/my_buildings", "/api/account/remove",
+                 "/api/account/email_link", "/api/account/email_consume"}
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+# T14: passwordless email sign-in. The link token is signed with the shared
+# secret, lives EMAIL_LINK_MAX_AGE seconds and is consumed one-use on the
+# durable backend; no password is ever stored or accepted.
+EMAIL_LINK_SALT = "heatahead-email-link-v1"
+EMAIL_LINK_MAX_AGE = 900
 SCOPES = ["openid", "https://www.googleapis.com/auth/userinfo.email",
           "https://www.googleapis.com/auth/userinfo.profile"]
 
@@ -42,6 +49,18 @@ def configured():
                 current_app.config.get("GOOGLE_CLIENT_SECRET") and
                 current_app.config.get("AUTH_BASE_URL") and
                 importlib.util.find_spec("google_auth_oauthlib"))
+
+
+def email_configured():
+    backend = current_app.config.get("ACCOUNT_EMAIL_BACKEND")
+    return bool(_key_ready() and current_app.config.get("AUTH_BASE_URL") and
+                backend and backend["ready"]())
+
+
+def email_identity(email):
+    """A stable non-Google subject for an email account; the email is the identity."""
+    digest = hashlib.sha256(email.encode("utf-8")).hexdigest()[:32]
+    return dict(sub="email:" + digest, email=email, name="")
 
 
 def _profile(value):
@@ -242,9 +261,81 @@ def google_callback():
     return redirect(safe_next(pending.get("next")))
 
 
+# per-warm-worker budget for sign-in emails, like the guide AI budget: not a
+# distributed quota, just a brake on one worker being used as a mail cannon.
+_EMAIL_SENDS = []
+
+
+def _email_budget_ok(email, now):
+    _EMAIL_SENDS[:] = [(t, e) for t, e in _EMAIL_SENDS if t > now - 600]
+    recent = [(t, e) for t, e in _EMAIL_SENDS if t > now - 60]
+    return sum(1 for _, e in recent if e == email) < 3 and len(recent) < 20
+
+
+@bp.post("/api/auth/email")
+def email_start():
+    if not email_configured():
+        return jsonify(error="Email sign-in is being set up. You can still explore "
+                             "the map and building records.", code="email_not_configured"), 503
+    body = request.get_json(silent=True)
+    body = body if isinstance(body, dict) else request.form
+    email = str(body.get("email") or "").strip().lower()
+    remember = str(body.get("remember", "1")).lower() in ("1", "true")
+    if len(email) > 254 or not EMAIL.fullmatch(email):
+        return jsonify(error="That does not look like an email address."), 400
+    now = time.time()
+    if not _email_budget_ok(email, now):
+        return jsonify(error="Too many sign-in emails just now. Please wait a minute "
+                             "and try again."), 429
+    nonce = secrets.token_urlsafe(24)
+    token = _serializer(EMAIL_LINK_SALT).dumps(dict(email=email, remember=remember, nonce=nonce))
+    link = (current_app.config["AUTH_BASE_URL"] + "/api/auth/email/callback?" +
+            urlencode({"token": token}))
+    if not current_app.config["ACCOUNT_EMAIL_BACKEND"]["send_link"](email, link):
+        return jsonify(error="The sign-in email could not be sent right now. "
+                             "Please try again shortly.", code="email_unavailable"), 503
+    _EMAIL_SENDS.append((now, email))
+    return jsonify(ok=True, message="Check your inbox - the sign-in link works once, "
+                                    "for 15 minutes.")
+
+
+@bp.get("/api/auth/email/callback")
+def email_callback():
+    if not email_configured():
+        return _error("Email sign-in is being set up. Please try again shortly.", 503)
+    token = request.args.get("token", "")
+    if not token or len(token) > 2048:
+        return _error("That sign-in link is not valid. Please request a new one from the home page.")
+    try:
+        claims = _serializer(EMAIL_LINK_SALT).loads(token, max_age=EMAIL_LINK_MAX_AGE)
+    except (BadSignature, ValueError, TypeError):
+        return _error("That sign-in link expired or is not valid. Sign-in links work "
+                      "for 15 minutes; please request a new one from the home page.")
+    email = str(claims.get("email") or "").lower() if isinstance(claims, dict) else ""
+    nonce = claims.get("nonce") if isinstance(claims, dict) else None
+    if (len(email) > 254 or not EMAIL.fullmatch(email) or
+            not isinstance(nonce, str) or not 20 <= len(nonce) <= 100):
+        return _error("That sign-in link is not valid. Please request a new one from the home page.")
+    fresh = current_app.config["ACCOUNT_EMAIL_BACKEND"]["consume"](nonce, email)
+    if fresh is None:
+        return _error("Sign-in is temporarily unavailable. Please open your link "
+                      "again in a moment.", 503)
+    if not fresh:
+        return _error("That sign-in link was already used. Please request a new one "
+                      "from the home page.")
+    remember = bool(claims.get("remember"))
+    session.clear()
+    session["auth_user"] = email_identity(email)
+    session["auth_expires"] = time.time() + (30 * 86400 if remember else 12 * 3600)
+    session.permanent = remember
+    csrf_token()
+    return redirect("/")
+
+
 @bp.get("/api/auth/session")
 def session_status():
-    return jsonify(user=user(), google_ready=configured(), csrf_token=csrf_token() if user() else None)
+    return jsonify(user=user(), google_ready=configured(), email_ready=email_configured(),
+                   csrf_token=csrf_token() if user() else None)
 
 
 @bp.post("/api/auth/logout")
@@ -255,7 +346,7 @@ def logout():
     return redirect("/")
 
 
-def init_app(app, nonce_guard):
+def init_app(app, nonce_guard, email_backend=None):
     key = os.environ.get("FLASK_SECRET_KEY", "")
     origin = os.environ.get("AUTH_BASE_URL", os.environ.get("SITE_URL", "https://ibmsubmission.vercel.app")).rstrip("/")
     allow_http = os.environ.get("AUTH_HTTP_DEVELOPMENT") == "1"
@@ -273,7 +364,8 @@ def init_app(app, nonce_guard):
                       SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SECURE=not allow_http,
                       SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_PATH="/",
                       PERMANENT_SESSION_LIFETIME=timedelta(days=30), SESSION_REFRESH_EACH_REQUEST=False,
-                      MAX_CONTENT_LENGTH=64 * 1024)
+                      MAX_CONTENT_LENGTH=64 * 1024,
+                      ACCOUNT_EMAIL_BACKEND=email_backend)
     app.session_interface = AuthSessionInterface()
     app.register_blueprint(bp)
 
@@ -289,7 +381,7 @@ def init_app(app, nonce_guard):
             if not g.account_user:
                 return jsonify(error="The account request could not be verified.", code="invalid_identity"), 401
         if not user():
-            return jsonify(error="Sign in with Google to manage your buildings.", code="sign_in_required"), 401
+            return jsonify(error="Sign in to manage your buildings.", code="sign_in_required"), 401
         if request.method == "POST" and not getattr(g, "account_proxy_nonce", None) and not _csrf_ok():
             return jsonify(error="Your session changed. Refresh the page and try again.", code="csrf_failed"), 403
         return None
@@ -308,4 +400,5 @@ def init_app(app, nonce_guard):
 
     @app.context_processor
     def account_context():
-        return dict(account_user=user(), google_ready=configured(), account_csrf=csrf_token() if user() else "")
+        return dict(account_user=user(), google_ready=configured(),
+                    email_ready=email_configured(), account_csrf=csrf_token() if user() else "")
