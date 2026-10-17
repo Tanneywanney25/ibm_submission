@@ -14,7 +14,7 @@ import sys
 import numpy as np
 import pandas as pd
 from common import (DATA, FEATS, NEVER, OUT, add_second_tier, band_prep, band_rates,
-                    load_days, season, second_tier)
+                    days_into_cold, first_cold_day, load_days, season, second_tier)
 
 KS = (100, 500, 1000, 2500)
 
@@ -94,14 +94,20 @@ bwc = bw.sort_values(["bbl", "day"]).copy()
 bwc["csum"] = bwc.groupby("bbl")["n"].cumsum()
 bwc = bwc.sort_values("day")
 bw_active = bwc.bbl.unique()
+blkd = bd.assign(blk=bd.bbl // 10000).groupby(["blk", "day"])["n"].sum().reset_index()
+blkc = blkd.sort_values(["blk", "day"]).copy()
+blkc["csum"] = blkc.groupby("blk")["n"].cumsum()
+blkc = blkc.sort_values("day")
+blk_keys = blkc.blk.unique()
+first55 = first_cold_day(days)
 
 
-def asof_at(d, right, bbls, cols):
-    """per-bbl state as of day d (backward asof), indexed by bbl."""
-    t = pd.DataFrame({"bbl": bbls, "day": d})
-    r = pd.merge_asof(t.sort_values("day"), right, on="day", by="bbl",
+def asof_at(d, right, keys, cols, by="bbl"):
+    """per-key state as of day d (backward asof), indexed by key."""
+    t = pd.DataFrame({by: keys, "day": d})
+    r = pd.merge_asof(t.sort_values("day"), right, on="day", by=by,
                       direction="backward")
-    return r.set_index("bbl")[cols]
+    return r.set_index(by)[cols]
 
 
 def csum_asof(d):
@@ -147,6 +153,15 @@ for _, drow in test_days.iterrows():
     bw15 = asof_at(d - pd.Timedelta(days=15), bwc[["bbl", "day", "csum"]],
                    bw_active, ["csum"])["csum"].fillna(0)
     X["bw_prev14"] = (bw1 - bw15).reindex(X.bbl).fillna(0).to_numpy()
+    X["c_prev2"] = (c1 - csum_asof(d - pd.Timedelta(days=3))) \
+        .reindex(X.bbl).fillna(0).to_numpy()
+    nb = (asof_at(d - pd.Timedelta(days=1), blkc[["blk", "day", "csum"]],
+                  blk_keys, ["csum"], by="blk")["csum"].fillna(0)
+          - asof_at(d - pd.Timedelta(days=3), blkc[["blk", "day", "csum"]],
+                    blk_keys, ["csum"], by="blk")["csum"].fillna(0))
+    X["nb_block_2d"] = np.clip(nb.reindex(X.bbl // 10000).fillna(0).to_numpy()
+                               - X.c_prev2.to_numpy(), 0, None)
+    X["days_into_cold"] = days_into_cold([d], [2025], first55)[0]
     # the inspectable universe: buildings with ANY prior complaint or violation
     X = X[(X.days_since_c < NEVER) | (X.days_since_v < NEVER)]
     pos &= set(X.bbl)

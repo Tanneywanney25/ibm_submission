@@ -74,6 +74,14 @@ lord, boiler = second_tier()
 X = add_second_tier(X, lord, boiler,
                     bd.groupby(["bbl", "season"])["n"].sum().rename("c").reset_index(),
                     LAST + 1)
+today = bd.day.max()
+X["c_prev2"] = X.bbl.map(bd[bd.day > today - pd.Timedelta(days=2)]
+                         .groupby("bbl")["n"].sum()).fillna(0)
+blk2 = (bd[bd.day > today - pd.Timedelta(days=2)].assign(blk=lambda t: t.bbl // 10000)
+        .groupby("blk")["n"].sum())
+X["nb_block_2d"] = np.clip((X.bbl // 10000).map(blk2).fillna(0) - X.c_prev2, 0, None)
+from common import days_into_cold, first_cold_day
+X["days_into_cold"] = days_into_cold([today], [LAST + 1], first_cold_day(load_days()))[0]
 X["days_since_c"] = ((today - X.bbl.map(bd.groupby("bbl").day.max())).dt.days
                      .fillna(NEVER))
 vdate = pd.to_datetime(pd.read_csv(DATA / "hpd_heat_violations.csv", low_memory=False,

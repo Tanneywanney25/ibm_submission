@@ -11,7 +11,8 @@ Writes: model/out/backtest_by_season.csv
 import numpy as np
 import pandas as pd
 from common import (DATA, FEATS, NEVER, OUT, add_second_tier, band_prep, band_rates,
-                    load_days, make_model, season, second_tier)
+                    days_into_cold, first_cold_day, load_days, make_model, season,
+                    second_tier)
 
 KS = (100, 500, 1000, 2500)
 SEASONS = range(2020, 2026)        # 2020 is the first with two full prior seasons + 2018 training
@@ -53,6 +54,12 @@ bwc = bwc.sort_values("day")
 bw_active = bwc.bbl.unique()
 lord, boiler = second_tier()
 sc_df = sc.rename("c").reset_index()
+blkd = bd.assign(blk=bd.bbl // 10000).groupby(["blk", "day"])["n"].sum().reset_index()
+blkc = blkd.sort_values(["blk", "day"]).copy()
+blkc["csum"] = blkc.groupby("blk")["n"].cumsum()
+blkc = blkc.sort_values("day")
+blk_keys = blkc.blk.unique()
+first55 = first_cold_day(load_days())
 
 nxt = bd[["bbl", "day", "n"]].copy()
 nxt["day"] -= pd.Timedelta(days=1)
@@ -71,11 +78,11 @@ def hist_col(s, yr):
     return base.bbl.map(s.xs(yr, level="season")).fillna(0) if yr in lvl else 0.0
 
 
-def asof_at(d, right, bbls, cols):
-    t = pd.DataFrame({"bbl": bbls, "day": d})
-    r = pd.merge_asof(t.sort_values("day"), right, on="day", by="bbl",
+def asof_at(d, right, keys, cols, by="bbl"):
+    t = pd.DataFrame({by: keys, "day": d})
+    r = pd.merge_asof(t.sort_values("day"), right, on="day", by=by,
                       direction="backward")
-    return r.set_index("bbl")[cols]
+    return r.set_index(by)[cols]
 
 
 def csum_asof(d):
@@ -120,6 +127,15 @@ for S in SEASONS:
         bw15 = asof_at(d - pd.Timedelta(days=15), bwc[["bbl", "day", "csum"]],
                        bw_active, ["csum"])["csum"].fillna(0)
         X["bw_prev14"] = (bw1 - bw15).reindex(X.bbl).fillna(0).to_numpy()
+        X["c_prev2"] = (c1 - csum_asof(d - pd.Timedelta(days=3))) \
+            .reindex(X.bbl).fillna(0).to_numpy()
+        nb = (asof_at(d - pd.Timedelta(days=1), blkc[["blk", "day", "csum"]],
+                      blk_keys, ["csum"], by="blk")["csum"].fillna(0)
+              - asof_at(d - pd.Timedelta(days=3), blkc[["blk", "day", "csum"]],
+                        blk_keys, ["csum"], by="blk")["csum"].fillna(0))
+        X["nb_block_2d"] = np.clip(nb.reindex(X.bbl // 10000).fillna(0).to_numpy()
+                                   - X.c_prev2.to_numpy(), 0, None)
+        X["days_into_cold"] = days_into_cold([d], [S], first55)[0]
         X = X[(X.days_since_c < NEVER) | (X.days_since_v < NEVER)]
         pos &= set(X.bbl)
         for c in ["TMIN", "TMAX", "tmin_lag1", "tmin_roll3", "tmin_drop",

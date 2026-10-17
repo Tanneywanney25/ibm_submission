@@ -9,7 +9,8 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from common import NEVER, add_second_tier, band_prep, band_rates, second_tier
+from common import (NEVER, add_second_tier, band_prep, band_rates, days_into_cold,
+                    first_cold_day, second_tier)
 
 DATA = Path("data")
 OUT = Path("model/out")
@@ -154,13 +155,13 @@ vdc = (viol[["bbl", "inspectiondate"]].rename(columns={"inspectiondate": "day"})
 vdc["lastd"] = vdc["day"]
 
 
-def asof_before(keys, offset_days, right, cols):
-    """per-(bbl) state as of day + offset_days (backward asof), row-aligned to keys."""
-    t = keys[["bbl", "day"]].copy()
+def asof_before(keys, offset_days, right, cols, by="bbl"):
+    """per-key state as of day + offset_days (backward asof), row-aligned to keys."""
+    t = keys[[by, "day"]].copy()
     t["day"] = t.day + pd.Timedelta(days=offset_days)
     t["_i"] = np.arange(len(t))
     t = t.sort_values("day")
-    r = pd.merge_asof(t, right, on="day", by="bbl", direction="backward")
+    r = pd.merge_asof(t, right, on="day", by=by, direction="backward")
     return r.sort_values("_i")[cols].reset_index(drop=True)
 
 
@@ -180,6 +181,24 @@ bwc = bwc.sort_values("day")
 panel["bw_prev14"] = (
     asof_before(panel, -1, bwc[["bbl", "day", "csum"]], ["csum"]).csum.fillna(0).to_numpy()
     - asof_before(panel, -15, bwc[["bbl", "day", "csum"]], ["csum"]).csum.fillna(0).to_numpy())
+
+# -- velocity (own last 48h), neighbor heat (same tax block, last 48h, excl. self),
+#    and the season clock (days since the season's first sub-55F day)
+panel["c_prev2"] = at_d1 - asof_before(
+    panel, -3, bdc[["bbl", "day", "csum"]], ["csum"]).csum.fillna(0).to_numpy()
+blkd = bd.assign(blk=bd.bbl // 10000).groupby(["blk", "day"])["n"].sum().reset_index()
+blkc = blkd.sort_values(["blk", "day"]).copy()
+blkc["csum"] = blkc.groupby("blk")["n"].cumsum()
+blkc = blkc.sort_values("day")
+panel["blk"] = panel.bbl // 10000
+blk2 = (asof_before(panel, -1, blkc[["blk", "day", "csum"]], ["csum"], by="blk")
+        .csum.fillna(0).to_numpy()
+        - asof_before(panel, -3, blkc[["blk", "day", "csum"]], ["csum"], by="blk")
+        .csum.fillna(0).to_numpy())
+panel["nb_block_2d"] = np.clip(blk2 - panel.c_prev2.to_numpy(), 0, None)
+panel = panel.drop(columns="blk")
+first55 = first_cold_day(days)
+panel["days_into_cold"] = days_into_cold(panel.day, panel.season, first55)
 for c in ("rate_frigid2", "rate_freezing2", "rate_cold2"):
     panel[c] = panel[c].fillna(0.0)
 for c in ("days_since_c", "days_since_v"):

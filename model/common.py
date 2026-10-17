@@ -14,6 +14,7 @@ FEATS = ["c_last1", "c_last2", "v_last1", "v_last2", "chronic",
          "bw_last1", "bw_prev14",                             # ENTIRE BUILDING complaints
          "lord_nbldg", "lord_c_other_last1",                  # landlord portfolio
          "boiler_defects", "fuel_oil",                        # DOB boiler facts
+         "c_prev2", "nb_block_2d", "days_into_cold",          # velocity + neighbors + season clock
          "unitsres", "yearbuilt", "altered", "numfloors", "bldgarea", "cd",
          "TMIN", "TMAX", "tmin_lag1", "tmin_roll3", "tmin_drop",
          "SNOW", "AWND", "wday_num"]
@@ -63,6 +64,20 @@ def band_rates(num, den, S, bbls):
         col = n[band] if band in n.columns else pd.Series(0, index=n.index)
         out[f"rate_{band}2"] = (col / days_b if days_b else 0.0)
     return out.fillna(0.0).reset_index(names="bbl")
+
+
+def first_cold_day(days):
+    """First heat-season day per season with mean temp < 55F (the season's clock start)."""
+    d = days[days.heat_season].copy()
+    d["tmean"] = (d.TMAX + d.TMIN) / 2
+    d["season"] = season(d.day)
+    return d[d.tmean < 55].groupby("season").day.min().to_dict()
+
+
+def days_into_cold(day_values, seasons, first55):
+    out = pd.Series(seasons).map(first55)
+    v = (pd.Series(day_values).to_numpy() - out.to_numpy()) / np.timedelta64(1, "D")
+    return np.clip(np.nan_to_num(v, nan=0.0), 0, None)
 
 
 def second_tier():
