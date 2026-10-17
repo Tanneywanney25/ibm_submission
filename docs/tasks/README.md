@@ -21,7 +21,7 @@ your PRs. Roles doc: `docs/roles-endgame.md`.
 | [T13](T13-ui-overhaul.md) | UI overhaul to the Opendoor standard (reskin, features frozen) | new | — |
 | [T14](T14-account-platform.md) | clean sign-in/profile; roles → customizable dashboard panels | new | — |
 | [T15](T15-live-data.md) | live polling: NYC Open Data complaints/violations/buildings + weather | new | — |
-| [T16](T16-info-methods.md) | public About/Methods section: models, bootstrap ranges, open source | new | — |
+| [T16](T16-info-methods.md) | public About/Methods section: models, bootstrap ranges, open source | copy drafted (docs/about-copy.md, numbers from frozen docs); build + open-source sign-off open | Emerson (copy) |
 | [T17](T17-address-search.md) | address search with autocomplete, map-free path to building pages | new | — |
 
 Build order: T1–T6 are landed or owned; the rigor sprint runs **T11c (leakage
