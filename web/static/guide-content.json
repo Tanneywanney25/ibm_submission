@@ -384,8 +384,8 @@
     {
       "id": "unranked",
       "category": "Map and risk",
-      "question": "Why is my building not individually ranked?",
-      "answer": "A property can be outside the ranked set or have too little usable matched history. Not individually ranked does not mean zero risk or prove there have never been heating problems. Read the context on its record and use official complaint channels if you currently have no heat.",
+      "question": "Why do some buildings have no hexagon or risk score?",
+      "answer": "Gray buildings come from the background map. The colored layer includes only ranked properties with coordinates that match your minimum-risk filter. Other properties may be outside that set or lack matched history or coordinates. In 3D, a hexagon with zero total recorded complaints last season stays flat; switch to Flat map to see its risk color. At street level, hexagons become colored property markers. No visible overlay does not prove zero complaints, zero risk or working heat. Reset the filter or look up the property for its available record.",
       "terms": [
         "not ranked",
         "not individually ranked",
@@ -393,7 +393,26 @@
         "building not found",
         "no history",
         "no record",
-        "not on the map"
+        "not on the map",
+        "no hexagons",
+        "no hexagon",
+        "without hexagons",
+        "missing hexagons",
+        "no color",
+        "no colour",
+        "gray buildings",
+        "grey buildings",
+        "blank areas",
+        "empty areas",
+        "uncolored buildings",
+        "uncoloured buildings",
+        "gaps on the map",
+        "gaps in the map",
+        "building gray",
+        "building grey",
+        "zero complaints",
+        "no complaints",
+        "no complaints last season"
       ],
       "keywords": [
         "unranked",
@@ -401,9 +420,21 @@
         "unavailable",
         "ranked",
         "history",
-        "record"
+        "record",
+        "blank",
+        "empty",
+        "gray",
+        "grey",
+        "uncolored",
+        "uncoloured",
+        "coverage",
+        "gaps"
       ],
       "links": [
+        {
+          "label": "Open map and reset the filter",
+          "href": "/map"
+        },
         {
           "label": "Look up a building",
           "href": "/building"
@@ -414,7 +445,8 @@
         }
       ],
       "follow": [
-        "data",
+        "map",
+        "heights",
         "no-heat"
       ],
       "sources": []

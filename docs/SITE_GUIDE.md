@@ -46,6 +46,11 @@ The provider path has fixture tests, but a real API-key/model deployment must st
 Edit `web/static/guide-content.json` to update an answer, its search phrases, links or
 follow-ups. Both FAQ and assistant use it. Keep ids stable so bookmarked FAQ anchors work.
 Use building-level information, honest prediction windows and existing display rules.
+The map legend links to `/faq#unranked` for overlay coverage: background footprints extend
+beyond mapped/ranked properties, filters can hide scores, zero last-season complaints give
+a 3D hexagon zero height, and zoom replaces hexagons with property markers. An absent
+overlay is not proof of no complaints or working heat. Keep this explanation aligned in
+the map, Learn more, and the shared FAQ/guide entry.
 Do not call a reported complaint a confirmed outage. Do not promise that an email will
 arrive while the team's alert service is not configured. Roles are view preferences,
 not verified owner/inspector credentials. The guide must never invent a risk score.

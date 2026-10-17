@@ -52,6 +52,11 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
 .hm-scale { height:8px; border-radius:3px; background:linear-gradient(to right,rgb(219,239,255),rgb(27,92,180)); }
 .hm-scale-labels { display:flex; justify-content:space-between; color:var(--muted); font-size:.64rem; margin-top:.3rem; }
 .hm-legend-note { color:var(--muted); font-size:.66rem; line-height:1.45; margin:.45rem 0 0; }
+.hm-context-key { display:flex; align-items:center; gap:.45rem; color:var(--ink); font-size:.68rem; border-top:1px solid var(--line); padding-top:.55rem; margin:.55rem 0 0; }
+.hm-context-swatch { width:11px; height:11px; flex:none; background:#646970; border:1px solid #9aa0a8; }
+.hm-coverage-note { color:var(--muted); font-size:.68rem; line-height:1.5; margin:.4rem 0 0; }
+.hm-coverage-note a { display:inline-block; color:var(--ink); text-decoration:underline; text-underline-offset:3px; pointer-events:auto; padding:.25rem 0; }
+.hm-coverage-note a:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .hm-message { position:absolute; z-index:4; inset:0; display:flex; align-items:center; justify-content:center; padding:1.4rem; background:rgba(11,17,24,.68); }
 .hm-message[hidden], #hm-tip[hidden], #hm-data-note[hidden], #hm-tile-note[hidden], #hm-render-note[hidden], #hm-geometry-note[hidden] { display:none; }
 .hm-message-box { max-width:350px; text-align:center; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1.4rem; }
@@ -144,7 +149,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
         <h2>What am I seeing?</h2>
         <p><b>Color shows modeled winter risk.</b> The citywide view groups properties into hexagons.</p>
         <p><b>Zoom in to see mapped building shapes.</b> Hexagons gradually fade into colored property markers; gray buildings provide context.</p>
-        <p>In the citywide 3D view, hexagon height shows complaint volume. Up close, building heights come from the map and may be estimated.</p>
+        <p>In the citywide 3D view, hexagon height shows complaint volume. Hexagons with zero complaints last season stay flat; try Flat map. Up close, building heights come from the map and may be estimated.</p>
         <p>Click a hexagon to see its buildings, ordered by risk. Click an individual property marker for its record and aerial photo.</p>
       </div>
       <button id="hm-reset" type="button" class="hm-secondary" disabled>Reset view &amp; filter</button>
@@ -167,6 +172,8 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
         <div class="hm-scale" aria-hidden="true"></div>
         <div class="hm-scale-labels" aria-hidden="true"><span>0%</span><span>50%</span><span>99%</span></div>
         <p id="hm-legend-note" class="hm-legend-note">Color = mean property risk in each hexagon.</p>
+        <p class="hm-context-key"><span class="hm-context-swatch" aria-hidden="true"></span>Gray buildings = background map</p>
+        <p class="hm-coverage-note">No color? A property may be outside the mapped data or hidden by your filter. This does not confirm working heat.<br><a href="/faq#unranked">Why some buildings have no color →</a></p>
       </div>
       <div id="hm-tip" role="tooltip" hidden></div>
       <section id="hm-area-panel" class="hm-area-panel" role="region" aria-labelledby="hm-area-title" hidden>

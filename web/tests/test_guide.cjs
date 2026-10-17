@@ -11,6 +11,8 @@ const cases=[
  ['what is my risk score','winter-risk'],['what is winter risk','winter-risk'],['Explain cold day risk','cold-day'],
  ['Can I trust these numbers?','calibration'],['How accurate is this?','calibration'],
  ['Why is my building not individually ranked?','unranked'],['Where is the data from?','data'],
+ ['Why can I see buildings but no hexagons?','unranked'],['Does no color mean no complaints?','unranked'],
+ ['What are the gray buildings?','unranked'],['Why are there blank areas on the map?','unranked'],
  ['Where do I sign in?','sign-in'],['Can I use this without an account?','sign-in'],
  ['How can I get alerts?','alerts'],['notify me','alerts'],['How do I save my building?','alerts'],
  ['unsubscribe','remove-alerts'],['How do I stop alerts?','remove-alerts'],['turn notifications off','remove-alerts'],
