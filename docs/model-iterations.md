@@ -239,6 +239,30 @@ winter). Final throughput on the instance: XGBoost 358,629 buildings/sec (p99
 0.71 ms), Snap ML 481,356/sec (p99 0.51 ms). Calibrated probabilities on the
 ranked list top out around 0.72 - honest 48-hour odds, not inflated scores.
 
+## Statistical notes (T7 — model/15_inference.py, stats_inference.csv)
+
+Uncertainty and significance for the headline tables, from the saved per-day /
+per-spell results (no re-runs, frozen numbers annotated not altered):
+
+- **Method.** 95% CIs by cluster bootstrap (B=2,000) resampling whole days
+  (n=71) or whole spells (n=8) — the correlated units — never individual
+  buildings. Significance by one-sided paired tests on per-unit model−baseline
+  deltas: sign-flip permutation (100k draws) for days, exact enumeration (all
+  256 sign patterns) for spells. Calibration bins get Wilson intervals.
+- **Daily (71 cold days): p < 10⁻⁵ at every k, both horizons** — in 100,000
+  permutations, chance never once matched the model's edge over the 14-day
+  baseline. 48h p@100 ≈ 0.69 [0.68, 0.71]; 30-day p@100 0.97 [0.97, 0.98].
+- **Spell (8 spells): exact p = 1/256 at every k** — the smallest p-value an
+  8-spell test can produce, which happens only when the model beats the
+  baseline in ALL eight spells. p@100 0.87 [0.81, 0.92]; with n=8 the CI is
+  honest-wide, say so when quoting.
+- **Calibration: all 8 season-risk bins' predictions sit inside the Wilson CI
+  of the observed rate.** The probabilities are statistically indistinguishable
+  from the truth at every level.
+- Run-to-run nuance: a later canonical re-run on the instance lands at 69.4
+  @100 vs the frozen 69.1 (training nondeterminism after a teammate's ablation
+  re-run); both are inside the CI, and the frozen citation stands.
+
 ## Why gradient boosting (and not something fancier)
 
 Gradient-boosted trees are the consistent state of the art for tabular data at this
