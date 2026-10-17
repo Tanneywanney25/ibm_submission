@@ -23,9 +23,11 @@ from itsdangerous import BadSignature, URLSafeTimedSerializer
 
 bp = Blueprint("accounts", __name__)
 PRIVATE_ENDPOINTS = {"api_register", "api_my_buildings", "api_remove_registration",
-                     "api_account_email_link", "api_account_email_consume"}
+                     "api_account_email_link", "api_account_email_consume",
+                     "api_panels_get", "api_panels_set"}
 FORWARD_PATHS = {"/api/register", "/api/my_buildings", "/api/account/remove",
-                 "/api/account/email_link", "/api/account/email_consume"}
+                 "/api/account/email_link", "/api/account/email_consume",
+                 "/api/account/panels"}
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 # T14: passwordless email sign-in. The link token is signed with the shared
 # secret, lives EMAIL_LINK_MAX_AGE seconds and is consumed one-use on the

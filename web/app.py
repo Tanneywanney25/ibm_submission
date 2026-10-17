@@ -51,6 +51,12 @@ ARCH = platform.machine().lower()
 HOST = "vercel" if ON_VERCEL else ("linuxone" if ARCH == "s390x" else "local")
 GEOSEARCH = "https://geosearch.planninglabs.nyc/v2/search"
 ROLES = ("tenant", "landlord", "government", "viewer")
+# T14: the dashboard shows panels, not roles. A role recorded at registration only
+# picks the default set (the migration map below); the user toggles panels freely
+# and the choice is stored per account (/api/account/panels).
+PANELS = ("buildings", "audit", "queue", "stats")
+ROLE_PANELS = dict(tenant=("buildings",), landlord=("buildings", "audit"),
+                   government=("buildings", "queue"), viewer=("stats",))
 SHARDS = 128
 # one building record; build_assets.py writes these as positional lists in public/data/b/.
 # New fields go at the end: a shard built before them still reads (missing ones are None).
@@ -217,6 +223,9 @@ def db():
             sent TEXT DEFAULT CURRENT_TIMESTAMP)""")
         g.db.execute("""CREATE TABLE IF NOT EXISTS account_request_nonces (
             nonce TEXT PRIMARY KEY, expires INTEGER NOT NULL)""")
+        g.db.execute("""CREATE TABLE IF NOT EXISTS panels (
+            email TEXT PRIMARY KEY, panels TEXT NOT NULL,
+            updated TEXT DEFAULT CURRENT_TIMESTAMP)""")
     return g.db
 
 
@@ -441,7 +450,11 @@ def clean_bbl(v):
 # ------------------------------------------------------------------ pages
 @app.get("/")
 def index():
-    return render_template("index.html", roles=ROLES, page="signup")
+    return render_template("index.html", roles=ROLES, page="signup",
+                           panel_order=PANELS, role_panels=ROLE_PANELS,
+                           site_meta=dict(ranked=META["ranked"],
+                                          median_text=fmt_risk(CITYWIDE_SEASON_MEDIAN)
+                                          if CITYWIDE_SEASON_MEDIAN else None))
 
 
 @app.get("/map")
@@ -742,6 +755,50 @@ def api_my_buildings():
             out.append(dict(bbl=int(b), registered=b in own, ranked=False))
     out.sort(key=lambda x: (not x["registered"], -(x.get("p_season") or 0), x["bbl"]))
     return jsonify(buildings=out[:200], total=len(out), registrations=registrations)
+
+
+@app.get("/api/account/panels")
+def api_panels_get():
+    """The signed-in account's dashboard panel set, or null when never customized
+    (the page then derives defaults from the account's registration roles)."""
+    email = account_auth.user()["email"]
+    if FORWARD_URL:
+        sent = forward("GET", "/api/account/panels")
+        if sent is not None:
+            return sent
+        return jsonify(error="Your dashboard settings could not be loaded. Please try again shortly.",
+                       code="account_service_unavailable"), 503
+    if ON_VERCEL:
+        return jsonify(error="Account storage is temporarily unavailable."), 503
+    row = db().execute("SELECT panels FROM panels WHERE email=?", (email,)).fetchone()
+    return jsonify(panels=json.loads(row[0]) if row else None)
+
+
+@app.post("/api/account/panels")
+def api_panels_set():
+    b = request.get_json(silent=True)
+    if not isinstance(b, dict):
+        return jsonify(error="panel update must be a JSON object"), 400
+    raw = b.get("panels")
+    if (not isinstance(raw, list) or len(raw) != len(set(map(str, raw))) or
+            any(p not in PANELS for p in raw)):
+        return jsonify(error=f"panels must be distinct names from: {', '.join(PANELS)}"), 400
+    chosen = [p for p in PANELS if p in raw]       # stored in the fixed display order
+    email = account_auth.user()["email"]
+    if FORWARD_URL:
+        sent = forward("POST", "/api/account/panels", json=dict(panels=chosen))
+        if sent is not None:
+            return sent
+        return jsonify(error="Your dashboard settings could not be saved right now. Please try again shortly.",
+                       code="account_service_unavailable"), 503
+    if ON_VERCEL:
+        return jsonify(error="Account storage is temporarily unavailable."), 503
+    con = db()
+    con.execute("INSERT INTO panels(email, panels) VALUES (?, ?) ON CONFLICT(email) "
+                "DO UPDATE SET panels=excluded.panels, updated=CURRENT_TIMESTAMP",
+                (email, json.dumps(chosen)))
+    con.commit()
+    return jsonify(ok=True, panels=chosen)
 
 
 @app.get("/api/queue.csv")

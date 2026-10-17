@@ -221,6 +221,57 @@ class AccountTests(unittest.TestCase):
         self.assertEqual(removed.json["removed"], 0)
         self.assertEqual(self.get("/api/my_buildings").json["total"], 1)
 
+    def test_panels_validate_round_trip_and_stay_per_account(self):
+        self.assertEqual(self.get("/api/account/panels").status_code, 401)
+        self.actor()
+        self.assertEqual(self.post("/api/account/panels", dict(panels=["queue"]),
+                                   csrf="wrong").status_code, 403)
+        for bad in [dict(panels=["nope"]), dict(panels="queue"), dict(panels=["queue", "queue"]),
+                    dict(), [1]]:
+            self.assertEqual(self.post("/api/account/panels", bad).status_code, 400, bad)
+        self.assertIsNone(self.get("/api/account/panels").json["panels"])
+        saved = self.post("/api/account/panels", dict(panels=["stats", "buildings"]))
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(saved.json["panels"], ["buildings", "stats"])  # fixed display order
+        self.assertEqual(self.get("/api/account/panels").json["panels"], ["buildings", "stats"])
+        self.assertEqual(self.post("/api/account/panels", dict(panels=[])).json["panels"], [])
+        another = self.module.app.test_client()
+        self.actor(another, email="another@example.test", sub="google-user-2")
+        self.assertIsNone(self.get("/api/account/panels", client=another).json["panels"])
+        page = self.get("/")
+        for marker in [b"Your dashboard", b"panel-buildings", b"panel-audit",
+                       b"panel-queue", b"panel-stats"]:
+            self.assertIn(marker, page.data)
+
+    def test_panels_forward_to_backend_and_fail_closed_on_vercel(self):
+        backend = self.module.app.test_client()
+        website = application(Path(self.directory.name) / "ephemeral.db",
+                              forward="https://backend.test", vercel=True)
+        client = website.app.test_client()
+        self.actor(client)
+
+        def transport(method, url, **kwargs):
+            parts = urlsplit(url)
+            result = backend.open(parts.path + ("?" + parts.query if parts.query else ""),
+                                  method=method, base_url="https://backend.test",
+                                  data=kwargs.get("data"), headers=kwargs.get("headers"))
+            response = requests.Response()
+            response.status_code = result.status_code
+            response._content = result.data
+            response.headers.update(result.headers)
+            return response
+
+        with patch.object(website.requests, "request", side_effect=transport):
+            saved = self.post("/api/account/panels", dict(panels=["audit", "buildings"]), client=client)
+            self.assertEqual(saved.status_code, 200)
+            self.assertEqual(self.get("/api/account/panels", client=client).json["panels"],
+                             ["buildings", "audit"])
+        with patch.object(website.requests, "request", side_effect=requests.Timeout):
+            self.assertEqual(self.get("/api/account/panels", client=client).status_code, 503)
+            self.assertEqual(self.post("/api/account/panels", dict(panels=["stats"]),
+                                       client=client).status_code, 503)
+        self.assertFalse(website.DB.exists(), "Vercel must not keep panel choices in /tmp")
+
     def test_registered_building_returns_after_restart_and_logout(self):
         self.actor()
         result = self.post("/api/register", dict(role="tenant", bbl="3000410007"))
