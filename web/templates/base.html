@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -6,7 +6,7 @@
 <title>{% block title %}HeatAhead{% endblock %}</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231a1e24'/%3E%3Crect x='8' y='6' width='16' height='22' rx='1.5' fill='%23272c34'/%3E%3Crect x='11' y='9' width='4' height='4' fill='%23101317'/%3E%3Crect x='17' y='9' width='4' height='4' fill='%23ffc46b'/%3E%3Crect x='11' y='15' width='4' height='4' fill='%23101317'/%3E%3Crect x='17' y='15' width='4' height='4' fill='%23101317'/%3E%3Crect x='11' y='21' width='4' height='4' fill='%23ffc46b'/%3E%3Crect x='17' y='21' width='4' height='4' fill='%23101317'/%3E%3C/svg%3E">
 <style>
-/* docs/design-language.md â€” building materials: night, masonry, mortar,
+/* docs/design-language.md — building materials: night, masonry, mortar,
    limestone, concrete; weathered brick is the one accent, a lit window
    (--window) is reserved for heat itself. */
 :root { --bg:#101317; --panel:#1a1e24; --ink:#e9e6e0; --muted:#9aa0a8;
@@ -74,12 +74,12 @@ th { color:var(--muted); font-weight:600; }
 // Display rules (docs/webapp-spec.md): calibrated numbers only, never above 99%,
 // exact below 20%, bands at 20% and up.
 function fmtRisk(p){
-  if (p === null || p === undefined || isNaN(p)) return 'â€”';
+  if (p === null || p === undefined || isNaN(p)) return '—';
   p = Math.min(p, 0.99);
   if (p < 0.2) return (p * 100).toFixed(p < 0.1 ? 1 : 0) + '%';
   const mid = Math.min(99, Math.round(p * 20) * 5);
   return (p >= 0.5 ? 'very high' : 'high') + ' (roughly ' +
-         Math.max(20, mid - 5) + 'â€“' + Math.min(99, mid + 5) + '%)';
+         Math.max(20, mid - 5) + '–' + Math.min(99, mid + 5) + '%)';
 }
 // headline version: the band word large, the range under it
 function riskHTML(p){
@@ -140,8 +140,8 @@ function skyline(el, specs, cell, gap, pad){
 })();
 </script>
 <footer>
-  <span><span class="dot" id="hdot"></span><span id="hstatus">checking the LinuxONE backendâ€¦</span></span>
-  <span>Building-level data only Â· probabilities calibrated on the held-out 2025-26 winter</span>
+  <span><span class="dot" id="hdot"></span><span id="hstatus">checking the LinuxONE backend…</span></span>
+  <span>Building-level data only · probabilities calibrated on the held-out 2025-26 winter</span>
   <span>Demo: no login</span>
 </footer>
 <script>
@@ -152,7 +152,7 @@ function skyline(el, specs, cell, gap, pad){
     const z = h.linuxone || (h.arch === 's390x' ? h : null);
     if (z && !z.offline) {
       dot.className = 'dot ok';
-      st.textContent = (h.host === 'vercel' ? 'Site on Vercel Â· ' : '') +
+      st.textContent = (h.host === 'vercel' ? 'Site on Vercel · ' : '') +
         'scores and sign-ups on IBM LinuxONE (' + (z.arch || 's390x') + '), ' +
         (z.ranked || 0).toLocaleString() + ' buildings ranked';
     } else if (h.linuxone) {

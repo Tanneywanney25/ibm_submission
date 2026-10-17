@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block head %}
 <style>
 .hero p { max-width:760px; }
@@ -140,7 +140,7 @@ async function register(e){
   const body = { role, email, phone: $('phone').value.trim() };
   if (needs) { if (/^\d{10}$/.test(addr)) body.bbl = addr; else body.address = addr; }
   $('submit').disabled = true;
-  $('reg_out').textContent = needs ? 'finding your building and registeringâ€¦' : 'registeringâ€¦';
+  $('reg_out').textContent = needs ? 'finding your building and registering…' : 'registering…';
   let r, j;
   try {
     r = await fetch('/api/register', {method:'POST',
@@ -170,7 +170,7 @@ async function landing(j, email){
   if (j.role === 'tenant') {
     h = '<h2>You\'re signed up, tenant' + again + '</h2>';
     h += '<p class="muted" style="margin:.2rem 0">' + esc(j.normalized || ('BBL ' + j.bbl)) +
-         (j.normalized ? ' Â· BBL ' + esc(j.bbl) : '') + '</p>';
+         (j.normalized ? ' · BBL ' + esc(j.bbl) : '') + '</p>';
     if (j.p_season !== undefined) {
       h += '<div class="big accent">' + riskHTML(j.p_season) + '</div>' +
            '<p class="muted" style="margin-top:0">chance this building has at least one heat outage this winter</p>';
@@ -183,7 +183,7 @@ async function landing(j, email){
          '<p class="muted">When the 7-day forecast shows two or more freezing days in a row and your ' +
          'building is over the alert threshold, you get one email for that cold spell.</p>';
   } else if (j.role === 'landlord') {
-    h = '<h2>You\'re signed up, landlord' + again + '</h2><div id="portfolio" class="muted">loading your buildingsâ€¦</div>';
+    h = '<h2>You\'re signed up, landlord' + again + '</h2><div id="portfolio" class="muted">loading your buildings…</div>';
   } else if (j.role === 'government') {
     h = '<h2>You\'re signed up, government' + again + '</h2>' +
         '<p class="muted">The inspector queue re-sorts live as complaints arrive during a cold snap.</p>' +
@@ -212,7 +212,7 @@ async function portfolio(email, bbl){
     const rows = d.buildings || [];
     if (!rows.length) { P.textContent = 'No buildings on record for this email yet.'; return; }
     const owner = (rows.find(x => x.landlord) || {}).landlord;
-    let h = owner ? '<p style="margin:.2rem 0">Registered owner on file: <b>' + esc(owner) + '</b> Â· ' +
+    let h = owner ? '<p style="margin:.2rem 0">Registered owner on file: <b>' + esc(owner) + '</b> · ' +
         d.total.toLocaleString() + ' building(s), riskiest first</p>' : '';
     h += '<table><tr><th>BBL</th><th>winter risk</th><th>rank</th><th>units</th><th>complaints last season</th></tr>' +
       rows.slice(0, 25).map(b => '<tr><td><a href="/building?bbl=' + b.bbl + '">' + b.bbl + '</a>' +
