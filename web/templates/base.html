@@ -22,6 +22,10 @@ nav .brand { font-weight:700; color:var(--accent); font-size:1.1rem; text-decora
 nav a { color:var(--muted); text-decoration:none; }
 nav a:hover, nav a.active { color:var(--ink); }
 nav a.active { border-bottom:2px solid var(--accent); padding-bottom:2px; }
+.account-nav { margin-left:auto; display:flex; gap:.7rem; align-items:center; font-size:.82rem; }
+.account-nav form { margin:0; }
+.account-nav button { background:transparent; color:var(--ink); border:1px solid var(--line); padding:.35rem .6rem; font-size:.8rem; }
+.account-nav span { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 main { max-width:1100px; margin:0 auto; padding:1.5rem 1.2rem; }
 footer { max-width:1100px; margin:0 auto; padding:0 1.2rem 2rem; color:var(--muted);
          font-size:.82rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:center; }
@@ -119,10 +123,19 @@ function skyline(el, specs, cell, gap, pad){
 <body>
 <nav>
   <a class="brand" href="/">HeatAhead</a>
-  <a href="/" class="{{ 'active' if page == 'signup' }}">Sign up</a>
+  <a href="/" class="{{ 'active' if page == 'signup' }}">{{ 'My account' if account_user else 'Sign in' }}</a>
   <a href="/building" class="{{ 'active' if page == 'building' }}">Check a building</a>
   <a href="/map" class="{{ 'active' if page == 'map' }}">Risk map</a>
   <a href="/monitor" class="{{ 'active' if page == 'monitor' }}">Live monitor</a>
+  {% if account_user %}
+  <div class="account-nav">
+    <span title="{{ account_user.email }}">{{ account_user.name or account_user.email }}</span>
+    <form action="/api/auth/logout" method="post">
+      <input type="hidden" name="csrf_token" value="{{ account_csrf }}">
+      <button type="submit">Sign out</button>
+    </form>
+  </div>
+  {% endif %}
 </nav>
 <main>{% block body %}{% endblock %}</main>
 <div class="skyfoot" id="skyfoot" aria-hidden="true"></div>
@@ -142,7 +155,7 @@ function skyline(el, specs, cell, gap, pad){
 <footer>
   <span><span class="dot" id="hdot"></span><span id="hstatus">checking the LinuxONE backend…</span></span>
   <span>Building-level data only · probabilities calibrated on the held-out 2025-26 winter</span>
-  <span>Demo: no login</span>
+  <span>Browse freely · Google sign-in for saved buildings</span>
 </footer>
 <script>
 (async () => {
@@ -157,7 +170,7 @@ function skyline(el, specs, cell, gap, pad){
         (z.ranked || 0).toLocaleString() + ' buildings ranked';
     } else if (h.linuxone) {
       dot.className = 'dot bad';
-      st.textContent = 'LinuxONE backend offline: browsing still works, sign-ups are held temporarily';
+      st.textContent = 'LinuxONE backend offline: browsing still works; saving buildings is temporarily unavailable';
     } else {
       dot.className = 'dot warn';
       st.textContent = 'Running ' + h.mode + ' mode on ' + h.host + ' (' + h.arch + ')';

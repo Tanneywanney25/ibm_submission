@@ -7,6 +7,7 @@ Planning documents for the build. Start with the brief.
 - `model-plan.md` — phase-by-phase plan for the model workstream (stream 5)
 - `progress-report.md` — one-page status of everything built, verified and frozen so far
 - `VERCEL.md` — how the public site deploys to Vercel and the rules every web/realtime change must follow (the root `CLAUDE.md` points every Claude session here)
+- `GOOGLE_LOGIN.md` — Google credentials, remembered sessions, durable account storage, and coordinated deployment checks
 
 ## Data location (not in git)
 

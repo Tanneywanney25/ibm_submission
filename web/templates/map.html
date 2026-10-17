@@ -49,11 +49,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
 .hm-legend { position:absolute; left:14px; bottom:38px; z-index:2; width:300px; max-width:calc(100% - 28px); background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:.75rem .85rem; pointer-events:none; }
 .hm-legend-title { display:flex; justify-content:space-between; gap:.5rem; font-size:.72rem; margin-bottom:.55rem; }
 .hm-legend-title span:last-child { color:var(--muted); }
-.hm-scale { display:flex; height:8px; border-radius:3px; overflow:hidden; }
-.hm-scale span { flex:1; }
-.hm-scale span:nth-child(1) { background:rgb(92,99,109); }
-.hm-scale span:nth-child(2) { background:rgb(182,92,63); }
-.hm-scale span:nth-child(3) { background:rgb(255,196,107); }
+.hm-scale { height:8px; border-radius:3px; background:linear-gradient(to right,rgb(219,239,255),rgb(27,92,180)); }
 .hm-scale-labels { display:flex; justify-content:space-between; color:var(--muted); font-size:.64rem; margin-top:.3rem; }
 .hm-legend-note { color:var(--muted); font-size:.66rem; line-height:1.45; margin:.45rem 0 0; }
 .hm-message { position:absolute; z-index:4; inset:0; display:flex; align-items:center; justify-content:center; padding:1.4rem; background:rgba(11,17,24,.68); }
@@ -70,6 +66,20 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
 .hm-tip-row { display:flex; justify-content:space-between; gap:1rem; color:#bbc3ce; font-size:.74rem; }
 .hm-tip-row b { color:var(--ink); font-weight:500; }
 .hm-tip-action { color:var(--muted); margin:.55rem 0 0; padding-top:.5rem; border-top:1px solid var(--line); font-size:.68rem; }
+.hm-area-panel { position:absolute; z-index:6; top:64px; right:14px; bottom:14px; width:365px; max-width:calc(100% - 28px); background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1rem; display:flex; flex-direction:column; box-shadow:0 8px 30px #0006; }
+.hm-area-panel[hidden] { display:none; }
+.hm-area-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:.6rem; }
+.hm-area-heading h2 { margin:0; font-size:1rem; }
+.hm-area-heading button { padding:.15rem .5rem; font-size:1.2rem; }
+.hm-area-summary { font-size:.77rem; color:var(--muted); margin:.4rem 0 .8rem; }
+.hm-area-list { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; margin:.6rem 0; padding:0; list-style:none; }
+.hm-area-list li { border-top:1px solid var(--line); padding:.7rem .15rem; }
+.hm-area-list a { color:var(--ink); font-size:.85rem; font-weight:600; }
+.hm-area-list p { margin:.3rem 0 0; font-size:.72rem; color:var(--muted); }
+.hm-area-risk { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:.4rem; }
+.hm-area-paging { display:flex; align-items:center; justify-content:space-between; gap:.4rem; font-size:.7rem; }
+.hm-area-paging button { font-size:.75rem; padding:.35rem .6rem; }
+.hm-area-paging button:disabled { opacity:.4; cursor:default; }
 .hm-note { font-size:.76rem; color:#c9b398; margin:.65rem 0 0; }
 .hm-footer { display:flex; justify-content:space-between; flex-wrap:wrap; gap:.4rem 1rem; margin-top:.65rem; color:var(--muted); font-size:.7rem; }
 .hm-sidebar button:focus-visible, .hm-sidebar input:focus-visible, .hm-sidebar select:focus-visible, .hm-view button:focus-visible, .hm-map-link:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
@@ -135,7 +145,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
         <p><b>Color shows modeled winter risk.</b> The citywide view groups properties into hexagons.</p>
         <p><b>Zoom in to see mapped building shapes.</b> Hexagons gradually fade into colored property markers; gray buildings provide context.</p>
         <p>In the citywide 3D view, hexagon height shows complaint volume. Up close, building heights come from the map and may be estimated.</p>
-        <p>Click a property marker for its record and aerial photo. A hexagon opens its highest-risk property.</p>
+        <p>Click a hexagon to see its buildings, ordered by risk. Click an individual property marker for its record and aerial photo.</p>
       </div>
       <button id="hm-reset" type="button" class="hm-secondary" disabled>Reset view &amp; filter</button>
       <p class="hm-footnote">Model estimates, not confirmed outages. BBL-level property records only; a property may contain multiple buildings.</p>
@@ -154,11 +164,21 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
       </div>
       <div class="hm-legend" aria-label="Winter risk color legend, from 0 to 99 percent">
         <div class="hm-legend-title"><span>Modeled winter risk</span><span>Lower → Higher</span></div>
-        <div class="hm-scale" aria-hidden="true"><span></span><span></span><span></span></div>
-        <div class="hm-scale-labels" aria-hidden="true"><span>0%</span><span>33</span><span>67</span><span>99%</span></div>
+        <div class="hm-scale" aria-hidden="true"></div>
+        <div class="hm-scale-labels" aria-hidden="true"><span>0%</span><span>50%</span><span>99%</span></div>
         <p id="hm-legend-note" class="hm-legend-note">Color = mean property risk in each hexagon.</p>
       </div>
       <div id="hm-tip" role="tooltip" hidden></div>
+      <section id="hm-area-panel" class="hm-area-panel" role="region" aria-labelledby="hm-area-title" hidden>
+        <div class="hm-area-heading"><h2 id="hm-area-title">Buildings in this area</h2>
+          <button id="hm-area-close" class="hm-secondary" type="button" aria-label="Close building list">×</button></div>
+        <p id="hm-area-summary" class="hm-area-summary"></p>
+        <button id="hm-area-zoom" class="hm-secondary" type="button">Zoom to these buildings</button>
+        <ol id="hm-area-list" class="hm-area-list" aria-label="Buildings ordered by modeled winter risk"></ol>
+        <div class="hm-area-paging"><button id="hm-area-prev" class="hm-secondary" type="button">Previous</button>
+          <span id="hm-area-page" role="status" aria-live="polite"></span>
+          <button id="hm-area-next" class="hm-secondary" type="button">Next</button></div>
+      </section>
       <div id="hm-message" class="hm-message">
         <div class="hm-message-box">
           <div id="hm-loader" class="hm-loader" aria-hidden="true"></div>
@@ -203,8 +223,11 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     }
   }).then(data => ({data}), error => ({error})).finally(() => clearTimeout(timeout));
 
-  // Keep the shared design's slate → brick → lit-window severity palette.
-  const COLORS = [[92,99,109],[182,92,63],[255,196,107]];
+  // deck.gl 8's color scale is quantized. A 256-step interpolation gives the
+  // same smooth, two-endpoint scale in hexagons, property markers, and the legend.
+  const COLOR_LOW = [219,239,255];
+  const COLOR_HIGH = [27,92,180];
+  const COLORS = Array.from({length:256}, (_,i) => COLOR_LOW.map((v,c) => Math.round(v + (COLOR_HIGH[c]-v) * i/255)));
   const DETAIL_ZOOM = 13.8;
   const DETAIL_START = DETAIL_ZOOM - 1;
   const DETAIL_END = DETAIL_ZOOM + 1;
@@ -212,7 +235,9 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   const RISK_WEIGHT = row => row.p;
   const COMPLAINT_WEIGHT = row => row.c;
   const PROPERTY_COLOR = row => riskColor(row.p);
-  const COLOR_DOMAIN = [0,1];
+  const COLOR_DOMAIN = [0,.99];
+  const AREA_PAGE_SIZE = 20;
+  const BOROUGHS = {'1':'Manhattan','2':'Bronx','3':'Brooklyn','4':'Queens','5':'Staten Island'};
   const BUILDING_SOURCE = 'heatahead-building-shapes';
   const BUILDING_FLAT = 'heatahead-buildings-flat';
   const BUILDING_3D = 'heatahead-buildings-3d';
@@ -227,12 +252,15 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   const state = {mode:'flat', rows:[], filtered:[], totalComplaints:0, elevationDomain:[0,1],
     view:{...AREAS.city, pitch:0, minZoom:8, maxZoom:18, maxPitch:60},
     individual:false, ready:false, failed:false, fallbackUsed:false, areaBounds:{},
-    buildingsInstalled:false, buildingsUnavailable:false, buildingWarning:false};
+    buildingsInstalled:false, buildingsUnavailable:false, buildingWarning:false,
+    selectedRows:[], selectedPage:0, interacting:false, labelMode:'', renderedBlend:null};
   const number = new Intl.NumberFormat('en-US');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let viewer = null;
   let baseMap = null;
   let filterTimer;
+  let viewFrame = null;
+  let selectionFocus = null;
   const el = id => document.getElementById(id);
   const hideTip = () => { el('hm-tip').hidden = true; };
 
@@ -241,8 +269,10 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     return t * t * (3 - 2 * t);
   }
   function mapController(mode) {
-    return {dragRotate:mode === '3d', touchRotate:mode === '3d',
-      scrollZoom:{smooth:!reducedMotion}};
+    return {dragPan:true, dragRotate:mode === '3d', touchRotate:mode === '3d',
+      // Avoid the 250ms wheel easing that feels delayed on a notched mouse.
+      // The same controller normalizes both mouse-wheel and trackpad input.
+      scrollZoom:{speed:.025, smooth:false}, inertia:reducedMotion ? false : 150};
   }
 
   // Display rules affect labels/colors only; they never rewrite model values.
@@ -255,7 +285,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     return '80–99%';
   }
   function riskColor(p) {
-    return COLORS[Math.min(COLORS.length - 1, Math.floor(Math.max(0, Math.min(0.99, p)) * COLORS.length))];
+    return COLORS[Math.min(COLORS.length - 1, Math.floor(Math.max(0, Math.min(.99, p)) / .99 * COLORS.length))];
   }
   function buildingURL(row) {
     return '/building?bbl=' + encodeURIComponent(row.bbl);
@@ -328,15 +358,19 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     const blend = detailBlend(state.view.zoom);
     const blending = blend > 0 && blend < 1;
     const detailed = state.individual;
-    el('hm-view-label').textContent = blending ? 'Hexagons → property markers' : detailed ? (state.buildingsUnavailable ? 'Property risk markers' : state.mode === '3d' ? 'Mapped 3D buildings + risk markers' : 'Building outlines + risk markers') : '120 m hexagons';
-    el('hm-legend-note').textContent = blending ? 'Zoom blends hexagon averages into individual property risk. Gray buildings are map context.' : detailed ? (state.buildingsUnavailable ? 'Color = modeled property risk.' : 'Color = property risk. Gray buildings are map context.') : 'Color = mean property risk in each hexagon.';
-    el('hm-street-view').hidden = !detailed;
-    if (detailed) el('hm-street-view').href = streetViewURL(state.view);
+    const labelMode = [blending,detailed,state.mode,state.buildingsUnavailable].join(':');
+    if (labelMode !== state.labelMode) {
+      state.labelMode = labelMode;
+      el('hm-view-label').textContent = blending ? 'Hexagons → property markers' : detailed ? (state.buildingsUnavailable ? 'Property risk markers' : state.mode === '3d' ? 'Mapped 3D buildings + risk markers' : 'Building outlines + risk markers') : '120 m hexagons';
+      el('hm-legend-note').textContent = blending ? 'Zoom blends hexagon averages into individual property risk. Gray buildings are map context.' : detailed ? (state.buildingsUnavailable ? 'Color = modeled property risk.' : 'Color = property risk. Gray buildings are map context.') : 'Color = mean property risk in each hexagon.';
+      el('hm-street-view').hidden = !detailed;
+    }
+    if (detailed && !state.interacting) el('hm-street-view').href = streetViewURL(state.view);
   }
   function showBuildings() {
     const property = nearestProperty(state.filtered, state.view);
     if (!property || !viewer) return;
-    const mode = state.fallbackUsed ? 'flat' : '3d';
+    const mode = state.fallbackUsed ? 'flat' : state.mode;
     setMode(mode, false);
     moveCamera({longitude:property.position[0], latitude:property.position[1], zoom:16.5,
       pitch:mode === '3d' ? 55 : 0, bearing:state.view.bearing || -15}, 1100);
@@ -418,7 +452,51 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     }
     return {count:rows.length, risk:risk / rows.length, complaints, units, highest, individual:!!object.bbl};
   }
+  function closeArea(restoreFocus=false) {
+    el('hm-area-panel').hidden = true;
+    state.selectedRows = [];
+    state.selectedPage = 0;
+    if (restoreFocus && selectionFocus && selectionFocus.isConnected) selectionFocus.focus({preventScroll:true});
+  }
+  function renderAreaPage() {
+    const total = state.selectedRows.length;
+    if (!total) return;
+    state.selectedPage = Math.max(0, Math.min(Math.ceil(total / AREA_PAGE_SIZE)-1, state.selectedPage));
+    const start = state.selectedPage * AREA_PAGE_SIZE;
+    const end = Math.min(total, start + AREA_PAGE_SIZE);
+    el('hm-area-list').innerHTML = state.selectedRows.slice(start,end).map(row => {
+      // All fields came through parseRows: BBL is digits only; the rest are numbers.
+      const color = riskColor(row.p).join(',');
+      return `<li><a href="${buildingURL(row)}"><span class="hm-area-risk" style="background:rgb(${color})" aria-hidden="true"></span>BBL ${row.bbl} ↗</a>` +
+        `<p>${BOROUGHS[row.bbl[0]]} · Winter risk ${riskLabel(row.p)}</p>` +
+        `<p>${number.format(row.u)} residential units · ${number.format(row.c)} complaints last season</p></li>`;
+    }).join('');
+    el('hm-area-list').scrollTop = 0;
+    el('hm-area-page').textContent = `${number.format(start+1)}–${number.format(end)} of ${number.format(total)}`;
+    el('hm-area-prev').disabled = start === 0;
+    el('hm-area-next').disabled = end === total;
+  }
+  function openArea(object, summary) {
+    state.selectedRows = sourceRows(object).slice().sort((a,b) => b.p-a.p || a.bbl.localeCompare(b.bbl));
+    state.selectedPage = 0;
+    selectionFocus = document.activeElement;
+    el('hm-area-title').textContent = `${number.format(summary.count)} ${summary.count === 1 ? 'building' : 'buildings'} in this hexagon`;
+    el('hm-area-summary').textContent = `Mean winter risk ${riskLabel(summary.risk)} · ${number.format(summary.units)} units · ${number.format(summary.complaints)} complaints last season. Highest risk first; current filter applied.`;
+    hideTip();
+    renderAreaPage();
+    el('hm-area-panel').hidden = false;
+    el('hm-area-close').focus({preventScroll:true});
+  }
+  function zoomToArea() {
+    const rows = state.selectedRows;
+    if (!rows.length) return;
+    const longitude = rows.reduce((sum,r) => sum+r.position[0],0) / rows.length;
+    const latitude = rows.reduce((sum,r) => sum+r.position[1],0) / rows.length;
+    closeArea();
+    moveCamera({longitude,latitude,zoom:16,pitch:state.mode === '3d' ? 55 : 0},650);
+  }
   function onHover(info) {
+    if (state.interacting || !el('hm-area-panel').hidden) { hideTip(); return; }
     const summary = info.object && summarize(info.object);
     if (!summary) { hideTip(); return; }
     const tip = el('hm-tip');
@@ -428,7 +506,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
       `<div class="hm-tip-row"><span>${summary.individual ? 'Modeled winter risk' : 'Mean modeled winter risk'}</span></div>` +
       `<div class="hm-tip-row"><span>Complaints last season</span><b>${number.format(summary.complaints)}</b></div>` +
       `<div class="hm-tip-row"><span>Residential units</span><b>${number.format(summary.units)}</b></div>` +
-      `<p class="hm-tip-action">${summary.individual ? 'Click to open this property.' : 'Click to open highest-risk BBL ' + summary.highest.bbl + '.'}</p>`;
+      `<p class="hm-tip-action">${summary.individual ? 'Click to open this property.' : 'Click to see all ' + number.format(summary.count) + ' buildings in this area.'}</p>`;
     tip.hidden = false;
     const bounds = el('hm-view').getBoundingClientRect();
     tip.style.left = Math.max(12, Math.min(info.x + 15, bounds.width - tip.offsetWidth - 12)) + 'px';
@@ -436,7 +514,9 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   }
   function onClick(info) {
     const summary = info.object && summarize(info.object);
-    if (summary) window.location.assign(buildingURL(summary.highest));
+    if (!summary) return;
+    if (summary.individual) window.location.assign(buildingURL(summary.highest));
+    else openArea(info.object,summary);
   }
   function makeLayers() {
     const blend = detailBlend(state.view.zoom);
@@ -466,21 +546,31 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     })];
   }
   function onViewStateChange({viewState}) {
-    const previousBlend = detailBlend(state.view.zoom);
     const zoomChanged = state.view.zoom !== viewState.zoom;
     state.view = {...viewState};
     const blend = detailBlend(viewState.zoom);
     state.individual = blend >= .5;
     hideTip();
-    if (blend !== previousBlend) refreshLayers();
-    else {
-      if (zoomChanged) syncBuildings();
-      if (state.individual) updateViewLabels();
+    // Coalesce zoom redraws, and leave GPU buffers and the DOM alone during pans.
+    if (zoomChanged && viewFrame === null) {
+      viewFrame = requestAnimationFrame(() => {
+        viewFrame = null;
+        if (detailBlend(state.view.zoom) !== state.renderedBlend) refreshLayers();
+        else { syncBuildings(); updateViewLabels(); }
+      });
     }
+  }
+  function onInteractionStateChange(interaction) {
+    const moving = !!(interaction.isDragging || interaction.isZooming || interaction.inTransition);
+    if (moving) hideTip();
+    const stopped = state.interacting && !moving;
+    state.interacting = moving;
+    if (stopped) updateViewLabels();
   }
   function refreshLayers() {
     if (!viewer) return;
     hideTip();
+    state.renderedBlend = detailBlend(state.view.zoom);
     viewer.setProps({layers:makeLayers()});
     syncBuildings();
     updateViewLabels();
@@ -502,6 +592,7 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
   }
   function applyFilter() {
     clearTimeout(filterTimer);
+    closeArea();
     const threshold = Number(el('hm-risk-filter').value) / 100;
     state.filtered = state.rows.filter(row => row.p >= threshold);
     el('hm-count').textContent = number.format(state.filtered.length);
@@ -542,6 +633,15 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
     el('hm-flat').addEventListener('click', () => setMode('flat'));
     el('hm-3d').addEventListener('click', () => setMode('3d'));
     el('hm-buildings').addEventListener('click', showBuildings);
+    el('hm-area-close').addEventListener('click', () => closeArea(true));
+    el('hm-area-zoom').addEventListener('click', zoomToArea);
+    el('hm-area-prev').addEventListener('click', () => { state.selectedPage--; renderAreaPage(); });
+    el('hm-area-next').addEventListener('click', () => { state.selectedPage++; renderAreaPage(); });
+    el('hm-area-panel').addEventListener('mouseenter', hideTip);
+    el('hm-street-view').addEventListener('click', () => { el('hm-street-view').href = streetViewURL(state.view); });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !el('hm-area-panel').hidden) closeArea(true);
+    });
     el('hm-risk-filter').addEventListener('input', () => {
       updateFilterLabel(); clearTimeout(filterTimer); filterTimer = setTimeout(applyFilter, 120);
     });
@@ -574,13 +674,15 @@ main { max-width:1500px; padding:1.25rem 1.4rem 1.5rem; }
       viewer = new deck.DeckGL({
         container:'hm-map', map:maplibregl,
         mapStyle:'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-        mapOptions:{attributionControl:true},
+        mapOptions:{attributionControl:true, fadeDuration:0, pixelRatio:1},
         initialViewState:{...state.view, minZoom:8, maxZoom:18, maxPitch:60},
         controller:mapController('flat'),
-        useDevicePixels:Math.min(window.devicePixelRatio || 1, 1.5),
+        // Both canvases use CSS-pixel resolution. High-DPI displays otherwise
+        // multiply the fill/picking cost of 63k properties and building tiles.
+        useDevicePixels:1,
         layers:makeLayers(), onHover, onClick, pickingRadius:4,
         getCursor:({isHovering,isDragging}) => isDragging ? 'grabbing' : isHovering ? 'pointer' : 'grab',
-        onViewStateChange,
+        onViewStateChange, onInteractionStateChange,
         onAfterRender:() => {
           if (state.ready || state.failed) return;
           state.ready = true;

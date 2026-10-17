@@ -150,8 +150,11 @@ illustrative. Open the Flask port with iptables and persist to
 The model takes temperature as input, so risk under a *predicted* temperature list
 is just scoring with forecast values — no retraining.
 
-- **Register:** address (→ BBL via GeoSearch) + email + consent checkbox, stored in
-  SQLite on the instance. Unsubscribe link in every mail.
+- **Register:** sign in with Google, then address (→ BBL via GeoSearch) + consent
+  checkbox. Email comes from the verified account; registrations live in SQLite on
+  the instance and reload on return. Optional remembered session lasts 30 days.
+  Unsubscribe links require the same account and a POST confirmation. Setup and
+  the implemented `/api/` URL contract: `GOOGLE_LOGIN.md` and `VERCEL.md`.
 - **Hourly job:** pull the Open-Meteo 7-day forecast. When it shows a freezing day,
   score all buildings under those forecast temperatures (0.4 s batch) and alert
   registered buildings whose risk crosses the threshold.

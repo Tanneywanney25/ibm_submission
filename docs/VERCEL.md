@@ -32,7 +32,7 @@ Two deployment targets, one Flask app, one URL contract.
 | target | what runs | data | state |
 |---|---|---|---|
 | LinuxONE instance (`148.100.77.112`) | `web/app.py` in FULL mode (pandas, every CSV), `realtime/app.py` replay service on port 5000 | `model/out/` and `data/` on disk | SQLite `web/heatahead.db` |
-| Vercel | the same `web/app.py` in LITE mode through `api/index.py` (Flask + requests only, no pandas) | precomputed JSON in `public/data/`, served statically by Vercel's CDN | registrations forwarded to the instance when `REGISTER_FORWARD_URL` is set, else `/tmp/heatahead.db` (ephemeral, demo only) |
+| Vercel | the same `web/app.py` in LITE mode through `api/index.py` (Flask, requests, Google auth SDKs; no pandas) | precomputed JSON in `public/data/`, served statically by Vercel's CDN | signed account sessions in secure cookies; registrations forwarded to the instance; 503 if durable storage is unavailable |
 
 Mode is decided at import time: FULL when `model/out/season_risk_2026.csv` exists, LITE
 otherwise (override with `APP_MODE=full|lite`). Pandas is imported only inside the FULL
@@ -42,7 +42,7 @@ branch, so the Vercel bundle never needs it.
 
 ```
 vercel.json              rewrites every non-static path to the one Python function
-requirements.txt         flask, requests, nothing else (pandas is NOT installed on Vercel)
+requirements.txt         pinned Flask, requests, google-auth, google-auth-oauthlib (no pandas)
 .vercelignore            excludes task 2/, analysis/, R/, model/, docs/, slides/, .venv/, *.ipynb, data/
 api/index.py             adds the repo root to sys.path and exposes `app` from web/app.py (WSGI)
 public/data/             the precomputed assets below, committed to git (total must stay under 60 MB)
@@ -100,7 +100,7 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 
 | route | method | serves | LITE mode source |
 |---|---|---|---|
-| `/` | GET | signup page (`index.html`) | template |
+| `/` | GET | Google sign-in or signed-in account, saved buildings and registration (`index.html`) | template + authenticated account API |
 | `/building` | GET | lookup page (`building.html`) | template |
 | `/map` | GET | risk map (`map.html`) | template |
 | `/monitor` | GET | live monitor (`monitor.html`) | template |
@@ -108,10 +108,15 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/api/building/<bbl>` | GET | the building payload | `public/data/b/NN.json` |
 | `/api/map_data` | GET | map rows | 302 redirect to `/data/map_data.json` (static, 3.1 MB; the function must not return 4 MB bodies, Vercel caps function responses at 4.5 MB). `fetch` follows the redirect, so `map.html` is unchanged |
 | `/api/reliability` | GET | calibration table | `public/data/reliability.json` |
-| `/api/register` | POST | `{ok, role, bbl, p_season?, normalized?, already_registered, stored_on, arch, durable}`; 400 with `{error}` for a bad role, email, phone or BBL, or an address GeoSearch cannot match on house number, street and borough; 502 when the geocoder is down | forwarded to `REGISTER_FORWARD_URL/api/register` when set (the instance geocodes, stores and sends the welcome email); if the instance is unreachable, held in `/tmp` SQLite with `durable:false` and the page says so |
-| `/api/my_buildings?email=` | GET | `{buildings, total}`: the registered buildings plus the registered owner's portfolio | forwarded like register; without a forward target, the email's own registered buildings only |
-| `/unsubscribe?email=&bbl=` | GET | deletes the registration rows, plain-text confirmation (linked from every email as an absolute `SITE_URL` link) | forwarded like register to the instance, where durable registrations live |
-| `/api/health` | GET | `{mode, host, arch, ranked, built_at, registrations_to, linuxone?}`; the footer of every page shows it | adds the instance's own `/api/health` under `linuxone` (3 s timeout, `{offline:true}` when down) |
+| `/api/register` | POST | existing registration result; signed-in Google identity and `X-CSRF-Token` required; email comes from the session; 400 invalid building/role/phone, 401 signed out, 403 other email or bad CSRF, 503 unavailable account service | signed request forwarded to the instance; no ephemeral fallback |
+| `/api/my_buildings` | GET | `{buildings, total, registrations:[{role,bbl}]}` for the signed-in email, plus public portfolio context; optional legacy `email=` must equal that account | signed request forwarded to the instance; 503 when unavailable |
+| `/unsubscribe?email=&bbl=` | GET | sign-in followed by a confirmation form; GET never deletes data | signed-in website template |
+| `/api/account/remove` | POST | `{ok,removed}`; JSON/form optional `bbl` (omit to remove all own registrations), signed-in identity and CSRF required; form success redirects home | signed request to durable instance storage |
+| `/api/auth/google` | GET | start Google sign-in; optional safe local `next`, `remember=1` (30 days) or `0` (browser session, maximum 12 hours); 503 when unconfigured | Google library authorization-code flow with PKCE, state and nonce |
+| `/api/auth/callback` | GET | verifies Google code and ID token, establishes signed session, redirects to safe local destination | exact registered Google redirect URI |
+| `/api/auth/session` | GET | `{user,google_ready,csrf_token}`; user is null when signed out | signed cookie, private/no-store |
+| `/api/auth/logout` | POST | clear session, redirect home; form or `X-CSRF-Token` required | website session |
+| `/api/health` | GET | existing health fields plus `account_protocol` (1 when shared secret configured), `google_sign_in` | adds instance health under `linuxone` (3 s timeout, `{offline:true}` when down) |
 | `/data/<path>` | GET | the files in `public/data/` | Vercel's CDN serves them before any rewrite; Flask serves them for local runs |
 | `/api/queue.csv?k=` | GET | top-k CSV | `public/data/top500.csv` (k capped at 500 in LITE) |
 | `/api/draft_message/<bbl>?as=&address=` | GET | `{to, recipients, subject, body, framing, note}`: a notice the user copies or opens in their own mail client, never sent. `as=tenant` (default) is a resident's request to the registered owner care of the managing agent; `as=landlord` is the owner's pre-winter self-audit; `address` names the building in the text (units are cut). 400 for another `as`, 404 for an unranked building | computed from the shard |
@@ -129,10 +134,16 @@ New endpoints go under `/api/` and get a row in this table in the same commit.
 | `APP_MODE` | leave unset (auto); `lite` forces the JSON path | `web/app.py` |
 | `SMTP_*` | only if alerts ever send from Vercel (they should not; the alert worker runs on the instance) | `web/alerts.py` |
 | `SITE_URL` | base URL used in email links (default `https://ibmsubmission.vercel.app`); set on the instance, where the emails are sent from | `web/mailer.py` |
+| `FLASK_SECRET_KEY` | stable random secret of at least 32 characters; exactly the same value on Vercel and LinuxONE; never commit it | signed cookies and one-use account forwarding |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth web application credentials; Vercel only | Google sign-in |
+| `AUTH_BASE_URL` | `https://ibmsubmission.vercel.app` for Production; exact stable preview origin for a preview; no trailing path | OAuth callback origin and cookie host |
 
-Vercel functions make outbound HTTP calls server-side, so a plain-HTTP instance URL is fine
-there. The browser must never call the instance directly from the HTTPS site (mixed content
-is blocked), which is exactly why the proxies exist.
+The browser calls only the HTTPS website. Account forwarding now signs the exact request
+and matching reply with 60-second expiry, SHA-256, and a SQLite one-use nonce. An old backend,
+wrong secret or tampered response fails closed with 503. The existing HTTP instance URL
+does **not** encrypt registration data in transit; use an HTTPS backend/private encrypted
+transport for production confidentiality. Google tokens and client secrets never go to the
+instance. Full setup and coordinated rollout: [GOOGLE_LOGIN.md](GOOGLE_LOGIN.md).
 
 ## 5. Vercel limits that shape every decision
 
@@ -154,7 +165,9 @@ is blocked), which is exactly why the proxies exist.
 1. Keep the URL contract in section 3 intact. Templates only call same-origin `/api/...`
    paths and `/data/...` static files. Never reference `localhost`, `127.0.0.1` or the
    instance IP from browser code.
-2. Code that runs on Vercel imports only the standard library, Flask and requests. Put any
+2. Code that runs on Vercel imports the standard library, Flask, requests and the pinned
+   Google auth libraries in `requirements.txt`. Google SDK imports are lazy, used only by
+   sign-in; the LinuxONE registration service does not need them. Put any
    pandas or numpy use behind the FULL-mode branch of `web/app.py` or in
    `web/build_assets.py`.
 3. Never commit `data/`, `model/out/`, pickles, databases or any file over 25 MB. The only
@@ -171,6 +184,8 @@ is blocked), which is exactly why the proxies exist.
    `/building`, `/monitor`, `/api/reliability`, `/api/building/2043190010` and
    `/api/map_data` (with `curl -L`: LITE answers it with a 302 to the static file); then watch the Vercel deployment finish and open the production URL.
    If the deploy fails, read the build log before changing anything else.
+   For account/map changes, also run `python -m unittest discover -s web/tests -v` (with
+   the pinned Google SDKs on Python 3.10+) and `node web/tests/test_map.cjs` (Node 18+).
 7. Secrets never enter the repo: SMTP credentials, tokens, API keys go in Vercel environment
    variables or the instance's environment. The Jupyter token is not a secret anyone should
    paste anywhere.
@@ -222,3 +237,18 @@ curl -sS -o /dev/null -w "%{http_code} %{size_download}\n" https://ibmsubmission
 ```
 
 All four must return 200 and the building call must mention `"ranked": true`.
+
+## 10. Accounts and map interactions
+
+Google sign-in configuration and release checks are in [GOOGLE_LOGIN.md](GOOGLE_LOGIN.md).
+Remembered sessions last up to 30 days; browser cookies are Secure, HttpOnly and SameSite=Lax.
+No Google access, refresh or ID token is stored in the cookie. Roles choose public views and
+alert registrations, not verified inspector/owner privileges. Alert registration rows remain
+in the existing instance SQLite database and reload after a fresh Google sign-in.
+
+The map uses a fixed pale-blue to deep-blue risk scale, interpolated into 256 steps for
+deck.gl 8 compatibility. Area color is mean property risk; the legend uses the same endpoints.
+Clicking a hexagon opens all its current-filter buildings in a paginated list; only clicking
+an individual marker or list link navigates to a building. Wheel easing is disabled, wheel
+speed is explicit, both map canvases use CSS pixels, and camera updates coalesce per frame.
+Panning reuses existing data layers; the flat/3D choice is preserved when zooming to buildings.

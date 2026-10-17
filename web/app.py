@@ -22,6 +22,7 @@ import re
 import sqlite3
 import sys
 import threading
+import time
 from decimal import ROUND_HALF_UP, Decimal
 from functools import lru_cache
 from pathlib import Path
@@ -32,6 +33,7 @@ from flask import (Flask, g, jsonify, redirect, render_template, request,
 
 sys.path.append(str(Path(__file__).resolve().parent))
 import mailer  # noqa: E402
+import account_auth  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "model/out"
@@ -203,7 +205,7 @@ def queue_csv(k):
 # ------------------------------------------------------------------ database
 def db():
     if "db" not in g:
-        g.db = sqlite3.connect(DB)
+        g.db = sqlite3.connect(DB, timeout=5)
         g.db.execute("""CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY, role TEXT NOT NULL, email TEXT NOT NULL,
             phone TEXT, address TEXT, bbl INTEGER, created TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -211,6 +213,8 @@ def db():
         g.db.execute("""CREATE TABLE IF NOT EXISTS alerts_sent (
             id INTEGER PRIMARY KEY, bbl INTEGER, email TEXT, spell_start TEXT,
             sent TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        g.db.execute("""CREATE TABLE IF NOT EXISTS account_request_nonces (
+            nonce TEXT PRIMARY KEY, expires INTEGER NOT NULL)""")
     return g.db
 
 
@@ -222,13 +226,32 @@ def close_db(_):
 
 
 def forward(method, path, **kw):
-    """LITE: pass a request through to the instance; None when it is unreachable."""
+    """Forward an account request and verify the matching signed backend reply."""
     try:
-        r = requests.request(method, f"{FORWARD_URL}{path}", timeout=8, **kw)
+        body = (json.dumps(kw.pop("json"), separators=(",", ":"), ensure_ascii=False).encode()
+                if "json" in kw else b"")
+        target, headers, nonce = account_auth.signed_forward(
+            method, path, account_auth.user(), body, kw.pop("params", None))
+        if body:
+            headers["Content-Type"] = "application/json"
+        r = requests.request(method, f"{FORWARD_URL}{target}", data=body or None,
+                             headers=headers, timeout=7, allow_redirects=False, **kw)
+        if not account_auth.verify_reply(r, nonce):
+            return None
         return (r.content, r.status_code, {"Content-Type": r.headers.get(
             "Content-Type", "application/json")})
-    except requests.RequestException:
+    except (requests.RequestException, ValueError):
         return None
+
+
+def consume_account_nonce(nonce):
+    con = db()
+    now = int(time.time())
+    con.execute("DELETE FROM account_request_nonces WHERE expires < ?", (now,))
+    cur = con.execute("INSERT OR IGNORE INTO account_request_nonces(nonce, expires) VALUES (?, ?)",
+                      (nonce, now + 90))
+    con.commit()
+    return cur.rowcount == 1
 
 
 # ------------------------------------------------------------------ helpers
@@ -414,8 +437,10 @@ def data_file(name):
 def api_health():
     out = dict(ok=True, mode=MODE, host=HOST, arch=ARCH, ranked=META["ranked"],
                built_at=META.get("built_at"),
+               account_protocol=1 if len(app.secret_key or "") >= 32 else None,
+               google_sign_in=account_auth.configured(),
                registrations_to="linuxone" if FORWARD_URL else
-               ("sqlite in /tmp (ephemeral)" if ON_VERCEL else f"sqlite on {HOST}"))
+               ("unavailable (configure REGISTER_FORWARD_URL)" if ON_VERCEL else f"sqlite on {HOST}"))
     if MODE == "full" or not FORWARD_URL:
         out["registrations"] = db().execute("SELECT COUNT(*) FROM users").fetchone()[0]
     if FORWARD_URL:
@@ -455,10 +480,15 @@ def api_map_data():
 @app.post("/api/register")
 def api_register():
     b = request.get_json(silent=True) or {}
+    if not isinstance(b, dict):
+        return jsonify(error="registration must be a JSON object"), 400
     role = str(b.get("role", "")).strip().lower()
-    email = str(b.get("email", "")).strip().lower()
+    email = account_auth.user()["email"]
+    supplied_email = str(b.get("email") or email).strip().lower()
+    if supplied_email != email:
+        return jsonify(error="Use the email address from your signed-in Google account."), 403
     phone = str(b.get("phone") or "").strip() or None
-    address = str(b.get("address") or "").strip() or None
+    address = UNIT_IN_ADDRESS.sub("", str(b.get("address") or "")).strip()[:200] or None
     raw_bbl = b.get("bbl")
     if role not in ROLES:
         return jsonify(error=f"role must be one of {', '.join(ROLES)}"), 400
@@ -483,7 +513,11 @@ def api_register():
                        json=dict(role=role, email=email, phone=phone, address=address, bbl=bbl))
         if sent is not None:
             return sent
-        # the instance is down: hold the sign-up here and say so
+        return jsonify(error="Your building could not be saved right now. You are still signed in; please try again shortly.",
+                       code="account_service_unavailable"), 503
+    if ON_VERCEL:
+        return jsonify(error="Building registration is being set up. You are signed in; please try again shortly.",
+                       code="account_service_unavailable"), 503
 
     normalized = None
     if needs_building and bbl is None:
@@ -552,30 +586,64 @@ def api_live_start():
 
 @app.get("/unsubscribe")
 def unsubscribe():
-    email = (request.args.get("email") or "").strip().lower()
-    bbl = request.args.get("bbl")
+    actor = account_auth.user()
+    if not actor:
+        return redirect("/api/auth/google?" + requests.compat.urlencode({"next": request.full_path.rstrip("?")}))
+    email = (request.args.get("email") or actor["email"]).strip().lower()
+    if email != actor["email"]:
+        return render_template("auth_message.html", title="Unsubscribe",
+                               message="Sign in with the Google account that received this alert."), 403
+    raw = request.args.get("bbl")
+    bbl = clean_bbl(raw) if raw else None
+    if raw and bbl is None:
+        return render_template("auth_message.html", title="Unsubscribe", message="This building link is not valid."), 400
+    return render_template("auth_message.html", title="Unsubscribe",
+                           message=(f"Stop heat alerts for BBL {bbl}?" if bbl else "Stop all heat alerts for your account?"),
+                           confirm_remove=True, bbl=bbl)
+
+
+@app.post("/api/account/remove")
+def api_remove_registration():
+    b = request.get_json(silent=True) or request.form
+    if not hasattr(b, "get"):
+        return jsonify(error="account update must be a JSON object"), 400
+    raw = b.get("bbl")
+    bbl = clean_bbl(raw) if raw not in (None, "") else None
+    if raw not in (None, "") and bbl is None:
+        return jsonify(error="invalid building"), 400
+    email = account_auth.user()["email"]
     if FORWARD_URL:
-        sent = forward("GET", "/unsubscribe", params=dict(email=email, bbl=bbl))
-        if sent is not None:
-            return sent
-    cur = db().execute("DELETE FROM users WHERE email=? AND (bbl=? OR ? IS NULL)",
-                       (email, bbl, bbl))
+        sent = forward("POST", "/api/account/remove", json=dict(bbl=bbl))
+        if sent is None:
+            return jsonify(error="Your alerts could not be updated right now. Please try again shortly."), 503
+        if request.form and sent[1] == 200:
+            return redirect("/")
+        return sent
+    if ON_VERCEL:
+        return jsonify(error="Account storage is temporarily unavailable."), 503
+    cur = db().execute("DELETE FROM users WHERE email=? AND (bbl=? OR ? IS NULL)", (email, bbl, bbl))
     db().commit()
-    return (f"Unsubscribed {cur.rowcount} registration(s) for {email}. "
-            "You can re-register any time.", 200, {"Content-Type": "text/plain"})
+    if request.form:
+        return redirect("/")
+    return jsonify(ok=True, removed=cur.rowcount)
 
 
 @app.get("/api/my_buildings")
 def api_my_buildings():
     """Landlord view: every building registered under this email, plus the
     rest of each building's landlord portfolio (public record)."""
-    email = (request.args.get("email") or "").strip().lower()
-    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
-        return jsonify(error="valid email required"), 400
+    email = account_auth.user()["email"]
+    if (request.args.get("email") or email).strip().lower() != email:
+        return jsonify(error="You can only open buildings registered to your own account."), 403
     if FORWARD_URL:
         sent = forward("GET", "/api/my_buildings", params=dict(email=email))
         if sent is not None:
             return sent
+        return jsonify(error="Your saved buildings could not be loaded. Please try again shortly."), 503
+    if ON_VERCEL:
+        return jsonify(error="Account storage is temporarily unavailable."), 503
+    registrations = [dict(role=r[0], bbl=r[1]) for r in db().execute(
+        "SELECT role, bbl FROM users WHERE email=? ORDER BY id DESC", (email,)).fetchall()]
     rows = db().execute("SELECT bbl FROM users WHERE email=? AND bbl IS NOT NULL",
                         (email,)).fetchall()
     own = {int(r[0]) for r in rows}
@@ -594,7 +662,7 @@ def api_my_buildings():
         else:
             out.append(dict(bbl=int(b), registered=b in own, ranked=False))
     out.sort(key=lambda x: (not x["registered"], -(x.get("p_season") or 0), x["bbl"]))
-    return jsonify(buildings=out[:200], total=len(out))
+    return jsonify(buildings=out[:200], total=len(out), registrations=registrations)
 
 
 @app.get("/api/queue.csv")
@@ -709,6 +777,9 @@ def api_draft_message(bbl):
     address = UNIT_IN_ADDRESS.sub("", request.args.get("address") or "")
     address = " ".join(address.split()).strip(" ,")[:120]
     return jsonify(draft_message(p, role, address))
+
+
+account_auth.init_app(app, consume_account_nonce)
 
 
 if __name__ == "__main__":
