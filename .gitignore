@@ -23,3 +23,8 @@ model/out/
 
 # local virtualenv
 .venv/
+
+# leftovers from the first (abandoned) repo - superseded by analysis/ and task 2/
+1. docs/
+notebooks/
+data_exploration.ipynb
