@@ -195,8 +195,10 @@ for _, sp in spells.iterrows():
         single_complaint_48h=len((top - pos48) & any48),
         clean_30d=100 - len(top & pos30)))
 
+SUF = ("_" + __import__("pathlib").Path(sys.argv[sys.argv.index("--model") + 1]).stem
+       ) if "--model" in sys.argv else ""
 res = pd.DataFrame(rows)
-res.to_csv(OUT / "spell_results.csv", index=False)
+res.to_csv(OUT / f"spell_results{SUF}.csv", index=False)
 print("\nspell-level precision (mean over spells):")
 print(res.groupby(["method", "k"])[["precision_spell", "precision_30d",
                                     "precision_rest_of_season", "recall_spell"]]

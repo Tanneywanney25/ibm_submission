@@ -11,6 +11,8 @@ Writes: model/out/results_precision_at_k.csv, model/out/scores_<day>.csv (coldes
 """
 
 import sys
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from common import (DATA, FEATS, NEVER, OUT, add_second_tier, band_prep, band_rates,
@@ -220,11 +222,18 @@ for _, drow in test_days.iterrows():
     if coldest_scores is None:                      # test_days is coldest-first
         coldest_scores = X[["bbl"]].assign(score=rank["model"].to_numpy(), day=d.date())
 
+# experiments (--model / --label) write SUFFIXED files; canonical names belong
+# to the frozen ensemble run only (T11c lesson: never clobber the canon)
+SUF = ""
+if VERIFIED:
+    SUF = "_verified"
+elif "--model" in sys.argv:
+    SUF = "_" + Path(sys.argv[sys.argv.index("--model") + 1]).stem
 res = pd.DataFrame(rows)
-res.to_csv(OUT / "results_precision_at_k.csv", index=False)
+res.to_csv(OUT / f"results_precision_at_k{SUF}.csv", index=False)
 pd.concat(calib, ignore_index=True).assign(weight=1.0) \
-    .to_csv(OUT / "calibration.csv", index=False)       # replaces 02's panel-based pairs
-coldest_scores.to_csv(OUT / "scores_coldest_day.csv", index=False)
+    .to_csv(OUT / f"calibration{SUF}.csv", index=False)  # replaces 02's panel-based pairs
+coldest_scores.to_csv(OUT / f"scores_coldest_day{SUF}.csv", index=False)
 
 print("\nmean over test days:")
 print(res.groupby(["method", "k"])[["precision", "precision_30d", "recall",
