@@ -6,7 +6,7 @@ HeatAhead predicts which buildings fail <em>before</em> the cold snap —
 verified on every freezing day of last winter.</p>
 
 <div class="grid2">
-  <div class="card">
+  <div class="card" id="signup_card">
     <h2>Sign up for alerts</h2>
     <p class="muted">When a cold snap approaches and your building is at risk,
     we tell you first — one email per cold spell, never spam.</p>
@@ -47,9 +47,23 @@ async function register(e){
       headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
   const j = await r.json();
   if (!r.ok) { out.textContent = j.error; return false; }
-  out.innerHTML = 'Registered.' + (j.p_season !== undefined ?
-    ` Your building's winter risk: <b>${(j.p_season*100).toFixed(0)}%</b> — ` +
-    `<a href="/building?bbl=${j.bbl}">see the full picture</a>` : '');
+  const riskLine = j.p_season !== undefined
+    ? `<p>Your building's winter risk:
+         <span class="big accent">${(j.p_season*100).toFixed(0)}%</span></p>
+       <p class="muted">chance of at least one heat outage this winter</p>
+       <p><a href="/building?bbl=${j.bbl}"><button>See your building's full picture</button></a></p>`
+    : `<p class="muted">You'll get access as a ${j.role}.
+         ${j.role === 'government' ? '<a href="/monitor">Open the inspector queue</a>' :
+           '<a href="/map">Explore the risk map</a>'}</p>`;
+  document.getElementById('signup_card').innerHTML = `
+    <div style="text-align:center; padding:1.2rem 0">
+      <div style="font-size:3rem; color:var(--ok)">&#10003;</div>
+      <h2 style="margin:.4rem 0">You're registered</h2>
+      <p class="muted">${body.email} · ${j.role}${j.bbl ? ' · BBL ' + j.bbl : ''}</p>
+      ${riskLine}
+      <p class="muted" style="font-size:.85rem">One email per cold spell when risk is high.
+         Unsubscribe any time from the alert email.</p>
+    </div>`;
   return false;
 }
 </script>

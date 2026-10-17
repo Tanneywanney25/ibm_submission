@@ -10,6 +10,8 @@ set REALTIME_URL to point elsewhere.
 import os
 import re
 import sqlite3
+import sys
+import threading
 import time
 from pathlib import Path
 
@@ -17,6 +19,9 @@ import numpy as np
 import pandas as pd
 import requests
 from flask import Flask, g, jsonify, render_template, request
+
+sys.path.append(str(Path(__file__).resolve().parent))
+import mailer  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "model/out"
@@ -205,6 +210,10 @@ def api_register():
     resp = dict(ok=True, role=role, bbl=bbl)
     if bbl and int(bbl) in season_risk.index:
         resp["p_season"] = round(float(season_risk.loc[int(bbl)].p_season), 3)
+    # welcome email: confirms the signup is for real alerts (SMTP env on the
+    # instance; logged when SMTP is not configured). Never blocks the response.
+    msg = mailer.welcome_email(email, role, bbl, resp.get("p_season"))
+    threading.Thread(target=mailer.send, args=(msg,), daemon=True).start()
     return jsonify(resp)
 
 

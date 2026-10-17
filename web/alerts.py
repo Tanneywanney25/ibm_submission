@@ -12,31 +12,23 @@ the demo. Thresholds and copy per docs/tasks/T4-alerts.md.
 
 import argparse
 import os
-import smtplib
 import sqlite3
 import sys
-from datetime import datetime
-from email.message import EmailMessage
 from pathlib import Path
 
 import pandas as pd
 import requests
 
+sys.path.append(str(Path(__file__).resolve().parent))
+from mailer import log, make_msg, send  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[1]
 DB = Path(__file__).resolve().parent / "heatahead.db"
-LOG = Path(__file__).resolve().parent / "alerts.log"
 FORECAST_URL = ("https://api.open-meteo.com/v1/forecast?latitude=40.7789"
                 "&longitude=-73.9692&daily=temperature_2m_min"
                 "&temperature_unit=fahrenheit&timezone=America%2FNew_York"
                 "&forecast_days=7")
 P_SEASON_MIN, P_COLDDAY_MIN = 0.35, 0.20
-
-
-def log(msg):
-    line = f"[{datetime.now().isoformat(timespec='seconds')}] {msg}"
-    print(line)
-    with open(LOG, "a", encoding="utf-8") as f:
-        f.write(line + "\n")
 
 
 def find_spell(force=None):
@@ -73,12 +65,10 @@ def band(p):
 
 
 def compose(email, bbl, row, spell_start, cold_days):
-    msg = EmailMessage()
-    msg["Subject"] = f"HeatAhead: cold snap from {spell_start} - your building is at risk"
-    msg["From"] = os.environ.get("SMTP_FROM", "alerts@heatahead.local")
-    msg["To"] = email
     p = float(row.p_season)
-    msg.set_content(
+    return make_msg(
+        email,
+        f"HeatAhead: cold snap from {spell_start} - your building is at risk",
         f"A freezing stretch is forecast to start {spell_start}"
         f" (sub-freezing days ahead: {', '.join(cold_days)}).\n\n"
         f"Your building (BBL {bbl}) has a {band(p)} modeled chance of losing "
@@ -92,29 +82,6 @@ def compose(email, bbl, row, spell_start, cold_days):
         f"on last winter.\n\n"
         f"One alert per cold spell, never more. Unsubscribe: reply STOP or "
         f"visit /unsubscribe?email={email}&bbl={bbl}\n")
-    return msg
-
-
-def send(msg, dry):
-    if dry:
-        log(f"DRY-RUN would send: {msg['To']} | {msg['Subject']}")
-        return True
-    host = os.environ.get("SMTP_HOST")
-    if not host:
-        log(f"(no SMTP configured) EMAIL -> {msg['To']}\n{msg.get_content()}")
-        return True
-    try:
-        with smtplib.SMTP(host, int(os.environ.get("SMTP_PORT", 587))) as s:
-            s.starttls()
-            s.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
-            s.send_message(msg)
-        log(f"sent: {msg['To']}")
-        return True
-    except Exception as e:
-        log(f"SMTP error for {msg['To']}: {e}")
-        return False
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
