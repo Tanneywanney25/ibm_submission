@@ -43,11 +43,21 @@ public/data/             the precomputed assets below, committed to git (total m
 web/build_assets.py      run on the instance (where model/out and data exist) to regenerate public/data/
 ```
 
-`vercel.json` (static files in `public/` are matched before rewrites, so assets never hit the function):
+`vercel.json` (static files in `public/` are matched before rewrites, so assets never hit the
+function; `includeFiles` puts the templates and the shards inside the function bundle too):
 
 ```json
-{ "rewrites": [ { "source": "/(.*)", "destination": "/api/index" } ] }
+{
+  "functions": { "api/index.py": { "includeFiles": "{web/**,public/data/**}" } },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
+}
 ```
+
+`.vercelignore` anchors every pattern with a leading slash. Ignore files use gitignore
+syntax, where a bare `data/` matches a `data` folder at any depth: on the first deploy it
+silently dropped `public/data/`, `public/` was left empty, and Vercel fell back to serving
+the repo root as static files (so `/web/app.py` was downloadable and every building call
+returned 503).
 
 ### Precomputed assets in `public/data/` (built by `web/build_assets.py`)
 
@@ -92,12 +102,11 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/api/reliability` | GET | calibration table | `public/data/reliability.json` |
 | `/api/register` | POST | `{ok, role, bbl, p_season?, normalized?, already_registered, stored_on, arch, durable}`; 400 with `{error}` for a bad role, email, phone or BBL, or an address GeoSearch cannot match on house number, street and borough; 502 when the geocoder is down | forwarded to `REGISTER_FORWARD_URL/api/register` when set (the instance geocodes, stores and sends the welcome email); if the instance is unreachable, held in `/tmp` SQLite with `durable:false` and the page says so |
 | `/api/my_buildings?email=` | GET | `{buildings, total}`: the registered buildings plus the registered owner's portfolio | forwarded like register; without a forward target, the email's own registered buildings only |
-| `/unsubscribe?email=&bbl=` | GET | deletes the registration rows, plain-text confirmation (linked from every email) | forwarded like register |
+| `/unsubscribe?email=&bbl=` | GET | deletes the registration rows, plain-text confirmation (linked from every email as an absolute `SITE_URL` link) | forwarded like register to the instance, where durable registrations live |
 | `/api/health` | GET | `{mode, host, arch, ranked, built_at, registrations_to, linuxone?}`; the footer of every page shows it | adds the instance's own `/api/health` under `linuxone` (3 s timeout, `{offline:true}` when down) |
 | `/data/<path>` | GET | the files in `public/data/` | Vercel's CDN serves them before any rewrite; Flask serves them for local runs |
 | `/api/queue.csv?k=` | GET | top-k CSV | `public/data/top500.csv` (k capped at 500 in LITE) |
 | `/api/draft_message/<bbl>` | GET | templated notice, never sent | computed from the shard |
-| `/unsubscribe?email=&bbl=` | GET | removes the registration (linked from every email); on Vercel this must forward to the instance like `/api/register` once forwarding exists, because durable registrations live there | forwarded; plain-text confirmation |
 | `/api/live/stats`, `/api/live/queue?k=` | GET | proxy to the realtime service | `REALTIME_URL` env var; 503 `{offline:true}` when unreachable |
 | `/api/live/replay/start` | POST | proxy | same |
 

@@ -1,15 +1,16 @@
-# keep the Vercel function bundle to web/, api/ and public/ (docs/VERCEL.md section 5)
-task 2/
-analysis/
-R/
-model/
-docs/
-slides/
-realtime/
-data/
-.venv/
-.claude/
+# keep the Vercel deploy to web/, api/ and public/ (docs/VERCEL.md section 5).
+# Patterns are anchored with a leading slash: a bare "data/" would also drop public/data/.
+/task 2/
+/analysis/
+/R/
+/model/
+/docs/
+/slides/
+/realtime/
+/data/
+/.venv/
+/.claude/
 *.ipynb
 *.Rproj
-web/heatahead.db
-web/alerts.log
+/web/heatahead.db
+/web/alerts.log

@@ -1,3 +1,4 @@
 {
+  "functions": { "api/index.py": { "includeFiles": "{web/**,public/data/**}" } },
   "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
 }
