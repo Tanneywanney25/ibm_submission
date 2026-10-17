@@ -2,6 +2,28 @@
 {% block title %}Check a building — HeatAhead{% endblock %}
 {% block head %}
 <style>
+.ha-photo-heading { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:.7rem 1rem; margin-bottom:1rem; }
+.ha-photo-heading h2 { margin:0 0 .3rem; }
+.ha-photo-heading p { margin:0; font-size:.83rem; }
+.ha-photo-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; }
+.ha-photo-actions a, .ha-photo-actions button { border:1px solid var(--line); border-radius:7px; background:var(--well); color:var(--ink); padding:.45rem .65rem; font-size:.8rem; font-weight:500; text-decoration:none; }
+.ha-photo-actions a:hover { color:var(--accent); }
+.ha-photo-actions [hidden], #ha-photo-pin[hidden], #ha-photo-state[hidden], #ha-photo-credit[hidden] { display:none; }
+.ha-photo-frame { position:relative; height:clamp(240px,32vw,350px); overflow:hidden; border:1px solid var(--line); border-radius:8px; background:var(--well); }
+#ha-photo-slot, #ha-photo-slot img { width:100%; height:100%; }
+#ha-photo-slot img { display:block; object-fit:cover; }
+#ha-photo-slot img[hidden] { display:none; }
+.ha-photo-badge { position:absolute; left:12px; top:12px; padding:.25rem .5rem; border-radius:5px; background:rgba(16,19,23,.88); color:#e9e6e0; font-size:.7rem; pointer-events:none; }
+#ha-photo-pin { position:absolute; left:50%; top:50%; width:26px; height:26px; transform:translate(-50%,-50%); border:2px solid white; border-radius:50%; box-shadow:0 0 0 2px #101317; pointer-events:none; }
+#ha-photo-pin::after { content:""; position:absolute; width:6px; height:6px; border-radius:50%; background:white; left:8px; top:8px; box-shadow:0 0 0 1px #101317; }
+#ha-photo-state { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:2.4rem 1.2rem; color:var(--muted); text-align:center; font-size:.88rem; }
+#ha-photo-credit { position:absolute; right:0; bottom:0; left:0; margin:0; padding:.35rem .65rem; background:rgba(16,19,23,.88); color:#e9e6e0; text-align:right; font-size:.62rem; }
+#ha-photo-credit a { color:inherit; }
+.ha-photo-note { margin:.65rem 0 0; font-size:.77rem; }
+.ha-photo-actions a:focus-visible, .ha-photo-actions button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+@media(max-width:600px) { #ha-photo-credit { font-size:.57rem; } .ha-photo-actions { width:100%; } }
+
+
 .who th { width:10.5rem; vertical-align:top; }
 .who td b { font-weight:600; }
 .frame { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin:.6rem 0 .9rem; }
@@ -31,6 +53,27 @@
   <div id="status" class="muted"></div>
 </div>
 <div id="result" style="display:none">
+  <section class="card" aria-labelledby="ha-photo-title">
+    <div class="ha-photo-heading">
+      <div>
+        <h2 id="ha-photo-title">Property imagery</h2>
+        <p id="ha-photo-location" class="muted"></p>
+      </div>
+      <div class="ha-photo-actions">
+        <a id="ha-street-view" target="_blank" rel="noopener noreferrer" hidden>Google Street View ↗</a>
+        <a id="ha-open-map" target="_blank" rel="noopener noreferrer" hidden>Open map ↗</a>
+        <button id="ha-photo-retry" type="button" onclick="retryPropertyImagery()" hidden>Retry photo</button>
+      </div>
+    </div>
+    <div class="ha-photo-frame">
+      <div id="ha-photo-slot"></div>
+      <span class="ha-photo-badge">Aerial photo · North ↑</span>
+      <span id="ha-photo-pin" aria-hidden="true" hidden></span>
+      <div id="ha-photo-state" role="status" aria-live="polite">Loading aerial imagery…</div>
+      <p id="ha-photo-credit" hidden>Source: <a href="https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer" target="_blank" rel="noopener noreferrer">Esri World Imagery</a> · Esri, Vantor, Earthstar Geographics, and the GIS User Community</p>
+    </div>
+    <p class="muted ha-photo-note">The ring marks the property's mapped location. Imagery dates vary; this is not a live photo. Street View opens the nearest available street-level panorama.</p>
+  </section>
   <div class="grid2">
     <div class="card">
       <h2>This winter</h2>
@@ -105,10 +148,108 @@
 <div id="notranked" class="card" style="display:none"></div>
 <script>
 const $ = id => document.getElementById(id);
+let lookupVersion = 0;
+let draftVersion = 0;
+let photoVersion = 0;
+let photoTimer = null;
+let photoImage = null;
+let imageryBuilding = null;
+
+function propertyImageURLs(coords){
+  if (!Array.isArray(coords) || coords.length !== 2 ||
+      !coords.every(value => typeof value === 'number' && Number.isFinite(value))) return null;
+  const [lon, lat] = coords;
+  if (lon < -74.35 || lon > -73.60 || lat < 40.45 || lat > 40.96) return null;
+  // The API supplies [longitude, latitude]. ArcGIS exports a north-up image
+  // centered on that point; Google Maps URLs use latitude,longitude.
+  const radius = 6378137;
+  const x = radius * lon * Math.PI / 180;
+  const y = radius * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360));
+  const bbox = [x - 90, y - 55, x + 90, y + 55].map(value => value.toFixed(2)).join(',');
+  const query = new URLSearchParams({bbox, bboxSR:'3857', imageSR:'3857',
+    size:'900,550', format:'jpg', f:'image'});
+  const point = lat.toFixed(5) + ',' + lon.toFixed(5);
+  return {
+    aerial:'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?' + query,
+    street:'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + encodeURIComponent(point),
+    map:'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(point)
+  };
+}
+function clearPropertyImagery(){
+  photoVersion++;
+  clearTimeout(photoTimer);
+  photoTimer = null;
+  imageryBuilding = null;
+  if (photoImage) { photoImage.onload = null; photoImage.onerror = null; photoImage.removeAttribute('src'); }
+  photoImage = null;
+  $('ha-photo-slot').replaceChildren();
+  $('ha-photo-pin').hidden = true;
+  $('ha-photo-credit').hidden = true;
+  $('ha-photo-retry').hidden = true;
+  for (const id of ['ha-street-view','ha-open-map']) {
+    $(id).hidden = true; $(id).removeAttribute('href');
+  }
+  $('ha-photo-state').hidden = false;
+  $('ha-photo-state').textContent = 'Loading aerial imagery…';
+  $('ha-photo-location').textContent = '';
+}
+function loadPropertyImagery(building){
+  clearPropertyImagery();
+  imageryBuilding = building;
+  const version = photoVersion;
+  const urls = propertyImageURLs(building.coords);
+  $('ha-photo-location').textContent = 'BBL ' + building.bbl;
+  if (!urls) {
+    $('ha-photo-state').textContent = 'A mapped location is not available for this property. Its risk and history are shown below.';
+    return;
+  }
+  $('ha-street-view').href = urls.street; $('ha-street-view').hidden = false;
+  $('ha-open-map').href = urls.map; $('ha-open-map').hidden = false;
+  const image = new Image(900,550);
+  photoImage = image;
+  image.alt = 'Aerial photograph around the mapped location of BBL ' + building.bbl;
+  image.decoding = 'async'; image.referrerPolicy = 'no-referrer'; image.hidden = true;
+  image.onload = () => {
+    if (version !== photoVersion) return;
+    clearTimeout(photoTimer); photoTimer = null;
+    image.hidden = false;
+    $('ha-photo-state').hidden = true;
+    $('ha-photo-retry').hidden = true;
+    $('ha-photo-pin').hidden = false;
+    $('ha-photo-credit').hidden = false;
+  };
+  image.onerror = () => {
+    if (version !== photoVersion) return;
+    clearTimeout(photoTimer); photoTimer = null;
+    $('ha-photo-state').textContent = 'Aerial imagery could not load. Try again or open Google Street View to look around this property.';
+    $('ha-photo-state').hidden = false;
+    $('ha-photo-retry').hidden = false;
+  };
+  $('ha-photo-slot').replaceChildren(image);
+  photoTimer = setTimeout(() => {
+    if (version !== photoVersion) return;
+    photoTimer = null;
+    $('ha-photo-state').textContent = 'The photo is taking longer to load. You can retry or open Google Street View while it loads.';
+    $('ha-photo-retry').hidden = false;
+  }, 20000);
+  image.src = urls.aerial;
+}
+function retryPropertyImagery(){
+  if (imageryBuilding) loadPropertyImagery(imageryBuilding);
+}
+
 async function lookup(e){
   if (e) e.preventDefault();
   let q = $('q').value.trim();
   if (!q) { $('status').textContent = 'type a street address or a 10-digit BBL'; return false; }
+  const version = ++lookupVersion;
+  draftVersion++;
+  clearPropertyImagery();
+  window._bbl = null;
+  $('result').style.display = 'none'; $('notranked').style.display = 'none';
+  $('draftbox').style.display = 'none'; $('draftstatus').textContent = '';
+  $('draft_out').value = ''; $('draft_subj').value = ''; $('draft_to').textContent = '';
+  $('draftbtn').disabled = false; $('copied').textContent = '';
   $('status').textContent = 'looking up...';
   let bbl = /^\d{10}$/.test(q) ? q : null, b;
   window._addr = '';
@@ -116,14 +257,20 @@ async function lookup(e){
     if (!bbl) {
       const r = await fetch('/api/lookup?address=' + encodeURIComponent(q));
       const j = await r.json();
+      if (version !== lookupVersion) return false;
       if (!r.ok) { $('status').textContent = j.error; return false; }
-      bbl = j.bbl; $('status').textContent = j.normalized + ' · BBL ' + bbl;
+      bbl = String(j.bbl); $('status').textContent = j.normalized + ' · BBL ' + bbl;
       window._addr = j.normalized.replace(/, USA$/, '');
     } else $('status').textContent = 'BBL ' + bbl;
+    if (!/^[1-5]\d{9}$/.test(bbl)) { $('status').textContent = 'Please enter a valid NYC BBL.'; return false; }
     const r = await fetch('/api/building/' + bbl);
     b = await r.json();
+    if (version !== lookupVersion) return false;
     if (!r.ok) { $('status').textContent = b.error || 'building data unavailable'; return false; }
-  } catch { $('status').textContent = 'could not reach the server - try again'; return false; }
+  } catch {
+    if (version === lookupVersion) $('status').textContent = 'could not reach the server - try again';
+    return false;
+  }
   window._bbl = bbl;
   if (!b.ranked) {
     $('result').style.display = 'none';
@@ -132,6 +279,7 @@ async function lookup(e){
     return false;
   }
   $('notranked').style.display = 'none'; $('result').style.display = 'block';
+  loadPropertyImagery(b);
   $('p_season').innerHTML = riskHTML(b.season.p);
   $('vs_median').textContent = b.season.vs_median;
   $('rank').textContent = b.season.rank.toLocaleString() + ' of ' + b.season.of.toLocaleString();
@@ -151,8 +299,8 @@ async function lookup(e){
   const cols = 6, rows = Math.min(12, Math.max(4, Math.round((b.units || 24) / 8)));
   const cells = cols * rows, lit = Math.max(1, Math.round(Math.min(b.season.p, 0.99) * cells));
   $('elev').innerHTML = bldg(cols, rows, 13, 6, 10, litSet(lit, cells, 5),
-      'your building, drawn from city records');
-  $('elevcap').textContent = `Your building, drawn from city records - ${lit} of ${cells} ` +
+      'Risk illustration for this property');
+  $('elevcap').textContent = `Risk illustration - ${lit} of ${cells} ` +
       `windows lit = this winter's risk share.`;
   bars('cbars', b.complaints); bars('vbars', b.violations);
   reliability();
@@ -210,13 +358,18 @@ function who(b){
 // T5b: a notice the user sends from their own mail client; this site never sends it
 const asOf = () => document.querySelector('input[name=as]:checked').value;
 async function draft(){
+  const bbl = window._bbl;
+  if (!bbl) return false;
+  const version = ++draftVersion, buildingVersion = lookupVersion;
+  const role = asOf(), address = window._addr;
   const btn = $('draftbtn'); btn.disabled = true; $('draftstatus').textContent = 'drafting...';
   let r, j;
   try {
-    r = await fetch('/api/draft_message/' + window._bbl + '?as=' + asOf() +
-                    (window._addr ? '&address=' + encodeURIComponent(window._addr) : ''));
+    r = await fetch('/api/draft_message/' + bbl + '?as=' + role +
+                    (address ? '&address=' + encodeURIComponent(address) : ''));
     j = await r.json();
   } catch { j = {error: 'could not reach the server - try again'}; }
+  if (version !== draftVersion || buildingVersion !== lookupVersion || window._bbl !== bbl) return false;
   btn.disabled = false;
   if (!r || !r.ok || j.error) { $('draftstatus').textContent = j.error || 'no draft'; return false; }
   $('draftstatus').textContent = '';
@@ -248,7 +401,7 @@ if (urlBBL) {
   $('q').value = urlBBL;
   // /building?bbl=...#draft (the landlord view's self-audit links): draft straight away
   lookup().then(() => {
-    if (location.hash === '#draft' && $('result').style.display === 'block')
+    if (window._bbl === urlBBL && location.hash === '#draft' && $('result').style.display === 'block')
       draft().then(() => $('draft').scrollIntoView({behavior: 'smooth'}));
   });
 }
