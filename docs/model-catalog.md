@@ -144,6 +144,11 @@ All metrics are on the held-out 2025-26 winter unless marked otherwise.
 - **Result (8 held-out spells): p@100 89.9% (+3.8 over the frozen 86.1)** with
   no regression at depth (64.8 / 51.3 / 34.9 vs 64.6 / 51.4 / 34.8) — unlike
   M7, the top-of-list gain costs nothing below it. Clears the adoption bar.
+- **Verified (model/23):** three seed retrains land at 88.0 / 89.2 / 89.9 —
+  quote "~88–90%", not the best draw — and the win is consistent: **7 of 8
+  spells beaten** (exact p = 0.0078), the one loss by a single building on the
+  mildest spell. M12 independently also wins 7/8, dissolving the
+  two-finalists multiplicity concern. `ceiling_verification.csv`.
 - **Role:** powers the per-spell inspector list going forward; the frozen
   submission numbers stay frozen, and the deck may add one line: "our latest
   spell-level model reaches 89.9% precision@100 (submission figure: 86.1%)."
