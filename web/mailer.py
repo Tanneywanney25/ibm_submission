@@ -85,8 +85,9 @@ def band(p):
             f"(roughly {min(99, round(p * 20) * 5)}%)")
 
 
-def welcome_email(email, role, bbl=None, p_season=None):
-    lines = [f"You're signed up for HeatAhead alerts as a {role}.", ""]
+def welcome_email(email, role=None, bbl=None, p_season=None):
+    """`role` is accepted for older callers and ignored: there is one account type (T14)."""
+    lines = ["You're signed up for HeatAhead heat-risk alerts.", ""]
     if bbl and p_season is not None:
         pct = band(p_season)
         lines += [f"Your building (BBL {bbl}) has a {pct} modeled chance of at "

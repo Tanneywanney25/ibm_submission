@@ -51,9 +51,13 @@ ARCH = platform.machine().lower()
 HOST = "vercel" if ON_VERCEL else ("linuxone" if ARCH == "s390x" else "local")
 GEOSEARCH = "https://geosearch.planninglabs.nyc/v2/search"
 ROLES = ("tenant", "landlord", "government", "viewer")
-# T14: the dashboard shows panels, not roles. A role recorded at registration only
-# picks the default set (the migration map below); the user toggles panels freely
-# and the choice is stored per account (/api/account/panels).
+# T14: one account type. Saving a building no longer asks for a role; the `role`
+# column stays because alerts.py and the instance's users table key on it, and
+# every new building row is stored as BUILDING_ROLE (building alerts). Older
+# clients may still send a role from ROLES. Panels, not roles, shape the
+# dashboard: a legacy role only picks the default set (the migration map below)
+# until the user toggles panels, stored per account (/api/account/panels).
+BUILDING_ROLE = "tenant"
 PANELS = ("buildings", "audit", "queue", "stats")
 ROLE_PANELS = dict(tenant=("buildings",), landlord=("buildings", "audit"),
                    government=("buildings", "queue"), viewer=("stats",))
@@ -450,7 +454,7 @@ def clean_bbl(v):
 # ------------------------------------------------------------------ pages
 @app.get("/")
 def index():
-    return render_template("index.html", roles=ROLES, page="signup",
+    return render_template("index.html", page="signup",
                            panel_order=PANELS, role_panels=ROLE_PANELS,
                            site_meta=dict(ranked=META["ranked"],
                                           median_text=fmt_risk(CITYWIDE_SEASON_MEDIAN)
@@ -529,7 +533,7 @@ def api_register():
     b = request.get_json(silent=True) or {}
     if not isinstance(b, dict):
         return jsonify(error="registration must be a JSON object"), 400
-    role = str(b.get("role", "")).strip().lower()
+    role = str(b.get("role") or BUILDING_ROLE).strip().lower()
     email = account_auth.user()["email"]
     supplied_email = str(b.get("email") or email).strip().lower()
     if supplied_email != email:
@@ -550,8 +554,7 @@ def api_register():
         if bbl is None:
             return jsonify(error="a BBL is 10 digits starting with the borough (1-5)"), 400
     if needs_building and bbl is None and not address:
-        return jsonify(error=f"a {role} sign-up needs the building's street address "
-                             "(or its 10-digit BBL)"), 400
+        return jsonify(error="Enter the building's street address (or its 10-digit BBL)."), 400
     if not needs_building:
         address = None           # government and viewer accounts are not tied to a building
 
@@ -603,7 +606,7 @@ def api_register():
     # welcome email (web/mailer.py: SMTP env on the instance, logged without it).
     # Only where sign-ups are durable: a Vercel function must not outlive its request.
     if not existed and not ON_VERCEL:
-        msg = mailer.welcome_email(email, role, bbl, resp.get("p_season"))
+        msg = mailer.welcome_email(email, bbl=bbl, p_season=resp.get("p_season"))
         threading.Thread(target=mailer.send, args=(msg,), daemon=True).start()
     return jsonify(resp)
 

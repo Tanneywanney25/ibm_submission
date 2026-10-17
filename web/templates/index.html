@@ -7,12 +7,11 @@
 .stats b { display:block; font-size:1.7rem; color:var(--accent); line-height:1.2; }
 .stats span { font-size:.84rem; color:var(--muted); }
 @media (max-width:760px){ .stats { grid-template-columns:1fr 1fr; } }
-.roles { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin:.4rem 0 .9rem; }
-.roles label { border:1px solid var(--line); border-radius:8px; padding:.55rem .7rem;
-               cursor:pointer; background:var(--well); font-size:.9rem; }
-.roles label:has(input:checked) { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
-.roles input { accent-color:var(--accent); margin-right:.35rem; }
-.roles small { display:block; color:var(--muted); font-size:.78rem; margin-left:1.3rem; }
+.field-hint { font-size:.8rem; margin-top:.3rem; color:var(--muted); min-height:1rem; }
+.field-hint.warn { color:var(--bad); }
+input[aria-invalid=true] { border-color:var(--bad); }
+.profile-section { border-top:1px solid var(--line); margin-top:1rem; padding-top:.8rem; }
+.profile-section h3 { margin:.1rem 0 .4rem; }
 form .row { margin:.55rem 0; } form .row input[type=email], form .row input[type=tel],
 form .row input[type=text] { width:100%; }
 .consent { font-size:.85rem; color:var(--muted); display:flex; gap:.5rem; align-items:flex-start; }
@@ -92,37 +91,45 @@ skyline(document.getElementById('heroSky'),
 <div class="grid2">
   <div class="card" id="account">
     {% if account_user %}
-    <h2>Your account</h2>
+    <h2 id="profile">Your profile</h2>
     <p class="muted account-email">Signed in
-    {{- ' with Google' if not account_user.sub.startswith('email:') }} as
+    {{- ' with Google' if not account_user.sub.startswith('email:') else ' with an email link' }} as
     <b>{{ account_user.email }}</b>.</p>
-    <h3>Register a building</h3>
-    <form id="reg" onsubmit="return register(event)" novalidate>
-      <div class="roles" id="roles">
-        <label><input type="radio" name="role" value="tenant" checked>Tenant
-          <small>your building's winter risk and cold-snap alerts</small></label>
-        <label><input type="radio" name="role" value="landlord">Landlord
-          <small>your buildings, your portfolio, inspection nudges</small></label>
-        <label><input type="radio" name="role" value="government">Government
-          <small>the ranked inspection queue and CSV export</small></label>
-        <label><input type="radio" name="role" value="viewer">Viewer
-          <small>the citywide risk map, no building alerts</small></label>
+
+    <form id="panel_prefs" class="profile-section" novalidate>
+      <h3>What your dashboard shows</h3>
+      <p class="muted" style="font-size:.85rem; margin:.2rem 0">One account for everyone —
+      turn on the panels you want. Changes save as you click.</p>
+      <div class="panel-picks">
+        <label><input type="checkbox" data-panel="buildings">My buildings &amp; alerts</label>
+        <label><input type="checkbox" data-panel="audit">Landlord self-audit tools</label>
+        <label><input type="checkbox" data-panel="queue">Inspection queue</label>
+        <label><input type="checkbox" data-panel="stats">City-wide stats</label>
       </div>
-      <div class="row"><input id="email" type="email" value="{{ account_user.email }}" aria-label="Google account email" readonly></div>
-      <div class="row"><input id="phone" type="tel" placeholder="phone (optional)" autocomplete="tel"></div>
-      <div class="row" id="addr_row"><input id="address" type="text"
+      <p id="panels_status" class="muted" role="status" aria-live="polite"
+         style="font-size:.83rem; min-height:1rem; margin:0"></p>
+    </form>
+
+    <form id="reg" class="profile-section" onsubmit="return register(event)" novalidate>
+      <h3>Save a building</h3>
+      <div class="row"><input id="address" type="text"
         placeholder="building street address, e.g. 330 E 139 St, Bronx (or a 10-digit BBL)"
-        autocomplete="street-address">
-        <div class="muted" style="font-size:.8rem; margin-top:.3rem">Building only: leave
-        out your apartment number. We never store or show one.</div></div>
-      <div class="row consent" id="consent_row"><input type="checkbox" id="consent" checked>
+        autocomplete="street-address" aria-describedby="address_hint"
+        aria-label="Building street address or 10-digit BBL">
+        <div class="field-hint" id="address_hint">Building only: leave out your apartment
+        number. We never store or show one.</div></div>
+      <div class="row"><input id="phone" type="tel" placeholder="phone (optional)"
+        autocomplete="tel" aria-describedby="phone_hint" aria-label="Phone (optional)">
+        <div class="field-hint" id="phone_hint"></div></div>
+      <div class="row consent"><input type="checkbox" id="consent" checked>
         <label for="consent">Email me when a forecast cold snap puts this building at risk:
         one email per cold spell, unsubscribe any time.</label></div>
       <div class="row"><button id="submit">Save to my account</button></div>
+      <div id="reg_out" class="muted" role="status" aria-live="polite"></div>
     </form>
-    <div id="reg_out" class="muted"></div>
     <p class="muted" style="font-size:.8rem; margin-bottom:0">Saved buildings return when you
-    sign in again. You can stop alerts from your account or any alert email.</p>
+    sign in again. Stop alerts for one building from your dashboard, or
+    <a href="/unsubscribe">stop all alerts</a>.</p>
     {% else %}
     <h2>Welcome to HeatAhead</h2>
     <p class="muted">Sign in to save your building, manage heat alerts, and
@@ -162,22 +169,10 @@ skyline(document.getElementById('heroSky'),
     <div class="card" id="dashboard">
       <div class="dash-head">
         <h2>Your dashboard</h2>
-        <button type="button" id="customize" class="remove-building"
-                aria-expanded="false" aria-controls="panel_prefs">Customize</button>
+        <a href="#profile" style="font-size:.85rem">Choose panels</a>
       </div>
-      <form id="panel_prefs" hidden novalidate>
-        <p class="muted" style="font-size:.85rem; margin:.5rem 0 .2rem">One account, your mix of
-        panels. What you register only picks the starting set; toggle anything here.</p>
-        <div class="panel-picks">
-          <label><input type="checkbox" data-panel="buildings">My buildings &amp; alerts</label>
-          <label><input type="checkbox" data-panel="audit">Landlord self-audit tools</label>
-          <label><input type="checkbox" data-panel="queue">Inspection queue</label>
-          <label><input type="checkbox" data-panel="stats">City-wide stats</label>
-        </div>
-        <div class="saved-actions"><button type="submit" id="panels_save">Save my dashboard</button>
-          <span id="panels_status" class="muted" role="status" aria-live="polite"
-                style="font-size:.83rem"></span></div>
-      </form>
+      <p id="panels_empty" class="muted" hidden>No panels are on. Turn some on in
+      <a href="#profile">your profile</a>.</p>
       <div class="panel" id="panel-buildings" hidden>
         <h3>Your saved buildings</h3>
         <div id="saved-buildings" class="muted" role="status">Loading your account…</div>
@@ -233,7 +228,7 @@ skyline(document.getElementById('heroSky'),
   <div class="card"><b>2. Decide.</b> <span class="muted">The model re-scores every building under
     the forecast temperatures (the whole city in about a third of a second on the s390x guest) and
     ranks them for inspection.</span></div>
-  <div class="card"><b>3. Respond.</b> <span class="muted">Registered tenants and landlords over the
+  <div class="card"><b>3. Respond.</b> <span class="muted">People who saved a building over the
     calibrated threshold get one email for that spell; inspectors get the ranked queue.</span></div>
 </div>
 
@@ -247,19 +242,33 @@ const PANEL_ORDER = {{ panel_order | tojson }};
 const ROLE_PANELS = {{ role_panels | tojson }};
 let accountRegistrations = [];
 let panelsCustomized = false;
-const roleOf = () => document.querySelector('input[name=role]:checked').value;
-let roleTouched = false;
 let accountLoadVersion = 0;
-function syncRole(){
-  if (!$('reg')) return;
-  const needs = ['tenant', 'landlord'].includes(roleOf());
-  $('addr_row').style.display = needs ? '' : 'none';
-  $('consent_row').style.display = needs ? '' : 'none';
+
+// Instant inline validation: the same rules the server applies, said while typing.
+const EMAIL_OK = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const UNIT_TYPED = /(#\s*\w|\b(apt|apartment|unit)\b)/i;
+const ADDRESS_NOTE = 'Building only: leave out your apartment number. We never store or show one.';
+function hint(input, hintEl, message, isProblem){
+  input.setAttribute('aria-invalid', isProblem ? 'true' : 'false');
+  hintEl.textContent = message;
+  hintEl.classList.toggle('warn', !!isProblem);
 }
-document.querySelectorAll('input[name=role]').forEach(r => r.addEventListener('change', () => {
-  roleTouched = true; syncRole();
-}));
-syncRole();
+function checkAddress(){
+  const v = $('address').value.trim();
+  if (/^\d+$/.test(v) && !/^[1-5]\d{9}$/.test(v))
+    return hint($('address'), $('address_hint'), 'A BBL is 10 digits starting with the borough (1–5).', true), false;
+  if (UNIT_TYPED.test(v))
+    return hint($('address'), $('address_hint'), 'Leave out the apartment number — HeatAhead works at the building level and drops it.', false), true;
+  hint($('address'), $('address_hint'), ADDRESS_NOTE, false);
+  return true;
+}
+function checkPhone(){
+  const v = $('phone').value.trim(), digits = v.replace(/\D/g, '').length;
+  const bad = v && (digits < 7 || digits > 15);
+  hint($('phone'), $('phone_hint'), bad ? 'Phone looks wrong — leave it empty or give 7 to 15 digits.' : '', bad);
+  return !bad;
+}
+if ($('address')) { $('address').addEventListener('input', checkAddress); $('phone').addEventListener('input', checkPhone); }
 function fail(message){
   if ($('reg_out')) $('reg_out').textContent = message;
 }
@@ -273,25 +282,35 @@ async function accountResponse(response, fallback){
 async function register(e){
   e.preventDefault();
   if (!signedInAccount) return false;
-  const role = roleOf(), address = $('address').value.trim();
-  const needs = ['tenant', 'landlord'].includes(role);
-  if (needs && !address) return fail('Enter your building’s street address or 10-digit BBL.'), false;
-  if (needs && !$('consent').checked) return fail('Please confirm the alert checkbox, or choose Viewer to browse without alerts.'), false;
-  const body = {role, phone:$('phone').value.trim()};
-  if (needs) { if (/^\d{10}$/.test(address)) body.bbl = address; else body.address = address; }
+  const address = $('address').value.trim();
+  if (!address) return fail('Enter your building’s street address or 10-digit BBL.'), $('address').focus(), false;
+  if (!checkAddress()) return $('address').focus(), false;
+  if (!checkPhone()) return $('phone').focus(), false;
+  if (!$('consent').checked) return fail('Please confirm the alert checkbox: saving a building turns on its cold-snap alerts. You can browse the map and building pages without saving.'), false;
+  const body = {phone:$('phone').value.trim()};
+  if (/^\d{10}$/.test(address)) body.bbl = address; else body.address = address;
   $('submit').disabled = true;
   $('reg_out').textContent = 'Saving to your account…';
   try {
     const response = await fetch('/api/register', {method:'POST', credentials:'same-origin',
       headers:{'Content-Type':'application/json', 'X-CSRF-Token':accountCSRF}, body:JSON.stringify(body)});
     const result = await accountResponse(response, 'Your registration could not be saved. Please try again.');
-    $('reg_out').textContent = result.already_registered ? 'Your registration is up to date.' : 'Saved to your account.';
-    await loadAccount(false);     // also refreshes default panels for the new registration
+    $('reg_out').textContent = result.already_registered ? 'That building was already saved — it is up to date.' : 'Saved to your account.';
+    $('address').value = ''; checkAddress();
+    if (!panelsCustomized) {
+      // keep what the user is looking at (plus their buildings) rather than letting the
+      // stored building row re-derive a narrower legacy default
+      document.querySelectorAll('#panel_prefs [data-panel]').forEach(c => {
+        c.checked = c.dataset.panel === 'buildings' || !$('panel-' + c.dataset.panel).hidden;
+      });
+      await savePanels();
+    }
+    await loadAccount();
   } catch (error) { fail(error.message || 'Could not reach the account service. Please try again.'); }
   finally { $('submit').disabled = false; }
   return false;
 }
-async function loadAccount(restoreRole=true){
+async function loadAccount(){
   if (!signedInAccount || !$('saved-buildings')) return;
   const version = ++accountLoadVersion;
   const target = $('saved-buildings');
@@ -302,19 +321,12 @@ async function loadAccount(restoreRole=true){
     const registrations = result.registrations || [];
     accountRegistrations = registrations;
     if (!panelsCustomized) applyPanels(defaultPanels());
-    if (restoreRole && !roleTouched && !$('address').value && registrations.length) {
-      const role = registrations[0].role;
-      const input = document.querySelector('input[name=role][value="' + (['tenant','landlord','government','viewer'].includes(role) ? role : 'tenant') + '"]');
-      if (input) { input.checked = true; syncRole(); }
-    }
     const rows = (result.buildings || []).filter(b => b.registered && /^[1-5]\d{9}$/.test(String(b.bbl)));
     if (!rows.length) {
-      target.textContent = registrations.length ? 'Your account is saved. Add a building to enable building alerts.' : 'No buildings saved yet. Register one using the form.';
+      target.innerHTML = 'No buildings saved yet. <a href="#reg">Save one in your profile</a> to get its cold-snap alerts.';
     } else {
       target.innerHTML = rows.map(b => {
-        const role = (registrations.find(r => String(r.bbl) === String(b.bbl)) || {}).role;
-        const landlord = role === 'landlord';
-        const link = '/building?bbl=' + encodeURIComponent(b.bbl) + (landlord ? '&as=landlord' : '');
+        const link = '/building?bbl=' + encodeURIComponent(b.bbl);
         const history = b.ranked === false ? '' :
           '<p class="muted" style="font-size:.83rem">Last season: ' + (b.c_last1 || 0) +
           ' heat complaint(s), ' + (b.v_last1 || 0) + ' violation(s)' +
@@ -322,7 +334,6 @@ async function loadAccount(restoreRole=true){
         return '<div class="saved-row"><b>BBL ' + esc(b.bbl) + '</b>' +
           '<p>' + (b.ranked === false ? 'Not individually ranked' : 'Winter risk: ' + esc(fmtRisk(b.p_season))) + '</p>' + history +
           '<div class="saved-actions"><a href="' + link + '">Open building record</a>' +
-          (landlord && b.ranked !== false ? '<a href="' + link + '#draft">Draft a self-audit</a>' : '') +
           '<button type="button" class="remove-building" data-remove-bbl="' + b.bbl + '">Stop alerts &amp; remove</button></div></div>';
       }).join('');
       target.querySelectorAll('[data-remove-bbl]').forEach(button => button.addEventListener('click', () => removeBuilding(button)));
@@ -335,7 +346,7 @@ async function loadAccount(restoreRole=true){
     if ($('portfolio')) $('portfolio').textContent = 'Your portfolio could not be loaded right now.';
     if (!panelsCustomized) applyPanels(defaultPanels());
     $('saved-status').innerHTML = '<button type="button" id="retry-account">Try again</button>';
-    $('retry-account').addEventListener('click', () => loadAccount(false));
+    $('retry-account').addEventListener('click', () => loadAccount());
   }
 }
 function renderPortfolio(buildings){
@@ -343,7 +354,7 @@ function renderPortfolio(buildings){
   if (!target) return;
   const all = buildings.filter(b => /^[1-5]\d{9}$/.test(String(b.bbl)));
   if (!all.length) {
-    target.textContent = 'No buildings yet. Register one as a landlord to see its owner’s portfolio here.';
+    target.innerHTML = 'No buildings yet. <a href="#reg">Save one</a> to see it and the rest of its registered owner’s portfolio here.';
     return;
   }
   target.innerHTML = '<table><tr><th>Building</th><th>Winter risk</th><th>Last season</th><th></th></tr>' +
@@ -364,7 +375,7 @@ async function removeBuilding(button){
       headers:{'Content-Type':'application/json','X-CSRF-Token':accountCSRF},
       body:JSON.stringify({bbl:button.dataset.removeBbl})});
     await accountResponse(response, 'Your alerts could not be updated. Please try again.');
-    await loadAccount(false);
+    await loadAccount();
   } catch (error) { $('saved-status').textContent = error.message; button.disabled = false; }
 }
 
@@ -379,6 +390,7 @@ function defaultPanels(){
 function applyPanels(list){
   PANEL_ORDER.forEach(p => { const el = $('panel-' + p); if (el) el.hidden = !list.includes(p); });
   document.querySelectorAll('#panel_prefs [data-panel]').forEach(c => { c.checked = list.includes(c.dataset.panel); });
+  if ($('panels_empty')) $('panels_empty').hidden = list.length > 0;
 }
 function devicePanels(){
   try {
@@ -398,46 +410,53 @@ async function loadPanels(){
   applyPanels(panelsCustomized ? stored.filter(p => PANEL_ORDER.includes(p)) : defaultPanels());
   if (panelsCustomized && !fromAccount) $('panels_status').textContent = 'Using the panel choice saved on this device.';
 }
-if ($('customize')) $('customize').addEventListener('click', () => {
-  const form = $('panel_prefs');
-  form.hidden = !form.hidden;
-  $('customize').setAttribute('aria-expanded', String(!form.hidden));
-});
-if ($('panel_prefs')) $('panel_prefs').addEventListener('submit', async e => {
-  e.preventDefault();
+let panelSaveVersion = 0;
+async function savePanels(){
   const chosen = PANEL_ORDER.filter(p => {
     const c = document.querySelector('#panel_prefs [data-panel="' + p + '"]');
     return c && c.checked;
   });
-  const status = $('panels_status');
-  $('panels_save').disabled = true;
+  const version = ++panelSaveVersion, status = $('panels_status');
+  panelsCustomized = true;
+  applyPanels(chosen);
   status.textContent = 'Saving…';
+  let message;
   try {
     const r = await fetch('/api/account/panels', {method:'POST', credentials:'same-origin',
       headers:{'Content-Type':'application/json', 'X-CSRF-Token':accountCSRF},
       body:JSON.stringify({panels: chosen})});
     if (!r.ok) throw new Error();
-    status.textContent = 'Saved to your account.';
+    message = 'Saved to your account.';
   } catch {
     try {
       localStorage.setItem('heatahead_panels', JSON.stringify(chosen));
-      status.textContent = 'Saved on this device — your account service is unreachable right now.';
-    } catch { status.textContent = 'Your choice could not be saved. Please try again.'; }
+      message = 'Saved on this device — your account service is unreachable right now.';
+    } catch { message = 'Your choice could not be saved. Please try again.'; }
   }
-  panelsCustomized = true;
-  applyPanels(chosen);
-  if (!chosen.length) status.textContent += ' No panels selected — turn one on to see your dashboard.';
-  $('panels_save').disabled = false;
-});
+  if (version === panelSaveVersion) status.textContent = message;
+}
+if ($('panel_prefs')) {
+  $('panel_prefs').addEventListener('change', savePanels);
+  $('panel_prefs').addEventListener('submit', e => e.preventDefault());
+}
 if (signedInAccount) { loadPanels(); loadAccount(); }
 
 // T14: passwordless email sign-in - request a one-use 15-minute link
 const emailForm = $('email_signin_form');
+const EMAIL_HINT = 'That doesn’t look like an email address yet.';
+if (emailForm) $('email_signin').addEventListener('input', () => {
+  const input = $('email_signin'), status = $('email_signin_status'), v = input.value.trim();
+  const bad = v.length > 0 && !EMAIL_OK.test(v);
+  input.setAttribute('aria-invalid', bad ? 'true' : 'false');
+  if (bad) status.textContent = EMAIL_HINT;
+  else if (status.textContent === EMAIL_HINT) status.textContent = '';
+});
 if (emailForm) emailForm.addEventListener('submit', async e => {
   e.preventDefault();
   const email = $('email_signin').value.trim();
   const status = $('email_signin_status');
-  if (!email) { status.textContent = 'Type your email address first.'; return; }
+  if (!email) { status.textContent = 'Type your email address first.'; $('email_signin').focus(); return; }
+  if (!EMAIL_OK.test(email)) { status.textContent = EMAIL_HINT; $('email_signin').focus(); return; }
   const remember = document.querySelector('#account input[name=remember][value="1"]');
   const button = emailForm.querySelector('button');
   button.disabled = true;

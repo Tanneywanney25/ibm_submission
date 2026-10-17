@@ -221,6 +221,34 @@ class AccountTests(unittest.TestCase):
         self.assertEqual(removed.json["removed"], 0)
         self.assertEqual(self.get("/api/my_buildings").json["total"], 1)
 
+    def test_one_account_type_saves_buildings_without_a_role(self):
+        self.actor()
+        page = self.get("/")
+        self.assertIn(b"Your profile", page.data)
+        self.assertNotIn(b'name="role"', page.data)
+        missing = self.post("/api/register", dict(phone=""))
+        self.assertEqual(missing.status_code, 400)
+        with patch("mailer.welcome_email", return_value=object()) as welcome:
+            saved = self.post("/api/register", dict(bbl="3000410007"))
+            self.assertEqual(saved.status_code, 200)
+            self.assertFalse(saved.json["already_registered"])
+            again = self.post("/api/register", dict(bbl="3000410007"))
+            self.assertTrue(again.json["already_registered"])
+        self.assertEqual(welcome.call_count, 1, "welcome email once per new building, never on a repeat")
+        self.assertEqual(welcome.call_args.args[0], "person@example.test")
+        self.assertEqual(welcome.call_args.kwargs["bbl"], 3000410007)
+        registrations = self.get("/api/my_buildings").json["registrations"]
+        self.assertEqual(registrations, [dict(role="tenant", bbl=3000410007)])
+        legacy = self.post("/api/register", dict(role="landlord", bbl="3000410007"))
+        self.assertEqual(legacy.status_code, 200, "older clients that still send a role keep working")
+
+    def test_welcome_email_text_has_no_role(self):
+        import mailer
+        with patch.object(mailer, "make_msg", side_effect=lambda to, subject, body: body):
+            body = mailer.welcome_email("person@example.test", bbl=3000410007, p_season=0.42)
+        self.assertNotIn(" as a ", body)
+        self.assertIn("unsubscribe", body.lower())
+
     def test_panels_validate_round_trip_and_stay_per_account(self):
         self.assertEqual(self.get("/api/account/panels").status_code, 401)
         self.actor()
