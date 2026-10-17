@@ -43,7 +43,27 @@ Two moves that simplify the product:
 ## Acceptance
 
 - [ ] No `role` conditionals left in templates; one account type in code.
-- [ ] Profile page toggles panels; choice persists across sessions.
-- [ ] Existing accounts see equivalent dashboards post-migration.
+      *(Open: the dashboard no longer branches on role — panels only — but the
+      registration form still records a role, because `/api/register` and the
+      instance's `users` table keep it (VERCEL.md §3) and it feeds alerts and
+      the panel defaults. Removing it is a contract + instance-schema change.)*
+- [x] Profile page toggles panels; choice persists across sessions.
+      *(Customize on the dashboard; stored per account via `/api/account/panels`
+      — forwarded to the instance from Vercel like registrations. While the
+      instance is unreachable the choice falls back to this-device storage and
+      the page says so.)*
+- [x] Existing accounts see equivalent dashboards post-migration.
+      *(No data migration needed: an account that never customized gets the
+      panel set derived from its registration roles by the map above.)*
 - [ ] Sign-up still sends the welcome email; unsubscribe still works.
-- [ ] VERCEL.md §6 smoke test green in LITE (no-auth path unbroken).
+- [x] VERCEL.md §6 smoke test green in LITE (no-auth path unbroken).
+
+## Status (October 17, 2026)
+
+Sign-in shipped earlier (Google + passwordless email links; awaiting env vars in
+Vercel). The dashboard-panels half is now built: four panels (my buildings &
+alerts · landlord self-audit tools · inspection queue · city-wide stats),
+defaults from the role→panels map, Customize toggles stored per account at
+`/api/account/panels` (new VERCEL.md §3 row). The instance stores panel choices
+once it pulls this commit and `heatahead-web` restarts; until then the site
+degrades to role defaults + per-device storage, as designed.

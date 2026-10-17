@@ -18,8 +18,17 @@ form .row input[type=text] { width:100%; }
 .consent { font-size:.85rem; color:var(--muted); display:flex; gap:.5rem; align-items:flex-start; }
 .consent input { accent-color:var(--accent); margin-top:.25rem; }
 #reg_out .err { color:var(--bad); }
-#landing { display:none; border-color:var(--accent); }
-#landing .big { margin:.2rem 0; }
+.dash-head { display:flex; justify-content:space-between; align-items:center; gap:.6rem; }
+.dash-head h2 { margin:0; }
+.panel { border-top:1px solid var(--line); padding-top:.8rem; margin-top:.9rem; }
+.panel h3 { margin:.1rem 0 .4rem; }
+.panel-picks { display:grid; grid-template-columns:1fr 1fr; gap:.4rem; margin:.4rem 0; }
+.panel-picks label { font-size:.88rem; border:1px solid var(--line); border-radius:8px;
+                     padding:.45rem .6rem; background:var(--well); cursor:pointer; }
+.panel-picks label:has(input:checked) { border-color:var(--accent); }
+.panel-picks input { accent-color:var(--accent); margin-right:.35rem; }
+#portfolio table { width:100%; font-size:.86rem; }
+@media (max-width:760px){ .panel-picks { grid-template-columns:1fr; } }
 .steps { display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; }
 .steps .card { margin:0; } .steps b { color:var(--accent); }
 @media (max-width:760px){ .steps { grid-template-columns:1fr; } }
@@ -150,23 +159,65 @@ skyline(document.getElementById('heroSky'),
 
   <div>
     {% if account_user %}
-    <div class="card" id="saved-account">
-      <h2>Your saved buildings</h2>
-      <div id="saved-buildings" class="muted" role="status">Loading your account…</div>
-      <p id="saved-status" class="muted" style="font-size:.83rem"></p>
+    <div class="card" id="dashboard">
+      <div class="dash-head">
+        <h2>Your dashboard</h2>
+        <button type="button" id="customize" class="remove-building"
+                aria-expanded="false" aria-controls="panel_prefs">Customize</button>
+      </div>
+      <form id="panel_prefs" hidden novalidate>
+        <p class="muted" style="font-size:.85rem; margin:.5rem 0 .2rem">One account, your mix of
+        panels. What you register only picks the starting set; toggle anything here.</p>
+        <div class="panel-picks">
+          <label><input type="checkbox" data-panel="buildings">My buildings &amp; alerts</label>
+          <label><input type="checkbox" data-panel="audit">Landlord self-audit tools</label>
+          <label><input type="checkbox" data-panel="queue">Inspection queue</label>
+          <label><input type="checkbox" data-panel="stats">City-wide stats</label>
+        </div>
+        <div class="saved-actions"><button type="submit" id="panels_save">Save my dashboard</button>
+          <span id="panels_status" class="muted" role="status" aria-live="polite"
+                style="font-size:.83rem"></span></div>
+      </form>
+      <div class="panel" id="panel-buildings" hidden>
+        <h3>Your saved buildings</h3>
+        <div id="saved-buildings" class="muted" role="status">Loading your account…</div>
+        <p id="saved-status" class="muted" style="font-size:.83rem"></p>
+      </div>
+      <div class="panel" id="panel-audit" hidden>
+        <h3>Landlord tools</h3>
+        <div id="portfolio" class="muted" role="status">Loading your portfolio…</div>
+        <p class="muted" style="font-size:.8rem; margin-bottom:0">Buildings registered to you plus
+        the rest of each registered owner's portfolio, riskiest first. Run the self-audit before
+        the first cold spell.</p>
+      </div>
+      <div class="panel" id="panel-queue" hidden>
+        <h3>Inspection queue</h3>
+        <p class="muted" style="font-size:.9rem">The ranked queue inspectors work from during a
+        cold snap, and the export for routing them.</p>
+        <a class="btnlink" href="/monitor">Open live monitor</a>
+        <a class="btnlink ghost" href="/api/queue.csv?k=500">Download top-500 CSV</a>
+      </div>
+      <div class="panel" id="panel-stats" hidden>
+        <h3>City-wide picture</h3>
+        <p class="muted" style="font-size:.9rem"><b class="accent">{{ '{:,}'.format(site_meta.ranked) }}</b>
+        buildings ranked for this winter{% if site_meta.median_text %} · median winter risk
+        <b>{{ site_meta.median_text }}</b>{% endif %}.</p>
+        <a class="btnlink" href="/map">Open the risk map</a>
+        <a class="btnlink ghost" href="/building">Look up a building</a>
+      </div>
     </div>
     {% endif %}
-    <div class="card" id="landing"></div>
     <div class="card" id="whatyouget">
-      <h2>What each role gets</h2>
+      <h2>Dashboard panels</h2>
       <table>
-        <tr><td><b>Tenant</b></td><td class="muted">your building's chance of losing heat this
-          winter, its complaint and violation history, and one alert per forecast cold spell</td></tr>
-        <tr><td><b>Landlord</b></td><td class="muted">every building you register plus the rest of
-          the registered owner's portfolio, ranked by risk, with inspection nudges</td></tr>
-        <tr><td><b>Government</b></td><td class="muted">the live inspector queue during a cold snap
+        <tr><td><b>My buildings &amp; alerts</b></td><td class="muted">each saved building's chance of
+          losing heat this winter, its complaint and violation history, and one alert per forecast cold spell</td></tr>
+        <tr><td><b>Landlord tools</b></td><td class="muted">every building you register plus the rest of
+          the registered owner's portfolio, ranked by risk, with pre-winter self-audit drafts</td></tr>
+        <tr><td><b>Inspection queue</b></td><td class="muted">the live inspector queue during a cold snap
           and a top-500 CSV for routing inspectors</td></tr>
-        <tr><td><b>Viewer</b></td><td class="muted">the public citywide risk map</td></tr>
+        <tr><td><b>City-wide stats</b></td><td class="muted">the public citywide risk map and the headline
+          numbers</td></tr>
       </table>
       <p style="margin-bottom:0">Of the 100 buildings our model flags before a cold snap,
       <b class="accent">86 lose heat during that snap</b> and
@@ -190,6 +241,12 @@ skyline(document.getElementById('heroSky'),
 const $ = id => document.getElementById(id);
 const signedInAccount = {{ account_user | tojson }};
 const accountCSRF = {{ account_csrf | tojson }};
+// T14: the dashboard is a set of panels. A stored choice (account first, this
+// device as the LITE fallback) wins; otherwise registrations pick the defaults.
+const PANEL_ORDER = {{ panel_order | tojson }};
+const ROLE_PANELS = {{ role_panels | tojson }};
+let accountRegistrations = [];
+let panelsCustomized = false;
 const roleOf = () => document.querySelector('input[name=role]:checked').value;
 let roleTouched = false;
 let accountLoadVersion = 0;
@@ -229,13 +286,7 @@ async function register(e){
       headers:{'Content-Type':'application/json', 'X-CSRF-Token':accountCSRF}, body:JSON.stringify(body)});
     const result = await accountResponse(response, 'Your registration could not be saved. Please try again.');
     $('reg_out').textContent = result.already_registered ? 'Your registration is up to date.' : 'Saved to your account.';
-    await loadAccount(false);
-    if (role === 'government' || role === 'viewer') {
-      $('landing').style.display = 'block';
-      $('landing').innerHTML = role === 'government'
-        ? '<h2>Inspector view</h2><p class="muted">Explore the public inspection queue and ranked buildings.</p><a class="btnlink" href="/monitor">Open live monitor</a><a class="btnlink ghost" href="/api/queue.csv?k=500">Download top-500 CSV</a>'
-        : '<h2>Your viewer account is ready</h2><p class="muted">Explore the citywide risk map. No building alerts are enabled.</p><a class="btnlink" href="/map">Open the map</a>';
-    }
+    await loadAccount(false);     // also refreshes default panels for the new registration
   } catch (error) { fail(error.message || 'Could not reach the account service. Please try again.'); }
   finally { $('submit').disabled = false; }
   return false;
@@ -249,6 +300,8 @@ async function loadAccount(restoreRole=true){
     const result = await accountResponse(response, 'Your saved buildings could not be loaded. Please try again.');
     if (version !== accountLoadVersion) return;
     const registrations = result.registrations || [];
+    accountRegistrations = registrations;
+    if (!panelsCustomized) applyPanels(defaultPanels());
     if (restoreRole && !roleTouched && !$('address').value && registrations.length) {
       const role = registrations[0].role;
       const input = document.querySelector('input[name=role][value="' + (['tenant','landlord','government','viewer'].includes(role) ? role : 'tenant') + '"]');
@@ -262,21 +315,47 @@ async function loadAccount(restoreRole=true){
         const role = (registrations.find(r => String(r.bbl) === String(b.bbl)) || {}).role;
         const landlord = role === 'landlord';
         const link = '/building?bbl=' + encodeURIComponent(b.bbl) + (landlord ? '&as=landlord' : '');
+        const history = b.ranked === false ? '' :
+          '<p class="muted" style="font-size:.83rem">Last season: ' + (b.c_last1 || 0) +
+          ' heat complaint(s), ' + (b.v_last1 || 0) + ' violation(s)' +
+          (b.rank ? ' · rank ' + Number(b.rank).toLocaleString() : '') + '</p>';
         return '<div class="saved-row"><b>BBL ' + esc(b.bbl) + '</b>' +
-          '<p>' + (b.ranked === false ? 'Not individually ranked' : 'Winter risk: ' + esc(fmtRisk(b.p_season))) + '</p>' +
+          '<p>' + (b.ranked === false ? 'Not individually ranked' : 'Winter risk: ' + esc(fmtRisk(b.p_season))) + '</p>' + history +
           '<div class="saved-actions"><a href="' + link + '">Open building record</a>' +
           (landlord && b.ranked !== false ? '<a href="' + link + '#draft">Draft a self-audit</a>' : '') +
           '<button type="button" class="remove-building" data-remove-bbl="' + b.bbl + '">Stop alerts &amp; remove</button></div></div>';
       }).join('');
       target.querySelectorAll('[data-remove-bbl]').forEach(button => button.addEventListener('click', () => removeBuilding(button)));
     }
-    $('saved-status').textContent = 'These registrations are linked to your signed-in Google account.';
+    renderPortfolio(result.buildings || []);
+    $('saved-status').textContent = 'These registrations are linked to your signed-in account.';
   } catch (error) {
     if (version !== accountLoadVersion) return;
     target.textContent = error.message || 'Your saved buildings could not be loaded. Please try again.';
+    if ($('portfolio')) $('portfolio').textContent = 'Your portfolio could not be loaded right now.';
+    if (!panelsCustomized) applyPanels(defaultPanels());
     $('saved-status').innerHTML = '<button type="button" id="retry-account">Try again</button>';
     $('retry-account').addEventListener('click', () => loadAccount(false));
   }
+}
+function renderPortfolio(buildings){
+  const target = $('portfolio');
+  if (!target) return;
+  const all = buildings.filter(b => /^[1-5]\d{9}$/.test(String(b.bbl)));
+  if (!all.length) {
+    target.textContent = 'No buildings yet. Register one as a landlord to see its owner’s portfolio here.';
+    return;
+  }
+  target.innerHTML = '<table><tr><th>Building</th><th>Winter risk</th><th>Last season</th><th></th></tr>' +
+    all.slice(0, 20).map(b => {
+      const link = '/building?bbl=' + encodeURIComponent(b.bbl) + '&as=landlord';
+      return '<tr><td><a href="' + link + '">BBL ' + esc(b.bbl) + '</a>' +
+        (b.registered ? '' : ' <span class="muted">(portfolio)</span>') + '</td>' +
+        '<td>' + (b.ranked === false ? '<span class="muted">not ranked</span>' : esc(fmtRisk(b.p_season))) + '</td>' +
+        '<td class="muted">' + (b.c_last1 || 0) + ' compl. · ' + (b.v_last1 || 0) + ' viol.</td>' +
+        '<td>' + (b.ranked === false ? '' : '<a href="' + link + '#draft">Self-audit</a>') + '</td></tr>';
+    }).join('') + '</table>' +
+    (all.length > 20 ? '<p class="muted" style="font-size:.8rem">Showing the 20 riskiest of ' + all.length + '.</p>' : '');
 }
 async function removeBuilding(button){
   button.disabled = true;
@@ -288,7 +367,69 @@ async function removeBuilding(button){
     await loadAccount(false);
   } catch (error) { $('saved-status').textContent = error.message; button.disabled = false; }
 }
-if (signedInAccount) loadAccount();
+
+// T14 dashboard panels: stored choice first (account, then this device), else
+// defaults from the account's registration roles via ROLE_PANELS.
+function defaultPanels(){
+  const on = new Set();
+  accountRegistrations.forEach(r => (ROLE_PANELS[r.role] || []).forEach(p => on.add(p)));
+  if (!on.size) { on.add('buildings'); on.add('stats'); }
+  return PANEL_ORDER.filter(p => on.has(p));
+}
+function applyPanels(list){
+  PANEL_ORDER.forEach(p => { const el = $('panel-' + p); if (el) el.hidden = !list.includes(p); });
+  document.querySelectorAll('#panel_prefs [data-panel]').forEach(c => { c.checked = list.includes(c.dataset.panel); });
+}
+function devicePanels(){
+  try {
+    const v = JSON.parse(localStorage.getItem('heatahead_panels'));
+    return Array.isArray(v) ? v.filter(p => PANEL_ORDER.includes(p)) : null;
+  } catch { return null; }
+}
+async function loadPanels(){
+  if (!signedInAccount || !$('dashboard')) return;
+  let stored = null, fromAccount = false;
+  try {
+    const r = await fetch('/api/account/panels', {credentials:'same-origin', cache:'no-store'});
+    if (r.ok) { stored = (await r.json()).panels; fromAccount = Array.isArray(stored); }
+  } catch {}
+  if (!fromAccount) stored = devicePanels();
+  panelsCustomized = Array.isArray(stored);
+  applyPanels(panelsCustomized ? stored.filter(p => PANEL_ORDER.includes(p)) : defaultPanels());
+  if (panelsCustomized && !fromAccount) $('panels_status').textContent = 'Using the panel choice saved on this device.';
+}
+if ($('customize')) $('customize').addEventListener('click', () => {
+  const form = $('panel_prefs');
+  form.hidden = !form.hidden;
+  $('customize').setAttribute('aria-expanded', String(!form.hidden));
+});
+if ($('panel_prefs')) $('panel_prefs').addEventListener('submit', async e => {
+  e.preventDefault();
+  const chosen = PANEL_ORDER.filter(p => {
+    const c = document.querySelector('#panel_prefs [data-panel="' + p + '"]');
+    return c && c.checked;
+  });
+  const status = $('panels_status');
+  $('panels_save').disabled = true;
+  status.textContent = 'Saving…';
+  try {
+    const r = await fetch('/api/account/panels', {method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json', 'X-CSRF-Token':accountCSRF},
+      body:JSON.stringify({panels: chosen})});
+    if (!r.ok) throw new Error();
+    status.textContent = 'Saved to your account.';
+  } catch {
+    try {
+      localStorage.setItem('heatahead_panels', JSON.stringify(chosen));
+      status.textContent = 'Saved on this device — your account service is unreachable right now.';
+    } catch { status.textContent = 'Your choice could not be saved. Please try again.'; }
+  }
+  panelsCustomized = true;
+  applyPanels(chosen);
+  if (!chosen.length) status.textContent += ' No panels selected — turn one on to see your dashboard.';
+  $('panels_save').disabled = false;
+});
+if (signedInAccount) { loadPanels(); loadAccount(); }
 
 // T14: passwordless email sign-in - request a one-use 15-minute link
 const emailForm = $('email_signin_form');
