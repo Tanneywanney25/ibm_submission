@@ -13,13 +13,14 @@ Writes: model/out/results_precision_at_k.csv, model/out/scores_<day>.csv (coldes
 import sys
 import numpy as np
 import pandas as pd
-from common import DATA, FEATS, OUT, load_days, season
+from common import DATA, FEATS, NEVER, OUT, band_prep, band_rates, load_days, season
 
 KS = (100, 500, 1000, 2500)
 
 # ------------------------------------------------------------------ inputs
 days = load_days()
 bd = pd.read_csv(OUT / "building_day_counts.csv", parse_dates=["day"])
+bw = pd.read_csv(OUT / "building_day_counts_bw.csv", parse_dates=["day"])
 buildings = pd.read_csv(DATA / "buildings.csv")
 buildings["bbl"] = buildings["bbl"].astype(float).astype("int64")
 
@@ -60,20 +61,38 @@ X0["c_last2"] = X0.c_last1 + hist_col(sc, 2023)
 X0["v_last1"] = hist_col(sv, 2024)
 X0["v_last2"] = X0.v_last1 + hist_col(sv, 2023)
 X0["chronic"] = ((X0.c_last1 >= 5) & (hist_col(sc, 2023) >= 5)).astype(int)
+num, den = band_prep(bd, days)
+X0 = X0.merge(band_rates(num, den, 2025, X0.bbl), on="bbl", how="left")
+bw["season"] = season(bw.day)
+sbw = bw.groupby(["bbl", "season"])["n"].sum()
+X0["bw_last1"] = hist_col(sbw, 2024)
 
-# per-building cumulative complaint counts, for trailing windows
+# per-building cumulative complaint counts + last-event days, for trailing windows
 bdc = bd.sort_values(["bbl", "day"]).copy()
 bdc["csum"] = bdc.groupby("bbl")["n"].cumsum()
+bdc["lastd"] = bdc["day"]
 bdc = bdc.sort_values("day")
+vdc = (viol[["bbl", "inspectiondate"]].rename(columns={"inspectiondate": "day"})
+       .sort_values("day"))
+vdc["lastd"] = vdc["day"]
 active = bdc.bbl.unique()                        # only these ever have nonzero counts
+v_active = vdc.bbl.unique()
+bwc = bw.sort_values(["bbl", "day"]).copy()
+bwc["csum"] = bwc.groupby("bbl")["n"].cumsum()
+bwc = bwc.sort_values("day")
+bw_active = bwc.bbl.unique()
+
+
+def asof_at(d, right, bbls, cols):
+    """per-bbl state as of day d (backward asof), indexed by bbl."""
+    t = pd.DataFrame({"bbl": bbls, "day": d})
+    r = pd.merge_asof(t.sort_values("day"), right, on="day", by="bbl",
+                      direction="backward")
+    return r.set_index("bbl")[cols]
 
 
 def csum_asof(d):
-    """csum per active bbl as of day d (0 for everyone else)."""
-    t = pd.DataFrame({"bbl": active, "day": d})
-    r = pd.merge_asof(t.sort_values("day"), bdc[["bbl", "day", "csum"]],
-                      on="day", by="bbl", direction="backward")
-    return r.set_index("bbl")["csum"].fillna(0)
+    return asof_at(d, bdc[["bbl", "day", "csum"]], active, ["csum"])["csum"].fillna(0)
 
 
 # truth: failed48 per building-day
@@ -94,13 +113,32 @@ rows, coldest_scores = [], None
 for _, drow in test_days.iterrows():
     d = drow.day
     pos = set(truth.loc[truth.day == d, "bbl"])
+    pos30 = set(truth.loc[truth.day.between(d, d + pd.Timedelta(days=29)), "bbl"])
     ver = set(viol.loc[viol.inspectiondate.between(d, d + pd.Timedelta(days=7)), "bbl"])
 
     X = X0.copy()
-    c1 = csum_asof(d - pd.Timedelta(days=1))
+    a = asof_at(d - pd.Timedelta(days=1), bdc[["bbl", "day", "csum", "lastd"]],
+                active, ["csum", "lastd"])
+    c1 = a.csum.fillna(0)
     for w in (7, 14, 30):
         X[f"c_prev{w}"] = (c1 - csum_asof(d - pd.Timedelta(days=w + 1))) \
             .reindex(X.bbl).fillna(0).to_numpy()
+    X["days_since_c"] = ((d - a.lastd.reindex(X.bbl)).dt.days
+                         .fillna(NEVER).to_numpy())
+    av = asof_at(d - pd.Timedelta(days=1), vdc[["bbl", "day", "lastd"]],
+                 v_active, ["lastd"])
+    X["days_since_v"] = ((d - av.lastd.reindex(X.bbl)).dt.days
+                         .fillna(NEVER).to_numpy())
+    bw1 = asof_at(d - pd.Timedelta(days=1), bwc[["bbl", "day", "csum"]],
+                  bw_active, ["csum"])["csum"].fillna(0)
+    bw15 = asof_at(d - pd.Timedelta(days=15), bwc[["bbl", "day", "csum"]],
+                   bw_active, ["csum"])["csum"].fillna(0)
+    X["bw_prev14"] = (bw1 - bw15).reindex(X.bbl).fillna(0).to_numpy()
+    # the inspectable universe: buildings with ANY prior complaint or violation
+    X = X[(X.days_since_c < NEVER) | (X.days_since_v < NEVER)]
+    pos &= set(X.bbl)
+    pos30 &= set(X.bbl)
+    ver &= set(X.bbl)
     for c in ["TMIN", "TMAX", "tmin_lag1", "tmin_roll3", "tmin_drop", "SNOW", "AWND", "wday_num"]:
         X[c] = drow[c]
 
@@ -119,6 +157,7 @@ for _, drow in test_days.iterrows():
             rows.append(dict(day=d.date(), TMIN=drow.TMIN, k=k, method=method,
                              n_failures=len(pos),
                              precision=len(top & pos) / k,
+                             precision_30d=len(top & pos30) / k,
                              recall=len(top & pos) / max(len(pos), 1),
                              verified_precision=len(top & ver) / k))
     # new-to-list: the model's picks the 14-day baseline missed - where the model must win
@@ -127,6 +166,7 @@ for _, drow in test_days.iterrows():
         rows.append(dict(day=d.date(), TMIN=drow.TMIN, k=k, method="model_new_to_list",
                          n_failures=len(pos),
                          precision=len(new & pos) / max(len(new), 1),
+                         precision_30d=len(new & pos30) / max(len(new), 1),
                          recall=len(new & pos) / max(len(pos), 1),
                          verified_precision=len(new & ver) / max(len(new), 1),
                          n_new=len(new)))
@@ -138,5 +178,6 @@ res.to_csv(OUT / "results_precision_at_k.csv", index=False)
 coldest_scores.to_csv(OUT / "scores_coldest_day.csv", index=False)
 
 print("\nmean over test days:")
-print(res.groupby(["method", "k"])[["precision", "recall", "verified_precision"]]
+print(res.groupby(["method", "k"])[["precision", "precision_30d", "recall",
+                                    "verified_precision"]]
       .mean().round(3).to_string())

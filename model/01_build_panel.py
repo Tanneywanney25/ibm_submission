@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
+from common import NEVER, band_prep, band_rates
+
 DATA = Path("data")
 OUT = Path("model/out")
 OUT.mkdir(parents=True, exist_ok=True)
@@ -22,7 +24,7 @@ def season(d):
 
 # ---------------------------------------------------------------- Phase 0: load
 print("Phase 0: load")
-usecols = ["received_date", "complaint_id", "bbl", "problem_code"]
+usecols = ["received_date", "complaint_id", "bbl", "problem_code", "minor_category"]
 heat = pd.concat(
     pd.read_csv(DATA / "hpd_heat_complaints.csv", usecols=usecols,
                 chunksize=500_000, low_memory=False),
@@ -51,6 +53,9 @@ print(f"  heat rows {len(heat):,} | buildings {len(buildings):,} | heat violatio
 print("Phase 1: label")
 bd = (heat.groupby(["bbl", "day"])["complaint_id"]
           .nunique().rename("n").reset_index())
+# ENTIRE BUILDING complaints = whole-building outages (vs one cold apartment)
+bw = (heat[heat.minor_category == "ENTIRE BUILDING"]
+      .groupby(["bbl", "day"])["complaint_id"].nunique().rename("n").reset_index())
 
 nxt = bd.copy()
 nxt["day"] -= pd.Timedelta(days=1)
@@ -116,27 +121,68 @@ panel["v_last2"] = panel.v_last1 + panel.v_last2_part.fillna(0)
 panel["chronic"] = ((panel.c_last1 >= 5) & (panel.c_last2_part.fillna(0) >= 5)).astype(int)
 panel = panel.drop(columns=["c_last2_part", "v_last2_part"])
 
-# -- trailing in-season activity, strictly BEFORE the row's day (windows end at d-1,
-#    so no leakage; this is also the strongest baseline, so the model needs it to win)
+# whole-building outages last season (stronger signal than apartment-only)
+bw["season"] = season(bw.day)
+sb = bw.groupby(["bbl", "season"])["n"].sum().rename("b").reset_index()
+panel = panel.merge(sb.assign(season=sb.season + 1).rename(columns={"b": "bw_last1"}),
+                    on=["bbl", "season"], how="left")
+panel["bw_last1"] = panel.bw_last1.fillna(0)
+
+# -- reaction rates by weather band: share of the prior two seasons' frigid /
+#    freezing / cold days on which this building complained (stream 1's bands)
+num, den = band_prep(bd, days)
+rates = pd.concat([band_rates(num, den, S, buildings.bbl).assign(season=S)
+                   for S in range(2018, 2026)], ignore_index=True)
+panel = panel.merge(rates, on=["bbl", "season"], how="left")
+
+# -- trailing in-season activity + days-since, strictly BEFORE the row's day
+#    (windows end at d-1, so no leakage)
 bdc = bd.sort_values(["bbl", "day"]).copy()
 bdc["csum"] = bdc.groupby("bbl")["n"].cumsum()
+bdc["lastd"] = bdc["day"]
 bdc = bdc.sort_values("day")          # merge_asof needs the 'on' key globally sorted
+vdc = (viol[["bbl", "inspectiondate"]].rename(columns={"inspectiondate": "day"})
+       .sort_values("day"))
+vdc["lastd"] = vdc["day"]
 
 
-def cum_before(keys, offset_days):
-    """cumulative complaint count per (bbl,) as of day + offset_days (backward asof)."""
+def asof_before(keys, offset_days, right, cols):
+    """per-(bbl) state as of day + offset_days (backward asof), row-aligned to keys."""
     t = keys[["bbl", "day"]].copy()
     t["day"] = t.day + pd.Timedelta(days=offset_days)
     t["_i"] = np.arange(len(t))
     t = t.sort_values("day")
-    r = pd.merge_asof(t, bdc[["bbl", "day", "csum"]], on="day", by="bbl",
-                      direction="backward")
-    return r.sort_values("_i")["csum"].fillna(0).to_numpy()
+    r = pd.merge_asof(t, right, on="day", by="bbl", direction="backward")
+    return r.sort_values("_i")[cols].reset_index(drop=True)
 
 
-at_d1 = cum_before(panel, -1)
+a = asof_before(panel, -1, bdc[["bbl", "day", "csum", "lastd"]], ["csum", "lastd"])
+at_d1 = a.csum.fillna(0).to_numpy()
+panel["days_since_c"] = ((panel.day.to_numpy() - a.lastd.to_numpy())
+                         / np.timedelta64(1, "D"))
 for w in (7, 14, 30):
-    panel[f"c_prev{w}"] = at_d1 - cum_before(panel, -(w + 1))
+    panel[f"c_prev{w}"] = at_d1 - asof_before(
+        panel, -(w + 1), bdc[["bbl", "day", "csum"]], ["csum"]).csum.fillna(0).to_numpy()
+av = asof_before(panel, -1, vdc[["bbl", "day", "lastd"]], ["lastd"])
+panel["days_since_v"] = ((panel.day.to_numpy() - av.lastd.to_numpy())
+                         / np.timedelta64(1, "D"))
+bwc = bw.sort_values(["bbl", "day"]).copy()
+bwc["csum"] = bwc.groupby("bbl")["n"].cumsum()
+bwc = bwc.sort_values("day")
+panel["bw_prev14"] = (
+    asof_before(panel, -1, bwc[["bbl", "day", "csum"]], ["csum"]).csum.fillna(0).to_numpy()
+    - asof_before(panel, -15, bwc[["bbl", "day", "csum"]], ["csum"]).csum.fillna(0).to_numpy())
+for c in ("rate_frigid2", "rate_freezing2", "rate_cold2"):
+    panel[c] = panel[c].fillna(0.0)
+for c in ("days_since_c", "days_since_v"):
+    panel[c] = panel[c].fillna(NEVER)
+
+# -- the inspectable universe: keep only buildings with ANY history before the row's
+#    day (team decision; matches the deployment universe in 03/05/06)
+hist = (panel.days_since_c < NEVER) | (panel.days_since_v < NEVER)
+print(f"  dropping {(~hist).sum():,} no-history rows "
+      f"(incl. {(~hist & panel.failed48).sum():,} positives invisible to any ranker)")
+panel = panel[hist]
 
 # -- building features (NOT buildings.csv's complaints/violations totals: those
 #    span all seasons including the row's own and the test season -> leakage)
@@ -166,4 +212,5 @@ assert (chk.c_last1.to_numpy() == chk.c_2024.fillna(0).to_numpy()).all(), "histo
 print(panel.groupby("season").agg(rows=("bbl", "size"), pos=("failed48", "sum")))
 panel.to_csv(OUT / "panel.csv", index=False)
 bd.to_csv(OUT / "building_day_counts.csv", index=False)   # eval + baselines need this
+bw.drop(columns="season").to_csv(OUT / "building_day_counts_bw.csv", index=False)
 print(f"wrote {OUT/'panel.csv'} ({len(panel):,} rows, {panel.shape[1]} cols)")

@@ -10,7 +10,8 @@ Writes: model/out/backtest_by_season.csv
 
 import numpy as np
 import pandas as pd
-from common import DATA, FEATS, OUT, load_days, make_model, season
+from common import (DATA, FEATS, NEVER, OUT, band_prep, band_rates, load_days,
+                    make_model, season)
 
 KS = (100, 500, 1000, 2500)
 SEASONS = range(2020, 2026)        # 2020 is the first with two full prior seasons + 2018 training
@@ -19,6 +20,7 @@ DAYS_PER_SEASON = 10               # coldest days; keeps 6 seasons tractable
 days = load_days()
 panel = pd.read_csv(OUT / "panel.csv", parse_dates=["day"])
 bd = pd.read_csv(OUT / "building_day_counts.csv", parse_dates=["day"])
+bw = pd.read_csv(OUT / "building_day_counts_bw.csv", parse_dates=["day"])
 buildings = pd.read_csv(DATA / "buildings.csv")
 buildings["bbl"] = buildings["bbl"].astype(float).astype("int64")
 
@@ -35,8 +37,20 @@ sv = viol.groupby(["bbl", "season"]).size()
 
 bdc = bd.sort_values(["bbl", "day"]).copy()
 bdc["csum"] = bdc.groupby("bbl")["n"].cumsum()
+bdc["lastd"] = bdc["day"]
 bdc = bdc.sort_values("day")
+vdc = (viol[["bbl", "inspectiondate"]].rename(columns={"inspectiondate": "day"})
+       .sort_values("day"))
+vdc["lastd"] = vdc["day"]
 active = bdc.bbl.unique()
+v_active = vdc.bbl.unique()
+num, den = band_prep(bd, load_days())
+bw["season"] = season(bw.day)
+sbw = bw.groupby(["bbl", "season"])["n"].sum()
+bwc = bw.sort_values(["bbl", "day"]).copy()
+bwc["csum"] = bwc.groupby("bbl")["n"].cumsum()
+bwc = bwc.sort_values("day")
+bw_active = bwc.bbl.unique()
 
 nxt = bd[["bbl", "day", "n"]].copy()
 nxt["day"] -= pd.Timedelta(days=1)
@@ -55,11 +69,15 @@ def hist_col(s, yr):
     return base.bbl.map(s.xs(yr, level="season")).fillna(0) if yr in lvl else 0.0
 
 
+def asof_at(d, right, bbls, cols):
+    t = pd.DataFrame({"bbl": bbls, "day": d})
+    r = pd.merge_asof(t.sort_values("day"), right, on="day", by="bbl",
+                      direction="backward")
+    return r.set_index("bbl")[cols]
+
+
 def csum_asof(d):
-    t = pd.DataFrame({"bbl": active, "day": d})
-    r = pd.merge_asof(t.sort_values("day"), bdc[["bbl", "day", "csum"]],
-                      on="day", by="bbl", direction="backward")
-    return r.set_index("bbl")["csum"].fillna(0)
+    return asof_at(d, bdc[["bbl", "day", "csum"]], active, ["csum"])["csum"].fillna(0)
 
 
 rows = []
@@ -74,6 +92,8 @@ for S in SEASONS:
     X0["v_last1"] = hist_col(sv, S - 1)
     X0["v_last2"] = X0.v_last1 + hist_col(sv, S - 2)
     X0["chronic"] = ((X0.c_last1 >= 5) & (hist_col(sc, S - 2) >= 5)).astype(int)
+    X0 = X0.merge(band_rates(num, den, S, X0.bbl), on="bbl", how="left")
+    X0["bw_last1"] = hist_col(sbw, S - 1)
 
     td = days[days.heat_season & (days.TMIN < 32) & (season(days.day) == S)]
     td = td.sort_values("TMIN").head(DAYS_PER_SEASON)
@@ -82,10 +102,23 @@ for S in SEASONS:
         d = drow.day
         pos = set(truth.loc[truth.day == d, "bbl"])
         X = X0.copy()
-        c1 = csum_asof(d - pd.Timedelta(days=1))
+        a = asof_at(d - pd.Timedelta(days=1), bdc[["bbl", "day", "csum", "lastd"]],
+                    active, ["csum", "lastd"])
+        c1 = a.csum.fillna(0)
         for w in (7, 14, 30):
             X[f"c_prev{w}"] = (c1 - csum_asof(d - pd.Timedelta(days=w + 1))) \
                 .reindex(X.bbl).fillna(0).to_numpy()
+        X["days_since_c"] = (d - a.lastd.reindex(X.bbl)).dt.days.fillna(NEVER).to_numpy()
+        av = asof_at(d - pd.Timedelta(days=1), vdc[["bbl", "day", "lastd"]],
+                     v_active, ["lastd"])
+        X["days_since_v"] = (d - av.lastd.reindex(X.bbl)).dt.days.fillna(NEVER).to_numpy()
+        bw1 = asof_at(d - pd.Timedelta(days=1), bwc[["bbl", "day", "csum"]],
+                      bw_active, ["csum"])["csum"].fillna(0)
+        bw15 = asof_at(d - pd.Timedelta(days=15), bwc[["bbl", "day", "csum"]],
+                       bw_active, ["csum"])["csum"].fillna(0)
+        X["bw_prev14"] = (bw1 - bw15).reindex(X.bbl).fillna(0).to_numpy()
+        X = X[(X.days_since_c < NEVER) | (X.days_since_v < NEVER)]
+        pos &= set(X.bbl)
         for c in ["TMIN", "TMAX", "tmin_lag1", "tmin_roll3", "tmin_drop",
                   "SNOW", "AWND", "wday_num"]:
             X[c] = drow[c]

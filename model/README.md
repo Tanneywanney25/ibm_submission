@@ -27,18 +27,25 @@ python model/04_snapml_bench.py     # phase 6, LinuxONE only
 
 ## First results (laptop, sklearn backend, all 71 cold days of 2025-26)
 
-Full-universe precision@k (all 172,485 buildings ranked per TMIN<32 day), mean over days:
+Universe: every building with any complaint/violation history (team decision; no-history
+lots are unrankable by any method and are cut from training and scoring alike). Features
+now include per-building reaction rates by weather band (frigid/freezing/cold), days
+since last complaint/violation, and ENTIRE BUILDING (whole-building outage) counts.
 
-| k | model | 14-day baseline | last-season baseline | violations baseline |
+Precision@k per TMIN<32 day of 2025-26, mean over 71 days. "48h" = failed within 48
+hours; "30d" = failed within 30 days (the "should we get it checked" number):
+
+| k | model 48h | model 30d | base 14-day 48h | base 14-day 30d |
 |---|---|---|---|---|
-| 100 | **0.658** | 0.618 | 0.433 | 0.149 |
-| 500 | **0.406** | 0.392 | 0.271 | 0.092 |
-| 1000 | **0.294** | 0.286 | 0.198 | 0.084 |
-| 2500 | **0.176** (recall 0.639) | 0.169 (0.612) | 0.126 | 0.062 |
+| 100 | **0.674** | **0.963** | 0.617 | 0.910 |
+| 500 | **0.417** | **0.861** | 0.393 | 0.803 |
+| 1000 | **0.303** | **0.768** | 0.285 | 0.717 |
+| 2500 | **0.178** (recall 0.651) | **0.607** | 0.169 (0.616) | 0.555 |
 
-The model beats all three baselines at every k. On only the 10 coldest days it ties the 14-day baseline (everyone chronic is already complaining); the edge comes from ordinary freezing days, where recency is a weaker signal. **New-to-list cut:** among the model's top-100 picks the 14-day baseline missed, **56.3% still failed** — the failures recency cannot see coming.
-
-Numbers to beat on LinuxONE with real XGBoost. Next feature to try: per-building reaction rates by weather band (stream 1 handoff).
+**Headline: 96.3% of the model's top-100 buildings go on to fail within 30 days.**
+The model beats all three baselines at every k on both horizons. New-to-list cut
+(model's top-100 picks the recency baseline missed): 60.2% fail within 48h, 96.5%
+within 30 days — the failures recency cannot see coming.
 
 ## All-season rolling backtest (05, 10 coldest days per season)
 

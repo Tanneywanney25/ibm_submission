@@ -15,7 +15,8 @@ Writes: model/out/heat_model_final.json (or .joblib),
 import sys
 import numpy as np
 import pandas as pd
-from common import DATA, FEATS, OUT, load_days, make_model, season
+from common import (DATA, FEATS, NEVER, OUT, band_prep, band_rates, load_days,
+                    make_model, season)
 
 REPLAY = pd.Timestamp(sys.argv[1] if len(sys.argv) > 1 else "2026-02-08")
 
@@ -61,6 +62,26 @@ for w in (7, 14, 30):
     recent = bd[bd.day > today - pd.Timedelta(days=w)].groupby("bbl")["n"].sum()
     X[f"c_prev{w}"] = X.bbl.map(recent).fillna(0)
 print(f"trailing windows end {today.date()}")
+
+# reaction rates by band (prior two completed seasons) + days-since + building-wide
+X = X.merge(band_rates(*band_prep(bd, load_days()), LAST + 1, X.bbl), on="bbl", how="left")
+bw = pd.read_csv(OUT / "building_day_counts_bw.csv", parse_dates=["day"])
+bw["season"] = season(bw.day)
+X["bw_last1"] = X.bbl.map(bw[bw.season == LAST].groupby("bbl")["n"].sum()).fillna(0)
+X["bw_prev14"] = X.bbl.map(bw[bw.day > bw.day.max() - pd.Timedelta(days=14)]
+                           .groupby("bbl")["n"].sum()).fillna(0)
+X["days_since_c"] = ((today - X.bbl.map(bd.groupby("bbl").day.max())).dt.days
+                     .fillna(NEVER))
+vdate = pd.to_datetime(pd.read_csv(DATA / "hpd_heat_violations.csv", low_memory=False,
+                                   usecols=["bbl", "inspectiondate"])
+                       .dropna(subset=["bbl"])
+                       .assign(bbl=lambda t: t.bbl.astype(float).astype("int64"))
+                       .groupby("bbl").inspectiondate.max())
+X["days_since_v"] = (today - X.bbl.map(vdate)).dt.days.fillna(NEVER)
+
+# the inspectable universe: any history at all (team decision, matches 01/03/05)
+X = X[(X.days_since_c < NEVER) | (X.days_since_v < NEVER)]
+print(f"universe with history: {len(X):,} buildings")
 
 # ---- weather: the replayed day (swap for the live Open-Meteo forecast in the demo)
 days = load_days()
