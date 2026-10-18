@@ -25,9 +25,9 @@
   <div class="about-layout">
     <nav class="about-nav" aria-label="About page sections">
       <p>On this page</p>
-      <a href="#what-it-is">Why we built it</a>
-      <a href="#data">Data &amp; signals</a>
-      <a href="#methods">How we train</a>
+      <a href="#what-it-is">Introduction</a>
+      <a href="#data">Data</a>
+      <a href="#methods">Modeling</a>
       <a href="#top-100">What we measured</a>
       <a href="#experiments">What we tried</a>
       <a href="#uncertainty">What scores mean</a>
@@ -39,176 +39,237 @@
 
     <div class="about-content">
       <section id="what-it-is" class="help-section about-section">
-        <p class="help-eyebrow">01 / The problem</p>
-        <h2>A chance to prepare before the next cold snap.</h2>
-        <p>A complaint tells us someone has already had a problem. We wanted to see whether the
-          pattern <em>before</em> a cold spell could help identify buildings that need attention next.</p>
-        <p>HeatAhead connects that research to a practical website: a building’s history and estimated
-          risk, a citywide risk map, an inspection priority list, and a monitor for published complaints
-          and historical replays. Residents can use the information to prepare; owners can plan checks;
-          inspection teams can compare priorities when time is limited.</p>
+        <p class="help-eyebrow">01 / Introduction</p>
+        <h2>Why we built HeatAhead.</h2>
+        <p>New York City law requires landlords to keep apartments at 68°F during the day and 62°F
+          overnight from October 1 to May 31. Every winter, thousands of buildings fail to do so.
+          When the heat goes out, tenants call 311, and the Department of Housing Preservation and
+          Development (HPD) sends an inspector. The city largely works through these complaints in the
+          order they arrive, so by the time an inspector reaches a building, the people inside may
+          already have been cold for days. Since July 2017 alone, New Yorkers have filed more than
+          1.8 million heat complaints.</p>
+        <p>Using several open data sets and machine learning models, we set out to answer one primary
+          question: on the evening before a freezing day, can a building’s complaint, violation and
+          property history, combined with the weather, tell us which buildings are most likely to lose
+          heat in the next few days? In particular, we wanted to know whether a ranked list built this
+          way would put inspectors in front of failing buildings sooner than the approaches the city
+          can use today, such as answering complaints in the order they arrive or looking at last
+          winter’s complaint counts.</p>
+        <p>We expected a building’s own recent complaint history to be the strongest signal, because a
+          heating system that has failed recently is likely to fail again. We also expected that how a
+          building responds to cold weather, its size and age, the record of its owner’s other buildings
+          and the condition of its boiler would each add information. This page explains the data we
+          used, how we prepared it, and the methods we used to test those expectations. The website
+          itself presents the results: each building’s estimated risk, the citywide map and the
+          inspection priority list.</p>
         <aside class="about-note">
-          <h3>What we are trying to improve</h3>
-          <p>Earlier attention to likely heat problems. A prediction is a reason to check a building,
-            not proof that its heat is broken or that its owner has violated the law.</p>
+          <h3>How to read a prediction</h3>
+          <p>A high estimate is a reason to check a building early. It is not proof that the building’s
+            heat is broken or that its owner has broken the law.</p>
         </aside>
       </section>
 
       <section id="data" class="help-section about-section">
         <p class="help-eyebrow">02 / The data</p>
-        <h2>Several public records, one building history.</h2>
-        <p>Our analysis starts from New York City’s property records, which list 172,485 residential
-          properties. We do not rank all of them. A building enters our analysis only if it has at
-          least one heat complaint or violation on record, because a building with no history gives us
-          nothing to learn from, and no method we tested could find the failures in those buildings.
-          The winter outlook, which estimates each building’s chance of losing heat at least once this
-          winter, covers {{ '{:,}'.format(about_snapshot.get('ranked', 63727)) }} buildings. The cold-day
-          ranking, which estimates the chance of a heat failure within 48 hours of a freezing day,
-          covers {{ '{:,}'.format(about_snapshot.get('cold_ranked', 67125)) }} buildings. The cold-day
-          ranking is slightly larger because it also counts buildings whose only record is a hot water
-          violation, while the winter outlook counts heat violations only.</p>
-        <p>We built each building’s history from the public data sets listed in the table below, all of
-          which are free to download from NYC Open Data, the Department of City Planning and NOAA.
-          The same complaint can appear on more than one row of the raw complaint file, so we count each
-          complaint ID only once. We then joined the records using the city’s property identifiers and
-          organized everything by building, by day and by winter. One of those identifiers, the BBL,
-          describes a tax lot rather than a single building, so a large complex with several buildings
-          on one lot appears in our data as a single record.</p>
+        <h2>Where our data comes from and how we prepared it.</h2>
+        <p>The data for this analysis describes New York City’s residential buildings, the heat
+          complaints their tenants filed, the violations that inspectors recorded, the owners and
+          boilers behind each building, and the weather on every day of the heating season. All of it
+          is public and free to access. We downloaded every file on October 16, 2026, and the
+          complaint and violation records run through October 14, 2026.</p>
+        <p>The table below lists each source, the agency that publishes it and what we took from it.
+          Each name links to the original data set.</p>
         <div class="about-table-wrap" role="region" aria-label="Data sources and their uses" tabindex="0">
           <table class="about-table">
             <caption>What goes into the analysis</caption>
-            <thead><tr><th scope="col">Record</th><th scope="col">What it helps us understand</th></tr></thead>
+            <thead><tr><th scope="col">Data set and publisher</th><th scope="col">What it contains and how we use it</th></tr></thead>
             <tbody>
-              <tr><th scope="row"><a href="https://data.cityofnewyork.us/d/ygpa-z7cr" target="_blank" rel="noopener noreferrer">HPD complaints ↗</a></th><td>Recent heat reports, repeated problems and previous winters.</td></tr>
-              <tr><th scope="row"><a href="https://data.cityofnewyork.us/d/wvxf-dwi5" target="_blank" rel="noopener noreferrer">HPD violations ↗</a></th><td>Heat problems that were confirmed through an inspection.</td></tr>
-              <tr><th scope="row"><a href="https://www.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page" target="_blank" rel="noopener noreferrer">PLUTO properties ↗</a></th><td>Building age, residential units, floors, size and community district.</td></tr>
-              <tr><th scope="row"><a href="https://data.cityofnewyork.us/d/feu5-w2e2" target="_blank" rel="noopener noreferrer">HPD owner registrations ↗</a></th><td>Shared ownership and complaints at the owner's other properties.</td></tr>
-              <tr><th scope="row"><a href="https://data.cityofnewyork.us/d/52dp-yji6" target="_blank" rel="noopener noreferrer">DOB boiler inspections ↗</a> &amp; <a href="https://data.cityofnewyork.us/d/f4rp-2kvy" target="_blank" rel="noopener noreferrer">DEP boiler permits ↗</a></th><td>Recorded boiler defects and the fuel a building burns.</td></tr>
-              <tr><th scope="row"><a href="https://www.ncei.noaa.gov/cdo-web/datasets/GHCND/stations/GHCND:USW00094728/detail" target="_blank" rel="noopener noreferrer">NOAA Central Park ↗</a> &amp; <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo ↗</a></th><td>Historical temperature, snow and wind, plus forecast context for cold weather.</td></tr>
+              <tr><th scope="row"><a href="https://data.cityofnewyork.us/d/ygpa-z7cr" target="_blank" rel="noopener noreferrer">HPD complaints ↗</a><br><span class="help-small">HPD, NYC Open Data</span></th><td>Every heat and hot water complaint filed through 311: 2,219,844 records from July 1, 2017 to October 14, 2026. This is the source of our outcome and of most of our strongest inputs.</td></tr>
+              <tr><th scope="row"><a href="https://data.cityofnewyork.us/d/wvxf-dwi5" target="_blank" rel="noopener noreferrer">HPD violations ↗</a><br><span class="help-small">HPD, NYC Open Data</span></th><td>Violations that an inspector confirmed in person: 223,430 heat violations (orders 666, 966 and 674) and hot water violations (orders 670 and 970). We use them as history and as an independent check on our outcome.</td></tr>
+              <tr><th scope="row"><a href="https://www.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page" target="_blank" rel="noopener noreferrer">PLUTO properties ↗</a><br><span class="help-small">Department of City Planning</span></th><td>Version 26v2 of the city’s property file, limited to the 172,485 tax lots with three or more residential units. It gives each building’s units, floors, floor area, year built, alterations, community district and location.</td></tr>
+              <tr><th scope="row"><a href="https://data.cityofnewyork.us/d/feu5-w2e2" target="_blank" rel="noopener noreferrer">HPD owner registrations ↗</a><br><span class="help-small">HPD, NYC Open Data</span></th><td>The registered owner and managing agent of each building. We matched 136,589 owners, which lets us count how many buildings an owner holds and how their other buildings performed last winter.</td></tr>
+              <tr><th scope="row"><a href="https://data.cityofnewyork.us/d/52dp-yji6" target="_blank" rel="noopener noreferrer">DOB boiler inspections ↗</a> &amp; <a href="https://data.cityofnewyork.us/d/f4rp-2kvy" target="_blank" rel="noopener noreferrer">DEP boiler permits ↗</a><br><span class="help-small">Departments of Buildings and Environmental Protection</span></th><td>892,914 boiler inspection reports, which record defects, and 91,370 boiler permits, which record the fuel each boiler burns.</td></tr>
+              <tr><th scope="row"><a href="https://www.ncei.noaa.gov/cdo-web/datasets/GHCND/stations/GHCND:USW00094728/detail" target="_blank" rel="noopener noreferrer">NOAA Central Park ↗</a> &amp; <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo ↗</a><br><span class="help-small">NOAA and Open-Meteo</span></th><td>Daily minimum and maximum temperature, snow and wind for every day since January 1, 2017 (3,572 days, with none missing), plus the seven day forecast we use to detect an approaching cold spell.</td></tr>
             </tbody>
           </table>
         </div>
-        <details class="about-details">
-          <summary>Step by step: cleaning the data and defining the label</summary>
-          <div>
-            <ol class="about-plain-steps">
-              <li>Keep heat-related complaints: “NO HEAT” and “NO HEAT AND NO HOT WATER.”</li>
-              <li>Normalize dates and count distinct complaint IDs for each property and day.
-                Repeated source rows do not become extra complaints.</li>
-              <li>Attach property, ownership and boiler records using their appropriate identifiers.
-                Treat BBLs as integers; use building IDs and BINs for the relevant building-level joins.</li>
-              <li>Add the count on day d to the count on day d+1. A total of at least two creates
-                a positive complaint-cluster label.</li>
-              <li>Keep a separate confirmed-outcome check: a recorded heat violation within seven days.
-                Do not use a later complaint status or closing date as a prediction input.</li>
-            </ol>
-            <p>In the team’s historical confirmation analysis, isolated single complaints were followed
-              by a recorded violation within seven days 4.78% of the time, compared with 8.93% for
-              clusters of at least two: a 1.87× association. That supports studying clusters, while
-              still treating them as reports rather than confirmed equipment failures.</p>
-          </div>
-        </details>
-        <details class="about-details">
-          <summary>How our weather analysis becomes a model input</summary>
-          <div>
-            <p>We group days by their daily minimum temperature: frigid below 20°F; freezing from
-              20°F to below 32°F; cold from 32°F to below 45°F; and mild at 45°F or above.</p>
-            <p>For each building, we calculate how often it had a complaint on days in each band
-              during the previous two winters. Days with no complaints still count in the denominator.
-              That helps separate a building with frequent problems from one that mainly struggles
-              when temperatures drop.</p>
-          </div>
-        </details>
+        <h3>How the sources fit together</h3>
+        <p>Because these records come from four city agencies and one federal agency, they do not share a
+          single identifier. Complaints, violations and PLUTO identify a property by its BBL, the ten
+          digit borough, block and lot number of the tax lot. Boiler records identify a building by its
+          BIN, the Department of Buildings’ building number, and owner registrations use HPD’s own
+          building ID. We joined each source only on the identifier it was published with, and then
+          summarized everything at the level of the BBL. We also stored every identifier as a whole
+          number before joining, because some files store the BBL as a decimal number, and a decimal
+          BBL silently fails to match its whole number twin.</p>
+        <h3>Cleaning the complaint records</h3>
+        <p>The complaint file required the most preparation. Its 2,219,844 rows describe 2,196,887
+          distinct complaints, because one complaint can list several problems, each on its own row. We
+          kept the two problem types that describe a heating failure, “NO HEAT” and “NO HEAT AND NO HOT
+          WATER,” which left 1,853,073 rows. We then removed 6,650 rows that had no BBL and could not be
+          placed on a property, and kept only complaints at lots in our building table, which left
+          1,703,315 rows describing 1,694,922 distinct complaints at 62,451 lots. Finally, we counted each
+          complaint once per building per day, so that a complaint repeated across rows never counts
+          twice. The result is 1,148,420 building days with at least one heat complaint.</p>
+        <p>For the violation records, we kept only the five heat and hot water order numbers and removed
+          23,607 records dated before 2010, which include inspection dates as early as 1968 that are
+          either entry errors or too old to describe a building today. For the boiler records, we count
+          only reports dated before the winter being studied, so that a later inspection can never
+          inform an earlier prediction. The weather record needed no repair.</p>
+        <p>These steps mean our study covers buildings with three or more apartments that have some heat
+          complaint or violation history. A building enters a ranking only if it has at least one heat
+          complaint or violation on record, because a building with no history gives a model nothing to
+          learn from, and no method we tested could find the failures in those buildings. The winter
+          outlook, which estimates each building’s chance of losing heat at least once this winter,
+          covers {{ '{:,}'.format(about_snapshot.get('ranked', 63727)) }} buildings. The cold-day ranking, which
+          estimates the chance of a heat failure within 48 hours of a freezing day, covers
+          {{ '{:,}'.format(about_snapshot.get('cold_ranked', 67125)) }} buildings. The cold-day ranking is slightly
+          larger because it also counts buildings whose only record is a hot water violation, while the
+          winter outlook counts heat violations only. One more detail matters for reading the results: a
+          BBL describes a tax lot rather than a single building, so a large complex with several
+          buildings on one lot appears in our data as a single record.</p>
+        <h3>The outcome we predict</h3>
+        <p>Public records do not say when a boiler stops working, so we had to define a heat failure from
+          what is recorded. We say a building has a <strong>heat failure</strong> when it receives two or
+          more distinct heat complaints across two consecutive days. We require two complaints rather
+          than one because a single complaint often describes one cold apartment or a call that leads
+          nowhere. We checked this choice against inspectors’ records: a single isolated complaint was
+          followed by a confirmed heat violation within seven days 4.78% of the time, while a cluster of
+          two or more was followed by one 8.93% of the time, 1.87 times as often. Confirmed violations are
+          rare even for real failures because inspectors cannot reach every complaint in time, so we
+          train on the complaint based outcome and keep the confirmed violation, within seven days, as a
+          separate check.</p>
+        <h3>Privacy and ethics</h3>
+        <p>The complaint and violation files include apartment numbers. Our modeling pipeline never
+          loads that column, and our separate complaint analysis replaced every apartment number with a
+          secure one way code before building any table, so no apartment number appears in any table,
+          model input or page on this site. Every estimate describes a whole building.
+          We also recognize that complaints depend on people choosing to report a problem, and that
+          some communities report less often than others. A building with a quiet record is not
+          necessarily a building without problems, and we discuss what that means for the results in
+          the limitations section below.</p>
       </section>
 
       <section id="methods" class="help-section about-section">
-        <p class="help-eyebrow">03 / Training</p>
-        <h2>Learn from past winters. Test on a later one.</h2>
-        <p>We train supervised machine-learning models: we give them historical building information
-          and an outcome to learn. The main methods use gradient-boosted decision trees, which combine
-          many small decision trees to find patterns in counts, building characteristics and weather.</p>
+        <p class="help-eyebrow">03 / Modeling</p>
+        <h2>How we built and trained the models.</h2>
+        <p>Our modeling uses supervised machine learning: we show a model many past examples of buildings
+          together with what happened next, and it learns which patterns came before a heat failure. This
+          section explains how we turned the cleaned records into model inputs, how we built the
+          training data, which methods we used and why, and how we tested them.</p>
+        <h3>Turning records into model inputs</h3>
+        <p>Each training example is one building on one heating season day, described by 36 inputs
+          calculated from the records above. The inputs fall into seven families. <strong>Previous
+          winters</strong> count the building’s complaints and violations over the last one and two
+          seasons, flag buildings with five or more complaints in each of the last two seasons, and count
+          last season’s whole building complaints, which usually mean the boiler itself failed rather than
+          one apartment. <strong>Recent activity</strong> counts the building’s complaints in the previous
+          2, 7, 14 and 30 days and measures how many days have passed since its last complaint and last
+          violation. <strong>Cold response</strong> measures, over the previous two winters, the share of
+          frigid days (below 20°F), freezing days (20°F to below 32°F) and cold days (32°F to below 45°F)
+          on which the building had a complaint. This separates a building with constant problems from
+          one that mainly struggles when the temperature drops. <strong>Property</strong> inputs come from
+          PLUTO, and <strong>owner and boiler</strong> inputs describe the owner’s portfolio and the
+          boiler’s recorded defects and fuel. <strong>Nearby reports</strong> count complaints at other
+          buildings on the same tax block in the previous two days, because buildings that share an owner
+          or a heating plant tend to fail together. Finally, <strong>weather and calendar</strong> inputs
+          describe the day’s temperature, snow and wind and how far into the cold season the day falls.</p>
         <div class="about-table-wrap" role="region" aria-label="The 36 daily-model features" tabindex="0">
           <table class="about-table about-features">
             <caption>The 36 daily-model inputs, grouped by what they describe</caption>
-            <thead><tr><th scope="col">Signal family</th><th scope="col">Inputs</th><th scope="col">What we calculate</th></tr></thead>
+            <thead><tr><th scope="col">Input family</th><th scope="col">Inputs</th><th scope="col">What we calculate</th></tr></thead>
             <tbody>
-              <tr><th scope="row">Previous winters</th><td>6</td><td>One- and two-season complaints and violations, chronic complaints, and prior building-wide reports.</td></tr>
-              <tr><th scope="row">Recent activity</th><td>7</td><td>2/7/14/30-day counts, time since complaint or violation, and 14-day building-wide reports.</td></tr>
-              <tr><th scope="row">Cold response</th><td>3</td><td>Complaint-day rates on frigid, freezing and cold days over the prior two seasons.</td></tr>
-              <tr><th scope="row">Property</th><td>6</td><td>Units, year built, alteration flag, floors, area and community district.</td></tr>
-              <tr><th scope="row">Owner &amp; boiler</th><td>4</td><td>Owner portfolio size, reports at the owner’s other buildings, boiler defects and oil fuel.</td></tr>
-              <tr><th scope="row">Nearby reports</th><td>1</td><td>Other properties’ complaints on the same tax block over the previous two days.</td></tr>
-              <tr><th scope="row">Weather &amp; calendar</th><td>9</td><td>Minimum/maximum temperature, lag, rolling minimum, change, snow, wind, weekday and days into the cold season.</td></tr>
+              <tr><th scope="row">Previous winters</th><td>6</td><td>One and two season complaints and violations, a chronic complaint flag and last season’s whole building complaints.</td></tr>
+              <tr><th scope="row">Recent activity</th><td>7</td><td>Complaints in the last 2, 7, 14 and 30 days, days since the last complaint and violation, and whole building complaints in the last 14 days.</td></tr>
+              <tr><th scope="row">Cold response</th><td>3</td><td>Complaint rates on frigid, freezing and cold days over the prior two winters.</td></tr>
+              <tr><th scope="row">Property</th><td>6</td><td>Units, year built, alteration flag, floors, floor area and community district.</td></tr>
+              <tr><th scope="row">Owner and boiler</th><td>4</td><td>Owner portfolio size, complaints at the owner’s other buildings, boiler defects and oil fuel.</td></tr>
+              <tr><th scope="row">Nearby reports</th><td>1</td><td>Complaints at other buildings on the same tax block over the previous two days.</td></tr>
+              <tr><th scope="row">Weather and calendar</th><td>9</td><td>Minimum and maximum temperature, the previous day’s minimum, the three day rolling minimum, the change from the previous day, snow, wind, weekday and days into the cold season.</td></tr>
             </tbody>
           </table>
         </div>
-        <ol class="about-process">
-          <li><h3>Define the outcome before training</h3>
-            <p>Our main label is <strong>two or more distinct heat complaints across two consecutive
-              calendar days</strong>, called the “48-hour” label in our experiments. The spell model
-              asks whether that complaint cluster occurs during a cold spell. This is a reported-problem
-              measure; a separate model studies confirmed heat violations.</p></li>
-          <li><h3>Build a picture of what was already known</h3>
-            <p>Inputs include complaints in the previous 2, 7, 14 and 30 days; time since the last
-              complaint; previous-winter complaints and violations; cold-weather reaction rates;
-              property and boiler details; owner-portfolio history; and recent reports on the same block.
-              Complaint windows stop before the prediction day.</p></li>
-          <li><h3>Fit the models and compare alternatives</h3>
-            <p>The original model averages XGBoost and scikit-learn gradient-boosting predictions.
-              Its training set contains 622,362 building-days from the 2018–19 through 2024–25 seasons.
-              We include complaint-cluster examples and sample days without clusters to keep training
-              manageable.</p></li>
-          <li><h3>Test the ranking on a later winter</h3>
-            <p>The sampled training set includes positive examples and about twice as many sampled
-              negative examples before the eligibility filters. That makes model fitting practical,
-              but it changes the apparent failure rate.</p>
-            <p>We evaluate on the full eligible ranking population, not just the sampled training rows.
-              We compare the model with simple rules, including recent complaint counts and
-              previous-season history. The original ranking test uses the 2025–26 winter, held out
-              from fitting the prediction model.</p></li>
+        <h3>The time rule</h3>
+        <p>A model can look far better than it really is if its inputs accidentally contain information
+          from the future. To prevent this, every input for a building on a given day uses only records
+          dated before that day. Season level history uses only earlier seasons, recent activity windows
+          end on the evening before, and fields that are only known after the fact, such as a complaint’s
+          final status or closing date, are never used. We wrote automated tests that fail if any of these
+          rules is broken.</p>
+        <h3>Building the training data</h3>
+        <p>Using every building on every day would produce tens of millions of examples, nearly all of them
+          days without a failure. Instead, we kept every heat failure from the 2018 to 2019 winter through
+          the 2024 to 2025 winter and added twice as many randomly chosen days without one. After removing
+          buildings with no prior history, the training set contains 622,362 building days. Because this
+          sample contains far more failures than real life does, the model’s raw scores overstate the
+          true chance of a failure, which is why every probability we show passes through a separate
+          calibration step, described below.</p>
+        <h3>The machine learning methods we use</h3>
+        <p>Our main models are <strong>gradient boosted decision trees</strong>. A decision tree sorts
+          buildings into groups by asking a series of yes or no questions about their inputs, such as
+          whether a building had more than three complaints in the last 14 days. Gradient boosting builds
+          hundreds of small trees one after another, with each new tree correcting the errors left by the
+          trees before it. We chose this family because it is the most consistently accurate method for
+          tables of counts, dates and measurements like ours, it handles missing values and very
+          different scales without extra preparation, and it lets us explain which inputs a model relies
+          on.</p>
+        <p>The original model averages two implementations of the same idea, <strong>XGBoost</strong> and
+          scikit-learn’s <strong>HistGradientBoosting</strong>, each built from 400 trees with a maximum
+          depth of 6 and a learning rate of 0.08. Averaging two models smooths out the quirks of either
+          one. Its scores then pass through <strong>isotonic regression</strong>, a calibration method that
+          learns how raw scores map to the share of buildings that actually failed, using every eligible
+          building rather than the sampled training data. Calibration changes the numbers we display but
+          never the order of the ranking.</p>
+        <p>We built two more models for the two other questions the site answers. The <strong>winter
+          outlook</strong> uses one example per building per season, with 21 inputs measured on October 1
+          and the outcome “lost heat at least once that winter.” It is a HistGradientBoosting model trained
+          on 305,413 building seasons, with its own isotonic calibration. The <strong>cold spell
+          model</strong> is trained directly on the task inspectors face: on the evening before a cold
+          spell, which buildings will fail during it? We chose its settings with a twelve trial search
+          scored only on the 2024 to 2025 winter, then trained it five times with different random seeds
+          and averaged the five, which removes most of the variation between individual training runs.</p>
+        <p>We also tested methods that work differently, to make sure the gradient boosted trees were not
+          simply the first idea we tried. These include a model trained to rank buildings directly, a
+          graph neural network that learns from links between buildings that share an owner or a block,
+          a survival model that predicts when a building will first fail, a model trained on confirmed
+          violations instead of complaints, and a statistical method called conformal risk control that
+          sets alert thresholds with a guaranteed maximum miss rate. Finally, we used backward feature
+          elimination, which removes the least useful input one at a time across three model types, to
+          learn which inputs actually carry the signal. The development record below lists what each of
+          these changed.</p>
+        <h3>How we test the models</h3>
+        <p>We split the data by time, never at random, so that a model is always tested on a winter it
+          has never seen. Models learn from the 2018 to 2019 through 2023 to 2024 winters, the 2024 to
+          2025 winter is used to choose between versions and settings, and the 2025 to 2026 winter is held
+          out and scored once at the end. On each test day, the model ranks every eligible building in the
+          city, and we measure <strong>precision at k</strong>: of the k buildings ranked highest, the share
+          that actually had a heat failure. We use this measure because an inspection team can only visit
+          a limited number of buildings, so what matters is whether the top of the list is right. We
+          compare every model with simple rules the city could use without any model, such as ranking by
+          complaints in the last 14 days. To check that the results were not one lucky winter, we repeated
+          the test six times, each time training only on earlier winters and testing on the next one, and
+          we measured uncertainty by resampling whole days and whole cold spells rather than individual
+          buildings.</p>
+        <ol class="about-timeline" aria-label="Training, validation and test split">
+          <li><strong>Winters 2018 to 2024</strong><span>Train candidate models.</span></li>
+          <li><strong>Winter 2024 to 2025</strong><span>Choose between versions and settings, then refit.</span></li>
+          <li><strong>Winter 2025 to 2026</strong><span>Test once on the held out winter.</span></li>
         </ol>
-        <details class="about-details">
-          <summary>More detail: training settings and the later spell model</summary>
-          <div>
-            <p>The original M1 recipe averages two models: XGBoost and scikit-learn HistGradientBoosting,
-              each with 400 boosting rounds, maximum depth 6 and learning rate 0.08. Gradient boosting
-              fits trees in sequence, with each new tree working on errors left by the earlier ones.</p>
-            <p>
-              A later XGBoost model learns the spell-level outcome directly. We select its settings
-              using a separate validation winter, then average five fits with different random seeds
-              to reduce variation between runs.</p>
-            <ol class="about-timeline" aria-label="Later spell-model training split">
-              <li><strong>2018–19 → 2023–24</strong><span>Fit candidate models.</span></li>
-              <li><strong>2024–25</strong><span>Choose settings; then refit using the earlier winters and this one.</span></li>
-              <li><strong>2025–26</strong><span>Evaluate the selected recipe on eight cold spells.</span></li>
-            </ol>
-            <p>For the final spell model, M13, we tried 12 configurations on the validation winter.
-              The reported winner used depth 7, learning rate 0.03 and 61 trees. We refit five random
-              seeds and averaged their scores. A coarse blend search with the tuned daily model, M12,
-              selected the pure five-model average.</p>
-            <p>One caveat in the later experiment: the final blend comparison reused the validation
-              winter after refitting. That comparison is less independent than the initial settings search.</p>
-            <p>We also run six tests that move forward through time: train on earlier winters, test
-              on the next one. Automated checks cover history windows and columns that could reveal
-              an outcome after it happened.</p>
-            <p>After evaluation, deployment models are refit with the latest completed winter included.
-              Those refits are separate from the models used for the reported test results.</p>
-          </div>
-        </details>
         <details class="about-details">
           <summary>Which model supplies each part of the website?</summary>
           <div class="about-model-grid">
             <article><span class="about-model-id">M1 / Evaluation</span><h3>The original daily ensemble</h3>
-              <p>Supplies the fixed submission benchmarks. Training stops before 2025–26.</p></article>
-            <article><span class="about-model-id">M2 + M3 / Cold-day queue</span><h3>Deployment refit + calibration</h3>
-              <p>The XGBoost deployment refit includes the latest completed winter. Its scores pass
-                through a daily calibrator. These refitted scores are not used to claim test performance.</p></article>
-            <article><span class="about-model-id">M4 / Winter risk</span><h3>A season-level model</h3>
-              <p>HistGradientBoosting with 21 start-of-season inputs, trained on 305,413 building-seasons.
-                Its calibrated output supplies the winter estimate and map colors.</p></article>
-            <article><span class="about-model-id">M13 / Spell experiments</span><h3>The later five-seed model</h3>
-              <p>Supplies the later spell benchmark and dispatch simulation. We keep its result separate
-                from the M2/M4 files listed in the public website’s data snapshot.</p></article>
+              <p>Supplies the fixed submission benchmarks. Its training stops before the 2025 to 2026 winter.</p></article>
+            <article><span class="about-model-id">M2 + M3 / Cold-day queue</span><h3>Deployment refit and calibration</h3>
+              <p>The same recipe refit with the latest completed winter included, with its scores passed
+                through the daily calibrator. Because it has seen the test winter, it is never used to
+                report test performance.</p></article>
+            <article><span class="about-model-id">M4 / Winter outlook</span><h3>The season level model</h3>
+              <p>HistGradientBoosting with 21 start of season inputs, trained on 305,413 building seasons.
+                Its calibrated output supplies the winter estimate and the map colors.</p></article>
+            <article><span class="about-model-id">M13 / Cold spells</span><h3>The tuned five seed spell model</h3>
+              <p>Supplies the cold spell benchmark and the dispatch simulation. It is reported separately
+                from the M2 and M4 files behind the public website.</p></article>
           </div>
         </details>
       </section>
@@ -545,28 +606,30 @@
       <section id="limits" class="help-section about-section">
         <p class="help-eyebrow">09 / Limits &amp; next steps</p>
         <h2>What this work cannot tell us yet.</h2>
-        <dl class="about-limits">
-          <div><dt>Complaints depend on people reporting.</dt><dd>Missing reports can hide real problems.
-            A quiet history does not establish that a building is safe.</dd></div>
-          <div><dt>Coverage is incomplete.</dt><dd>Individual rankings focus on buildings with usable
-            complaint or violation history. Missing map coverage or an unranked building should not
-            be read as zero risk.</dd></div>
-          <div><dt>Some property facts are current snapshots.</dt><dd>Historical backtests can inherit
-            today’s ownership records. Time-filtered boiler inputs were checked in a separate study.
-            Time-limited complaint windows do not make every source fully historical.</dd></div>
-          <div><dt>Large complexes can dominate.</dt><dd>More units can generate more reports. A highly
-            ranked BBL can represent a complex, so it should not be mistaken for one small building.</dd></div>
-          <div><dt>The backtest is not a live forecast trial.</dt><dd>The main backtests use observed
-            weather as a forecast stand-in. Future forecast errors, older property records and changes
-            in reporting can affect performance.</dd></div>
-          <div><dt>A citywide result can hide local gaps.</dt><dd>More testing by borough, building type
-            and neighborhood is needed before using the ranking to allocate public resources.</dd></div>
-          <div><dt>A score does not tell us the exact failure date.</dt><dd>We tested a timing model,
-            but its absolute estimates were not reliable enough to ship.</dd></div>
-        </dl>
-        <p>Our next steps are to evaluate on another winter, audit performance across communities,
-          and test the tool with the people who would use it. Those checks matter before making
-          claims about real-world inspection outcomes.</p>
+        <p>In addition to explaining our methods, it is important to discuss the limits of our data and
+          of our analysis. The first and largest limit is that our outcome is built from complaints. A
+          complaint depends on a tenant choosing to call 311, and some buildings and communities report
+          problems less often than others. A quiet record therefore does not establish that a building is
+          safe, and a model trained on complaints can only learn the failures that people reported. We
+          use confirmed violations as a second check, but those are limited by how many inspectors are
+          available.</p>
+        <p>Our coverage is also incomplete. We study buildings with three or more apartments, and we rank
+          only buildings with some complaint or violation history, so a building that is missing from
+          the map or not individually ranked should not be read as having zero risk. Some property facts
+          are current snapshots rather than historical records: ownership comes from today’s
+          registrations, so our tests on past winters inherit today’s owners. Because a BBL describes a
+          tax lot, a large complex can appear as one record and rank highly partly because its many
+          units generate many complaints.</p>
+        <p>There are limits to the analysis as well. Our tests use the weather that actually occurred as
+          a stand in for a forecast. We measured archived 24 to 48 hour forecasts at about two degrees
+          Fahrenheit of error, so live performance should be close, but it is not identical. Our final
+          test covers a single held out winter with eight cold spells, which is a small sample, and a
+          citywide result can hide differences between boroughs, building types and neighborhoods. We
+          also built a model that estimates when a building will first fail, but its estimates were not
+          reliable enough to show on this site.</p>
+        <p>Our next steps are to test the models on another winter, to audit how well they work across
+          communities, and to try the tool with the people who would use it. Those checks matter before
+          anyone uses these rankings to allocate public resources.</p>
       </section>
 
       <section id="open-source" class="help-section about-section">
@@ -575,8 +638,8 @@
         <p>We built HeatAhead during the IBM Z Datathon in October 2026. The work spans data cleaning,
           weather and building analysis, model training, evaluation, backend services and the website.</p>
         <p>This page draws on the team’s October 18 complete model report, checked against the
-          training code and published website data. The feature-removal experiment was still running
-          in that report; it is not counted as a finished result here.</p>
+          training code and published website data. That report also covers the feature removal and
+          tuning experiments, which finished on October 18.</p>
         <p>Our project record includes the feature pipeline, training scripts, model comparisons,
           statistical checks and deployment instructions. Model artifacts use portable JSON for exchange
           between machines. Raw extracts, credentials and resident-level records are excluded from the
