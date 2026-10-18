@@ -11,6 +11,7 @@ the demo. Thresholds and copy per docs/tasks/T4-alerts.md.
 """
 
 import argparse
+import json
 import os
 import sqlite3
 import sys
@@ -29,6 +30,30 @@ FORECAST_URL = ("https://api.open-meteo.com/v1/forecast?latitude=40.7789"
                 "&temperature_unit=fahrenheit&timezone=America%2FNew_York"
                 "&forecast_days=7")
 P_SEASON_MIN, P_COLDDAY_MIN = 0.35, 0.20
+
+
+def conformal_tiers():
+    """T8: alert thresholds with a conformal FNR guarantee (model/16_conformal.py).
+    Returns the tiers dict when the json is present and sane, else None - the
+    hand-picked P_COLDDAY_MIN and the old copy line are the fallback."""
+    try:
+        tiers = json.loads(
+            (ROOT / "model/out/conformal_thresholds.json").read_text())["tiers"]
+        return tiers if "broad" in tiers and "p_threshold" in tiers["broad"] else None
+    except (OSError, KeyError, ValueError):
+        return None
+
+
+def quality_line(tiers, p_cold):
+    if not tiers:
+        return ("among buildings at our alert threshold, at least 1 in 4 "
+                "fails within 48 hours of each cold day - probabilities are "
+                "calibrated on last winter.")
+    t = (tiers["strict"] if "strict" in tiers
+         and p_cold >= tiers["strict"]["p_threshold"] else tiers["broad"])
+    return (f"this alert level is calibrated to miss fewer than "
+            f"{t['alpha']:.0%} of heat failures (a conformal guarantee, "
+            f"verified on last winter's held-out cold days).")
 
 
 def find_spell(force=None):
@@ -64,7 +89,7 @@ def band(p):
     return f"{p * 100:.0f}%"
 
 
-def compose(email, bbl, row, spell_start, cold_days):
+def compose(email, bbl, row, spell_start, cold_days, quality):
     p = float(row.p_season)
     return make_msg(
         email,
@@ -77,9 +102,7 @@ def compose(email, bbl, row, spell_start, cold_days):
         f"Oct 1, 2026, HPD must attempt an inspection for every non-anonymous "
         f"heat complaint. Landlords must keep apartments at 68F daytime / 62F "
         f"overnight through May 31.\n\n"
-        f"Alert quality: among buildings at our alert threshold, at least 1 in 4 "
-        f"fails within 48 hours of each cold day - probabilities are calibrated "
-        f"on last winter.\n\n"
+        f"Alert quality: {quality}\n\n"
         f"One alert per cold spell, never more. Unsubscribe: reply STOP or "
         f"visit {unsubscribe_url(email, bbl)}\n")
 def main():
@@ -93,6 +116,12 @@ def main():
         log("no freezing run in the 7-day forecast - nothing to do")
         return 0
     log(f"freezing run detected, spell_start={spell_start}")
+
+    tiers = conformal_tiers()
+    p_cold_min = tiers["broad"]["p_threshold"] if tiers else P_COLDDAY_MIN
+    log(f"cold-day threshold {p_cold_min}"
+        + (" (conformal, alpha=%s)" % tiers["broad"]["alpha"] if tiers
+           else " (hand-picked fallback)"))
 
     risks = risk_table()
     con = sqlite3.connect(DB)
@@ -108,14 +137,15 @@ def main():
             continue
         row = risks.loc[bbl]
         p_cold = row.p_calibrated if pd.notna(row.p_calibrated) else 0.0
-        if row.p_season < P_SEASON_MIN and p_cold < P_COLDDAY_MIN:
+        if row.p_season < P_SEASON_MIN and p_cold < p_cold_min:
             continue
         dup = con.execute("SELECT 1 FROM alerts_sent WHERE bbl=? AND email=? "
                           "AND spell_start=?", (bbl, email, spell_start)).fetchone()
         if dup:
             skipped += 1
             continue
-        if send(compose(email, bbl, row, spell_start, cold_days), args.dry_run):
+        if send(compose(email, bbl, row, spell_start, cold_days,
+                        quality_line(tiers, p_cold)), args.dry_run):
             sent += 1
             if not args.dry_run:
                 con.execute("INSERT INTO alerts_sent(bbl, email, spell_start) "

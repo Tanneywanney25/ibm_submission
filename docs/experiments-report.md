@@ -19,6 +19,7 @@ precision@100/500/1000/2500.
 | **M11** spell-direct | train on the spell-level task itself (54 snapshots) | **89.9% @100 (+3.8)**, no depth regression | **adopted** for the per-spell queue |
 | **M12** tuned day-model | first randomized HPO, validated on 2024-25 spells only | 89.2 / 65.2 / 51.8 / 34.8 — ≥ frozen at every k | **adopted** as the post-freeze config |
 | **T12** dispatch simulator | replay the real 2025-26 complaint stream under 3 dispatch policies | same capacity: **+7.8% violations confirmed, cold-household-days −50.2%** vs FCFS | **the policy punchline** — prediction → dispatch, measured |
+| **T8** conformal alerts | distribution-free FNR guarantee on the alert threshold (conformal risk control) | guaranteed ≤10% missed → realized **7.4%**; ≤25% → realized **21.1%** on the held-out winter | **adopted** — the alert threshold is now a theorem, `web/alerts.py` reads it |
 
 ## What each one taught us (the Q&A ammunition)
 
@@ -91,6 +92,35 @@ stream 2's measured one-third yield drop on 4,000+ complaint days (heat comes
 back before a late inspection). This simplification is **conservative**: decay
 would penalize slow policies, so modeling it would only widen HeatAhead's
 margin. The quoted numbers are therefore a floor.
+
+## T8 — conformal alert thresholds (model/16_conformal.py)
+
+The alert threshold used to be hand-picked; now it carries a distribution-free
+guarantee. Setup: one fixed model (trained on panel seasons 2018-2022, strictly
+before every calibration day) scores the full history universe 05-style on all
+102 TMIN<32 heat-season days of 2023-24 + 2024-25 (calibration), then on the 71
+held-out 2025-26 cold days (test, touched once). The risk controlled is the
+day-level **false-negative rate**: the share of that day's failed48 buildings
+scored below the threshold. Conformal risk control (Angelopoulos et al.) picks
+the largest threshold λ with `(n/(n+1))·R̂(λ) + 1/(n+1) ≤ α` — so `E[FNR] ≤ α`
+holds by construction, no distributional assumptions.
+
+**Result (realized FNR on the untouched test winter, vs the guarantee):**
+
+| tier | α (guaranteed) | calib FNR (bound) | **test FNR** | alerts per cold day (mean / median) |
+|---|---|---|---|---|
+| broad | ≤ 10% | 9.1% (0.100) | **7.4%** ✓ | 13,107 / 12,132 |
+| strict | ≤ 25% | 24.3% (0.250) | **21.1%** ✓ | 5,220 / 4,740 |
+
+The alert volume IS the operational cost of the guarantee: catching ≥90% of
+failures means alerting ~13k buildings per cold day (~20% of the universe) —
+which is exactly why the email product uses the tiers as copy ("calibrated to
+miss fewer than α of failures") while inspection stays a top-k ranked list.
+`web/alerts.py` reads `model/out/conformal_thresholds.json` when present
+(threshold + guarantee line) and falls back to the hand-picked threshold and
+old copy when absent; the json also expresses λ on the isotonic-calibrated
+probability scale (monotone, alerts the identical set). Per-day detail:
+`model/out/conformal_days.csv`.
 
 ## The rules that made these experiments safe
 

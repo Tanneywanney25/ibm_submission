@@ -13,7 +13,7 @@ your PRs. Roles doc: `docs/roles-endgame.md`.
 | [T5](T5-messaging-landlord.md) | landlord contact + drafted messages | T5a+b done: owner, managing agent and HPD link on every building page; tenant notice and landlord self-audit drafts (nothing sent); T5c roadmap | Tanush |
 | [T6](T6-models-next.md) | further models (ranker, verified, severity…) | done: M7/M8/M9 run on the guest — see docs/experiments-report.md | Emerson |
 | [T7](T7-statistical-inference.md) | error bars + significance on every number (cluster bootstrap, paired permutation) | done: daily edge p<1e-5 every k/horizon, spell edge exact p=1/256 (won all 8 spells), all calibration bins inside Wilson CIs | Emerson |
-| [T8](T8-conformal-alerts.md) | conformal risk control: alerts with a provable guarantee | new | — |
+| [T8](T8-conformal-alerts.md) | conformal risk control: alerts with a provable guarantee | done: guarantee held on the test winter (α=0.10 → 7.4% missed, α=0.25 → 21.1%); alerts.py reads the json, falls back when absent | Emerson |
 | [T9](T9-shap-explanations.md) | SHAP per building + "why this number" on the site | new | — |
 | [T10](T10-time-to-failure.md) | M10 discrete-time hazard: predict WHEN, survival curves | new (first to drop) | — |
 | [T11](T11-robustness-audit.md) | leave-one-borough-out CV, drift PSI, pytest leakage suite | 11c done: 9 leakage tests green (caught and fixed an eval-clobber bug); 11a/11b open | Emerson (11c) |
