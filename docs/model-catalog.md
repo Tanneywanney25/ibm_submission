@@ -166,6 +166,47 @@ All metrics are on the held-out 2025-26 winter unless marked otherwise.
 - **Role:** the tuned successor to M1's day-level config for anything built
   after the freeze; M1/M2 remain the cited submission models.
 
+## M10 — The time-to-failure hazard model (T10; timing axis — calibration miss honestly reported)
+
+- **Predicts:** the daily hazard of a building's FIRST failed48 of the season;
+  survival curve S(t) = Π(1 − h) over the season, "P(first failure by Jan 20)",
+  expected failure week. A new axis (WHEN, not just IF) no prior art touches.
+- **Type:** discrete-time hazard = XGBoost (M1's config) on 1.94M weighted
+  at-risk building-day rows (every building alive until its first failure;
+  alive days strided ×7 and Horvitz-Thompson re-weighted, never-failers
+  sampled at 20%; 46,423 first-failure events; base hazard 0.00088/day).
+  Trained 2018-19 → 2023-24, hazard isotonic-calibrated on 2024-25
+  (out-of-sample), tested ONCE on 2025-26. Survival products consume only
+  each building's at-risk path (hazards after a realized failure are never
+  used). Weather observed throughout — a backtest; the live product must
+  label climatology beyond the 7-day forecast.
+- **Files:** `model/18_hazard.py` → `heat_model_hazard.json` (M10),
+  `hazard_calibration.csv` (raw-hazard/outcome pairs),
+  `hazard_eval.csv`, `expected_failure_week.csv` (59,656 buildings:
+  p_fail_season, expected/median failure week).
+- **Discrimination (good):** time-dependent **C-index 0.871** on first-failure
+  timing (450,808 comparable pairs) — the model genuinely knows WHO fails
+  earlier.
+- **Calibration (the honest miss):** S(t) at the three horizons is within
+  ~4pp for deciles 0–7 but strongly overconfident in the top two deciles:
+
+  | horizon | realized overall | decile 8 pred→real | decile 9 pred→real |
+  |---|---|---|---|
+  | by Dec 1 | 8.3% | 28.1% → 19.6% | 58.2% → 24.8% |
+  | by Jan 1 | 12.2% | 41.2% → 27.3% | 72.6% → 30.9% |
+  | by Feb 1 | 16.6% | 51.0% → 34.4% | 80.7% → 40.3% |
+
+  Mechanism: tiny per-day hazard overestimates for the riskiest buildings
+  compound over ~240 multiplications into a large cumulative overshoot — the
+  day-level isotonic can't see the product. Top-1000 median |expected −
+  realized| failure week: **11.1 weeks** (target was ~2; 402 of the top-1000
+  failed).
+- **Decision: NOT shipped.** Ranking by time-to-failure works (0.871); the
+  absolute curve does not meet our display bar (probabilities shown to users
+  must be calibrated), so no site surface uses M10. The identified fix — a
+  second, horizon-level recalibration of 1 − S(t) on the 2024-25 curves
+  (M10b) — is on the shelf. Frozen numbers untouched.
+
 ## B1–B3 — The baselines (every eval runs them under the identical protocol)
 
 - **B1 last-season complaints:** rank by prior season's distinct complaints.

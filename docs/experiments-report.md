@@ -20,6 +20,7 @@ precision@100/500/1000/2500.
 | **M12** tuned day-model | first randomized HPO, validated on 2024-25 spells only | 89.2 / 65.2 / 51.8 / 34.8 — ≥ frozen at every k | **adopted** as the post-freeze config |
 | **T12** dispatch simulator | replay the real 2025-26 complaint stream under 3 dispatch policies | same capacity: **+7.8% violations confirmed, cold-household-days −50.2%** vs FCFS | **the policy punchline** — prediction → dispatch, measured |
 | **T8** conformal alerts | distribution-free FNR guarantee on the alert threshold (conformal risk control) | guaranteed ≤10% missed → realized **7.4%**; ≤25% → realized **21.1%** on the held-out winter | **adopted** — the alert threshold is now a theorem, `web/alerts.py` reads it |
+| **M10** time-to-failure hazard | discrete-time survival on 1.9M at-risk building-days: WHEN, not just IF | **C-index 0.871** on first-failure timing, but S(t) top deciles overconfident by 8–42pp, week error 11.1w | **not shipped** — who-fails-first is real, absolute timing missed our calibration bar; honest miss in the catalog (M10b fix identified) |
 
 ## What each one taught us (the Q&A ammunition)
 

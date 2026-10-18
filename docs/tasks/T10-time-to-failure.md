@@ -33,10 +33,26 @@ touches. New model name M10; frozen numbers untouched.
 
 ## Acceptance
 
-- [ ] Hazard rows strictly respect time discipline (asserted like 01)
-- [ ] S(t) calibration within ~5pp per decile at the three horizons
-- [ ] Expected-failure-week for the top-1000: median error ≤ ~2 weeks
-- [ ] Clearly labeled where weather is climatology vs forecast
+- [x] Hazard rows strictly respect time discipline (asserted like 01: no row
+      after first failure, c_last1 == prior-season count; both asserts green)
+- [ ] S(t) calibration within ~5pp per decile at the three horizons —
+      **MISSED, honestly reported:** deciles 0–7 within ~4pp everywhere, but
+      the top two deciles are overconfident by 8–42pp (decile 9 predicts
+      58/73/81% by Dec/Jan/Feb vs realized 25/31/40%). Compounding ~240 daily
+      hazards amplifies small per-day overestimates; day-level isotonic can't
+      fix the product. Fix identified: horizon-level recalibration (M10b).
+- [ ] Expected-failure-week for the top-1000: median error ≤ ~2 weeks —
+      **MISSED: 11.1 weeks** (402 of the top-1000 failed). Timing
+      discrimination is real (C-index 0.871) but absolute timing is not
+      shippable.
+- [x] Clearly labeled where weather is climatology vs forecast (observed
+      throughout the backtest, stated in the script output and catalog; no
+      site chart shipped — the stretch goal is dropped with the miss)
+
+**Built + evaluated 2026-10-18 (trained on the LinuxONE guest).** Catalog
+entry M10 has the full calibration table; outputs in `model/out/`
+(`heat_model_hazard.json`, `hazard_eval.csv`, `expected_failure_week.csv`).
+Not shipped to the site: displayed probabilities must be calibrated.
 
 **Effort ~5h (first to drop under pressure). Depends on:** panel machinery.
 **Feeds:** building page, deck's "we also know when" beat.
