@@ -266,6 +266,35 @@ All metrics are on the held-out 2025-26 winter unless marked otherwise.
   measured answer to "did you use the complaint text?" — there is none to
   use, and the categories are a wash. Frozen numbers untouched.
 
+## M16 — Feature elimination across three model types (finished; 8 features match 36)
+
+- **Question:** which of the 36 features carry signal? Greedy backward
+  elimination on the M11 spell substrate for logistic regression, sklearn
+  HistGradientBoosting and XGBoost: train 2018-2023 (2 seeds for the tree
+  models), drop the feature with the smallest validation permutation
+  importance (shuffled within each spell, mean per-spell AP), repeat to 1.
+  Pre-declared pick: smallest set within 0.005 of the best validation
+  p@100 + p@2500. Chosen and full sets refit on 2018-2024, 3 seeds, test
+  once. `model/28_feature_rfe.py` (started as "M15"; renamed because the
+  watchlist v2 script already uses M15) → `m16_rfe_<family>.csv`,
+  `m16_results.csv`, `m16_per_spell.csv`. All on the LinuxONE guest.
+- **Kept:** all three keep two-season complaints, 14- and 30-day complaints,
+  days since last complaint, floor area; XGBoost adds 2- and 7-day counts and
+  the freezing-day rate (8); HGB adds last-season and 7-day counts, freezing
+  rate and units (9). Weather (all 8, importance exactly 0 within a spell),
+  boiler, landlord, neighbor, violation, whole-building and building-age
+  features were all dropped.
+- **Test (8 held-out spells, 3 seeds):** XGBoost 8 features **90.0 / 65.2 /
+  51.6 / 35.0** vs its full 36 at 89.5 / 64.8 / 51.3 / 34.9 (per spell @100:
+  3 wins, 3 losses, 2 ties; every 8-feature seed ≥ the full mean). HGB 9 ties
+  its full set (89.1 vs 89.3). Logistic regression 5 loses 1.5 @100 (85.9 vs
+  87.4). Untuned, the 8-feature XGBoost sits 0.1 below tuned, 5-seed M13
+  (90.1) @100 and above it @1000.
+- **Decision: not adopted yet.** Removing 28 features cost nothing, which
+  makes a far simpler model available. The fair comparison with M13 needs
+  the same 12-trial spell HPO and 5-seed bag on the 8-feature set, selected
+  on validation and tested once. Frozen numbers untouched.
+
 ## B1–B3 — The baselines (every eval runs them under the identical protocol)
 
 - **B1 last-season complaints:** rank by prior season's distinct complaints.

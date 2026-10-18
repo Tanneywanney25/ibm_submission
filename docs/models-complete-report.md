@@ -2,7 +2,7 @@
 
 This document explains every model the HeatAhead team has built, how each one was built, how each one was scored, what the scores mean, and which models we decided to keep. It is written for a reader who has never seen this project before. Nothing here assumes you have read any other file in the repository, although each section names the script and the output file that hold the underlying evidence, so that every number can be traced and reproduced.
 
-The report was written on October 18, 2026, the final day of the IBM Z Datathon. One experiment, the feature elimination study described in Part 9, was still running on the LinuxONE machine when this report was written. Its partial results are reported as partial, and the section says exactly what is still pending.
+The report was written on October 18, 2026, the final day of the IBM Z Datathon. The feature elimination study described in Part 9 finished on the LinuxONE machine the same day, and its final test results are included.
 
 ## Contents
 
@@ -388,7 +388,7 @@ After freezing M1, we kept testing new ideas. Each idea got a new model name and
 | M10 and M10b | Predict when a building will first fail | Good ordering, but not calibrated well enough to show | Not shipped |
 | M14 | Use complaint categories and per unit rates | A tie with the control | Not adopted |
 | Watchlist v2 | Add year over year trend features to M4 | A tie with M4 | Not adopted |
-| M16 | Remove features one by one, across three model types | In progress | Pending |
+| M16 | Remove features one by one, across three model types | 8 features match all 36 (90.0% against 89.5% at 100) | A simpler equal model; tuning it is the next step |
 
 All the spell level comparisons below use the same eight held out spells of the 2025 to 2026 winter and report precision at 100, 500, 1,000 and 2,500 during the spell. For reference, frozen M1 scores 86.1, 64.6, 51.4 and 34.8 percent on this protocol, and the 14 day baseline scores 77.1, 59.9, 47.8 and 31.9 percent.
 
@@ -526,9 +526,9 @@ A separate experiment (`model/27_watchlist_v2.py`, which exists on the LinuxONE 
 
 Here success means the building fails at least once during the winter, which 19.5 percent of the 59,687 eligible buildings did. The two models are effectively tied, and the forward chaining checks across 2020 through 2024 show the same picture. Both are well calibrated, with Brier scores of 0.0958 for M4 and 0.0955 for the trend version. The trend features add nothing meaningful, so M4 remains the season model.
 
-### M16: removing features one at a time, across three model types (in progress)
+### M16: removing features one at a time, across three model types (finished; a smaller model matches the full one)
 
-Every model so far has used all 36 features. This experiment asks whether some of them add only noise, and whether a smaller model would do as well or better (`model/28_feature_rfe.py`, labeled M15 inside the script and its output files when it was started, and renamed M16 here because the name M15 was already used by the watchlist experiment above).
+Every model before this one used all 36 features. This experiment asks whether some of them add only noise, and whether a smaller model would do as well or better (`model/28_feature_rfe.py`). It was started under the name M15 and renamed M16, because the name M15 was already used by the watchlist experiment above.
 
 **The method.** The experiment uses the M11 spell setup. For each of three model types it starts with all 36 features and repeats the following step until one feature is left. It trains the model on the 2018 through 2023 spells. It measures each feature's importance on the 2024 to 2025 validation spells by **permutation**: it shuffles that one feature among the buildings within each spell and measures how much the ranking gets worse, by the average per spell PR-AUC. It then removes the least important feature. Shuffling within each spell is the right test for a ranking task. A feature that is identical for every building in a spell, such as the day's temperature, cannot change the order of buildings within that spell, so it correctly scores zero.
 
@@ -538,32 +538,42 @@ The three model types are:
 2. **HistGradientBoosting**, scikit-learn's gradient boosted trees.
 3. **XGBoost**, the same algorithm as M11 and M13.
 
-The two tree models are trained with two seeds at every step. The rule for choosing each type's final feature set was fixed before any test score was seen: take the smallest feature set whose validation score (precision at 100 plus precision at 2,500) is within 0.005 of that type's best validation score. Each chosen set and the full 36 feature version are then retrained three times on 2018 through 2024 and tested once on the eight held out spells.
+The two tree models were trained with two seeds at every step. The rule for choosing each type's final feature set was fixed before any test score was seen: take the smallest feature set whose validation score (precision at 100 plus precision at 2,500) is within 0.005 of that type's best validation score. Each chosen set and the full 36 feature version were then retrained three times on 2018 through 2024 and tested once on the eight held out spells. All of the training and testing ran on the LinuxONE machine.
 
-**Progress at the time of writing.** The logistic regression run is complete. The HistGradientBoosting run has reached 15 features. The XGBoost run and the final test have not started yet. All of this is running on the LinuxONE machine. No test scores exist yet, so every number below is a validation score, not a final result.
+One limit of the method should be stated plainly. Removing one feature at a time does not try every combination of features. When two features carry nearly the same information, such as the 14 day and 30 day complaint counts, shuffling one while the other is still present can make it look unimportant. Removing features one at a time reduces this problem, because once one of the pair is gone the other's importance rises, but it does not remove it entirely.
 
-**What logistic regression showed.** Almost all of its signal sits in four or five features.
+**Which features each model type kept.**
 
-| Features kept | Validation precision at 100 | Validation precision at 2,500 |
+| Model type | Features kept | The features |
 |---|---|---|
-| All 36 | 87.0% | 34.5% |
-| 7 (best validation score) | 88.3% | 34.3% |
-| 5 (the set the selection rule picks) | 87.9% | 34.3% |
-| 4 | 87.8% | 34.2% |
-| 2 | 86.1% | 33.6% |
-| 1 (complaints in the last 30 days alone) | 82.4% | 32.6% |
+| Logistic regression | 5 | Complaints over the last two seasons, complaints in the last 14 and 30 days, days since the last complaint, floor area |
+| HistGradientBoosting | 9 | The same five, plus last season's complaints, complaints in the last 7 days, the freezing day reaction rate and the number of residential units |
+| XGBoost | 8 | The same five, plus complaints in the last 2 and 7 days and the freezing day reaction rate |
 
-The five features that survive are complaints in the last 30 days, days since the last complaint, complaints over the last two seasons, complaints in the last 14 days, and the building's floor area. A single feature, the last 30 days' complaint count, already reaches 82.4 percent on validation, which is higher than the 14 day baseline's 77.1 percent on the test spells.
+All three model types kept the same five core features. The two tree models also kept short term complaint counts and how often the building complained on freezing days. None of the three kept any weather feature, any boiler or landlord feature, the same block neighbor count, the violation counts, the whole building outage counts, the year built or the community district. Every one of the eight weather features was removed with an importance of exactly zero.
 
-**What HistGradientBoosting has shown so far.** With all 36 features it scores 88.5 percent at 100 on validation. As features are removed, its validation score has stayed between 88.1 and 89.9 percent, and it reached its highest value so far, 89.9 percent, with 15 features.
+**The test results on the eight held out spells (average of three seeds).**
 
-**Findings that already hold for both completed or partial runs.**
+| Model | Features | At 100 | At 500 | At 1,000 | At 2,500 |
+|---|---|---|---|---|---|
+| XGBoost, full | 36 | 89.5% | 64.8% | 51.3% | 34.9% |
+| **XGBoost, chosen** | **8** | **90.0%** | **65.2%** | **51.6%** | **35.0%** |
+| HistGradientBoosting, full | 36 | 89.3% | 64.8% | 51.3% | 35.0% |
+| HistGradientBoosting, chosen | 9 | 89.1% | 65.1% | 51.6% | 35.0% |
+| Logistic regression, full | 36 | 87.4% | 63.4% | 50.3% | 34.6% |
+| Logistic regression, chosen | 5 | 85.9% | 62.8% | 49.8% | 34.5% |
+| M13, frozen and tuned (reference) | 36 | 90.1% | 65.4% | 51.4% | 35.2% |
 
-- All eight weather features were removed with an importance of exactly zero. Within a single ranked list every building has the same weather, so weather cannot help decide which building is riskier on that day. It can only matter through interactions in the tree models, and the permutation test shows that even that contributes nothing measurable.
-- The boiler features, the landlord portfolio features, the same block neighbor count, the year built and the alteration flag were all removed early with importance close to zero.
-- The features that matter are almost entirely the building's own complaint history.
+**What the results mean.**
 
-**What is still pending.** The XGBoost elimination and the one time test of each model type's chosen feature set against its full version and against frozen M13. Until that test runs, none of these validation numbers is a result. This section will be updated with the final table when the run finishes.
+- **The 8 feature XGBoost model is at least as good as the 36 feature version.** It scored 0.5 points higher at 100, and it was equal or higher at every other k. Spell by spell it won 3, lost 3 and tied 2 at 100, so the gain is not statistically clear, but all three of its seeds (89.5, 90.0 and 90.5 percent) landed at or above the full model's average. The honest summary is that removing 28 of the 36 features cost nothing.
+- **The 9 feature HistGradientBoosting model tied its full version.** It was 0.2 points lower at 100 and slightly higher at 500 and 1,000, which is inside the noise.
+- **Logistic regression lost 1.5 points with only 5 features.** A linear model cannot combine features the way trees do, so it needs more of them. Its smaller set is not a good trade.
+- **The comparison with M13 is not a fair contest yet.** M13 had its settings tuned by a 12 trial search and averages five seeds. The 8 feature XGBoost model used untuned settings and was averaged over three seeds, and it still landed within 0.1 points of M13 at 100 and above it at 1,000. The fair next step is to give the 8 feature set exactly M13's treatment (the same tuning search run on the validation winter, then five seeds) and test it once against M13.
+
+**Why this matters even though the top number barely moved.** A model with 8 inputs instead of 36 is easier to explain to a city agency, faster to compute, and depends on far fewer data sources. All 8 of its inputs come from the public HPD complaint file, apart from floor area, which comes from PLUTO. It no longer needs the owner registration file, the two boiler data sets, the violation file or the weather feed to rank buildings within a cold spell. Fewer data sources also means fewer ways for a stale table or a leak to creep in. The weather is still essential to the product, because it decides **when** a cold spell is coming and therefore when to rank, but it does not help decide **which** building is at risk once the spell is known.
+
+The results are saved in `model/out/m16_results.csv` (one row per model and feature set), `model/out/m16_per_spell.csv` (every spell and seed) and `model/out/m16_rfe_<model type>.csv` (the full elimination path for each model type).
 
 ---
 
@@ -611,7 +621,7 @@ Training is slower than scoring because the guest has only 3 cores, which is rou
 | M13 | Adopted and frozen | The per spell inspection list and the dispatch simulation |
 | M14 | Not adopted | Complaint categories tie the control |
 | Watchlist v2 | Not adopted | Trend features tie M4 |
-| M16 | In progress | Feature elimination across three model types |
+| M16 | Finished, not yet adopted | An 8 feature model matches the full model; to be tuned and compared with M13 |
 | T8 thresholds | Adopted | The alert email thresholds and their guarantee |
 
 Across all of these experiments a consistent picture emerged. The strongest signal is a building's own recent and past complaint history. Hand built features that capture landlords, neighbors and whole building outages already carry what graph networks and complaint categories could offer. The one change that produced a large gain was training the model on exactly the task it is scored on.
