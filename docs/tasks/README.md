@@ -25,6 +25,10 @@ your PRs. Roles doc: `docs/roles-endgame.md`.
 | [T17](T17-address-search.md) | address search with autocomplete, map-free path to building pages | built: GeoSearch autocomplete in nav + landing + building page, `/map?bbl=` focus, embedded map panel | Emerson |
 | [T18](T18-location-accuracy.md) | location accuracy: mega-lot pins + centroid audit (the "park pin" report is Stuy Town's lot centroid, not a geocode bug) | new, investigated | — |
 | [T19](T19-ask-heatahead.md) | Ask HeatAhead: LLM chat over our data replaces the complaints feed (tool-calling, grounded, guardrailed) | new | — |
+| [T20](T20-narrative-features.md) | M11: complaint narrative/category text as features + per-unit rates | new | — |
+| [T21](T21-fairness-audit.md) | fairness & equity audit: precision/calibration by borough, CD, income band | new | — |
+| [T22](T22-telum-nnpa.md) | real Telum/NNPA offload via zDLC: earn the accelerator claim (distilled MLP benchmark) | new | — |
+| [T23](T23-ops-survival.md) | ops survival: nightly off-box backups, CI on main, service watchdog | new — **backups first, guest has none and expires 2026-11-15** | — |
 
 Build order: T1–T6 are landed or owned; the rigor sprint runs **T11c (leakage
 tests) → T7 → T9 ∥ T12 → T8 → T10**. The submission needs T1–T3 for the video;
