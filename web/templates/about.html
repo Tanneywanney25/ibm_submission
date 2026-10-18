@@ -57,13 +57,23 @@
       <section id="data" class="help-section about-section">
         <p class="help-eyebrow">02 / The data</p>
         <h2>Several public records, one building history.</h2>
-        <p>Our building table covers 172,485 residential property records. The published winter-risk
-          file covers {{ '{:,}'.format(about_snapshot.get('ranked', 63727)) }} records with usable history;
-          the cold-day file covers {{ '{:,}'.format(about_snapshot.get('cold_ranked', 67125)) }}.
-          These are different prediction tasks, so their eligible populations differ.</p>
-        <p>We started with heat complaints, building records and daily weather. We joined records
-          using NYC property identifiers, counted distinct complaint IDs, and organized the data by
-          building, day and winter. A BBL identifies a tax lot, which can contain more than one building.</p>
+        <p>Our analysis starts from New York City’s property records, which list 172,485 residential
+          properties. We do not rank all of them. A building enters our analysis only if it has at
+          least one heat complaint or violation on record, because a building with no history gives us
+          nothing to learn from, and no method we tested could find the failures in those buildings.
+          The winter outlook, which estimates each building’s chance of losing heat at least once this
+          winter, covers {{ '{:,}'.format(about_snapshot.get('ranked', 63727)) }} buildings. The cold-day
+          ranking, which estimates the chance of a heat failure within 48 hours of a freezing day,
+          covers {{ '{:,}'.format(about_snapshot.get('cold_ranked', 67125)) }} buildings. The cold-day
+          ranking is slightly larger because it also counts buildings whose only record is a hot water
+          violation, while the winter outlook counts heat violations only.</p>
+        <p>We built each building’s history from the public data sets listed in the table below, all of
+          which are free to download from NYC Open Data, the Department of City Planning and NOAA.
+          The same complaint can appear on more than one row of the raw complaint file, so we count each
+          complaint ID only once. We then joined the records using the city’s property identifiers and
+          organized everything by building, by day and by winter. One of those identifiers, the BBL,
+          describes a tax lot rather than a single building, so a large complex with several buildings
+          on one lot appears in our data as a single record.</p>
         <div class="about-table-wrap" role="region" aria-label="Data sources and their uses" tabindex="0">
           <table class="about-table">
             <caption>What goes into the analysis</caption>
