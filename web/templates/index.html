@@ -199,7 +199,9 @@ document.getElementById('dots100').innerHTML =
     <h2>Your dashboard</h2>
     <a href="/account">Account settings</a>
   </div>
-  <p class="muted account-email" style="font-size:.9rem; margin:.3rem 0 0">Signed in
+  <p class="muted account-email" style="font-size:.9rem; margin:.3rem 0 0"><span
+  data-account-greeting{{ ' hidden' if not account_name }}>Hi <b data-account-name
+  data-fallback="{{ account_user.name }}">{{ account_name }}</b>. </span>Signed in
   {{- ' with Google' if not account_user.sub.startswith('email:') else
       (' with your password' if account_method == 'password' else ' with an email link') }} as
   <b>{{ account_user.email }}</b>.</p>

@@ -376,6 +376,52 @@ class AccountTests(unittest.TestCase):
                                        client=client).status_code, 503)
         self.assertFalse(website.DB.exists(), "Vercel must not keep profiles in /tmp")
 
+    def test_display_name_reaches_the_header_and_dashboard(self):
+        self.actor()
+        home = self.get("/")
+        self.assertIn(b"Example Person</a>", home.data)          # the Google name until a profile exists
+        self.assertIn(b"fetch('/api/account/profile'", home.data)  # a fresh session syncs once
+        self.assertEqual(self.post("/api/account/profile", dict(name="  Tanush  B ")).status_code, 200)
+        home = self.get("/")
+        self.assertIn(b"Tanush B</a>", home.data)
+        self.assertIn(b'data-account-greeting>Hi <b data-account-name\n  data-fallback="Example Person">Tanush B</b>',
+                      home.data)
+        self.assertNotIn(b"fetch('/api/account/profile'", home.data)
+        self.assertIn(b"Tanush B</a>", self.get("/map").data)       # every page's header
+        self.assertEqual(self.post("/api/account/profile", dict(name="")).status_code, 200)
+        self.assertIn(b"Example Person</a>", self.get("/").data)   # cleared: back to the Google name
+        another = self.module.app.test_client()                    # another account on this browser
+        self.actor(another, email="another@example.test", sub="google-user-2")
+        self.assertNotIn(b"Tanush B", self.get("/", client=another).data)
+
+        # Vercel: the profile lives on the instance; the website keeps the name in its session
+        backend = self.module.app.test_client()
+        website = application(Path(self.directory.name) / "ephemeral-name.db",
+                               forward="https://backend.test", vercel=True)
+
+        def transport(method, url, **kwargs):
+            parts = urlsplit(url)
+            result = backend.open(parts.path + ("?" + parts.query if parts.query else ""),
+                                  method=method, base_url="https://backend.test",
+                                  data=kwargs.get("data"), headers=kwargs.get("headers"))
+            response = requests.Response()
+            response.status_code = result.status_code
+            response._content = result.data
+            response.headers.update(result.headers)
+            return response
+
+        with patch.object(website.requests, "request", side_effect=transport):
+            first = website.app.test_client()
+            self.actor(first)
+            self.assertEqual(self.post("/api/account/profile", dict(name="Forwarded Name"),
+                                       client=first).status_code, 200)
+            self.assertIn(b"Forwarded Name</a>", self.get("/", client=first).data)
+            second = website.app.test_client()                    # a new sign-in on another device
+            self.actor(second)
+            self.assertIn(b"Example Person</a>", self.get("/", client=second).data)
+            self.get("/api/account/profile", client=second)
+            self.assertIn(b"Forwarded Name</a>", self.get("/", client=second).data)
+
     def test_registered_building_returns_after_restart_and_logout(self):
         self.actor()
         result = self.post("/api/register", dict(role="tenant", bbl="3000410007"))

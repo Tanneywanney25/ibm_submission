@@ -973,6 +973,12 @@ def api_profile_get():
     if FORWARD_URL:
         sent = forward("GET", "/api/account/profile")
         if sent is not None:
+            if sent[1] == 200:
+                try:
+                    profile = json.loads(sent[0]).get("profile")
+                    account_auth.remember_display_name((profile or {}).get("name"))
+                except (ValueError, AttributeError):
+                    pass
             return sent
         return jsonify(error="Your profile could not be loaded right now. Please try again shortly.",
                        code="account_service_unavailable"), 503
@@ -980,6 +986,7 @@ def api_profile_get():
         return jsonify(error="Account storage is temporarily unavailable."), 503
     row = db().execute("SELECT name, phone, borough, zip, alerts_paused FROM profiles "
                        "WHERE email=?", (email,)).fetchone()
+    account_auth.remember_display_name(row[0] if row else "")
     return jsonify(profile=None if row is None else dict(
         name=row[0], phone=row[1], borough=row[2], zip=row[3], alerts_paused=bool(row[4])))
 
@@ -996,6 +1003,8 @@ def api_profile_set():
     if FORWARD_URL:
         sent = forward("POST", "/api/account/profile", json=profile)
         if sent is not None:
+            if sent[1] == 200:
+                account_auth.remember_display_name(profile["name"])
             return sent
         return jsonify(error="Your profile could not be saved right now. Please try again shortly.",
                        code="account_service_unavailable"), 503
@@ -1010,6 +1019,7 @@ def api_profile_set():
                 (email, profile["name"], profile["phone"], profile["borough"],
                  profile["zip"], int(profile["alerts_paused"])))
     con.commit()
+    account_auth.remember_display_name(profile["name"])
     return jsonify(ok=True, profile=profile)
 
 

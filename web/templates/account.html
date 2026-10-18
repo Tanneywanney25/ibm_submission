@@ -70,6 +70,7 @@ input[aria-invalid=true] { border-color:var(--bad); }
         your account, but no cold-snap alerts are sent until you turn this off.</label></div>
       <div class="row"><button id="pf_save" type="submit">Save profile</button></div>
       <p id="profile_status" class="muted status-line" role="status" aria-live="polite"></p>
+      <button id="pf_retry" type="button" class="btn ghost sm" hidden>Try again</button>
     </form>
   </div>
 
@@ -145,26 +146,39 @@ function setProfileEnabled(on){
   ['pf_name', 'pf_phone', 'pf_borough', 'pf_zip', 'pf_paused', 'pf_save']
     .forEach(id => { $(id).disabled = !on; });
 }
+function showProfile(p){
+  p = p || {};
+  $('pf_name').value = p.name || '';
+  $('pf_phone').value = p.phone || '';
+  $('pf_borough').value = p.borough || '';
+  $('pf_zip').value = p.zip || '';
+  $('pf_paused').checked = !!p.alerts_paused;
+}
+// A save replaces the whole profile, so the form stays locked until the stored
+// profile has loaded: typing over a profile that failed to load would blank its other fields.
 async function loadProfile(){
   const status = $('profile_status');
+  setProfileEnabled(false);
+  $('pf_retry').hidden = true;
   status.textContent = 'Loading your profile…';
   try {
     const r = await fetch('/api/account/profile', {credentials:'same-origin', cache:'no-store'});
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || 'Your profile could not be loaded right now.');
-    const p = j.profile || {};
-    $('pf_name').value = p.name || '';
-    $('pf_phone').value = p.phone || '';
-    $('pf_borough').value = p.borough || '';
-    $('pf_zip').value = p.zip || '';
-    $('pf_paused').checked = !!p.alerts_paused;
+    showProfile(j.profile);
+    showAccountName(j.profile && j.profile.name);
+    setProfileEnabled(true);
     status.textContent = '';
   } catch (error) {
-    setProfileEnabled(false);
     status.textContent = (error.message || 'Your profile could not be loaded right now.') +
-      ' Reload the page to try again.';
+      ' Editing is paused so nothing saved is overwritten.';
+    $('pf_retry').hidden = false;
   }
 }
+$('pf_retry').addEventListener('click', loadProfile);
+$('profile_form').addEventListener('input', () => {
+  if ($('profile_status').textContent === 'Saved to your account.') $('profile_status').textContent = '';
+});
 $('profile_form').addEventListener('submit', async e => {
   e.preventDefault();
   if (!checkPhone()) return $('pf_phone').focus();
@@ -179,6 +193,7 @@ $('profile_form').addEventListener('submit', async e => {
         borough:$('pf_borough').value, zip:$('pf_zip').value.trim(),
         alerts_paused:$('pf_paused').checked})});
     const j = await r.json().catch(() => ({}));
+    if (r.ok && j.profile) { showProfile(j.profile); showAccountName(j.profile.name); }
     status.textContent = r.ok ? 'Saved to your account.' :
       (j.error || 'Your profile could not be saved right now. Please try again.');
   } catch { status.textContent = 'Could not reach the server. Please try again.'; }

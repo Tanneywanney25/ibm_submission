@@ -33,6 +33,17 @@ function riskHTML(p){
 function esc(s){
   return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+// The header and the dashboard greet the account by its profile display name, falling
+// back to the Google name, then the email (the account page calls this after a save).
+function showAccountName(name){
+  const n = String(name || '').trim();
+  document.querySelectorAll('[data-account-name]').forEach(el => {
+    el.textContent = n || el.dataset.fallback || '';
+  });
+  document.querySelectorAll('[data-account-greeting]').forEach(el => {
+    el.hidden = !el.querySelector('[data-account-name]').textContent;
+  });
+}
 </script>
 {% block head %}{% endblock %}
 <link rel="stylesheet" href="{{ url_for('static', filename='guide.css') }}">
@@ -58,7 +69,8 @@ function esc(s){
     </form>
     <div class="account-nav">
       {% if account_user %}
-      <a href="/account" title="Account settings · {{ account_user.email }}">{{ account_user.name or account_user.email }}</a>
+      <a href="/account" title="Account settings · {{ account_user.email }}" data-account-name
+        data-fallback="{{ account_user.name or account_user.email }}">{{ account_name or account_user.email }}</a>
       <form action="/api/auth/logout" method="post">
         <input type="hidden" name="csrf_token" value="{{ account_csrf }}">
         <button type="submit" class="btn ghost sm">Sign out</button>
@@ -123,6 +135,13 @@ function esc(s){
     }
   } catch { st.textContent = 'status unavailable'; }
 })();
+// a fresh sign-in reads the profile once; the session then keeps the display name
+{% if account_user and not account_name_synced and page != 'account' %}
+fetch('/api/account/profile', {credentials:'same-origin', cache:'no-store'})
+  .then(r => r.ok ? r.json() : null)
+  .then(j => { if (j && j.profile && j.profile.name) showAccountName(j.profile.name); })
+  .catch(() => {});
+{% endif %}
 </script>
 </body>
 </html>

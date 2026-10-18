@@ -104,6 +104,20 @@ def user():
     return getattr(g, "account_user", None)
 
 
+def remember_display_name(name):
+    """Keep the profile's display name in the browser session so every page's header
+    and the dashboard greet the account by it; the profile itself lives on the instance."""
+    if user() and not getattr(g, "account_proxy_nonce", None):
+        session["display_name"] = " ".join(str(name or "").split())[:80]
+
+
+def display_name():
+    """The profile display name, else the Google name, else "" (pages then show the email)."""
+    if not user():
+        return ""
+    return session.get("display_name") or user()["name"]
+
+
 def _equal(left, right):
     if not isinstance(left, str) or not isinstance(right, str):
         return False
@@ -554,4 +568,6 @@ def init_app(app, nonce_guard, email_backend=None, password_backend=None):
         return dict(account_user=user(), google_ready=configured(),
                     email_ready=email_configured(), password_ready=password_configured(),
                     account_csrf=csrf_token() if user() else "",
-                    account_method=session.get("auth_method") if user() else None)
+                    account_method=session.get("auth_method") if user() else None,
+                    account_name=display_name(),
+                    account_name_synced=bool(user()) and "display_name" in session)

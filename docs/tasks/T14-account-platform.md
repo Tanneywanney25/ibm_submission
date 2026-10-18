@@ -110,6 +110,11 @@ by the verified email, reached through the signed forwarding protocol
 accounts. The email address is the account key and is read-only. The home page dashboard
 now spans the full width with panels two across, and the save-a-building form lives
 inside the buildings panel; it no longer asks for a phone number (the profile owns it).
+Later that morning the live form could not be typed in: Vercel had the page, but the
+instance clone was still one commit behind, so every profile call returned 503 and the page
+disabled the form. The clone was pulled and restarted, the display name now shows in the
+header on every page and in a dashboard greeting, and a failed load offers Try again instead
+of asking for a page reload.
 
 Styling the auth and profile screens to Opendoor quality belongs to T13 (the reskin);
 T14 used the current theme.
