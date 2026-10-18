@@ -497,7 +497,7 @@
       "id": "privacy",
       "category": "Data and privacy",
       "question": "What information do you keep about me?",
-      "answer": "The map shows information about buildings, not individual tenants. Saving a building for alerts links it to your verified Google email. Owner details come from public business records. Please leave passwords, email addresses, phone numbers and apartment numbers out of the guide chat.",
+      "answer": "The map shows information about buildings, not individual tenants. Saving a building for alerts links it to your verified email address. Owner details come from public business records. Please leave passwords, email addresses, phone numbers and apartment numbers out of the guide chat.",
       "terms": [
         "personal data",
         "my privacy",
@@ -539,7 +539,7 @@
       "id": "sign-in",
       "category": "Accounts and alerts",
       "question": "How do I sign up or sign in?",
-      "answer": "Choose Continue with Google on the home page. Use the same button whether you're new or coming back. HeatAhead doesn't see your Google password. You can browse buildings and the map without signing in. If the page says sign-in is being set up, try again later.",
+      "answer": "Choose Sign in on the home page. When available, use Continue with Google or request an email sign-in link. The email link works once for 15 minutes. The same options create your account or sign you back in. If both are being set up, you can still check buildings and use the map without an account.",
       "terms": [
         "sign in",
         "sign up",
@@ -578,7 +578,7 @@
       "id": "remember",
       "category": "Accounts and alerts",
       "question": "Will I stay signed in when I come back?",
-      "answer": "Tick Keep me signed in for 30 days on this device when you sign in. Your browser may end the session sooner if you clear cookies or use stricter privacy settings. Use the same Google account to find your saved buildings again. Sign out if you're on a shared device.",
+      "answer": "Tick Keep me signed in for 30 days on this device before signing in with Google or requesting an email link. Your browser may end the session sooner if you clear cookies or use stricter privacy settings. Use the same email address to find your saved buildings again. Sign out if you're on a shared device.",
       "terms": [
         "stay signed in",
         "remember me",
@@ -615,7 +615,7 @@
       "id": "alerts",
       "category": "Accounts and alerts",
       "question": "How do I get email alerts?",
-      "answer": "Sign in, choose Tenant or Landlord, enter your building's address or BBL, tick the email-alert box and save. Alerts are meant for forecast cold spells when your building's score is high enough to trigger one. Emails only go out when the team's alert service is running.",
+      "answer": "When sign-in is available, sign in and find Save a building in your profile. Enter its street address and borough, or BBL, tick the email-alert box and choose Save to my account. Turn on My buildings & alerts to see saved buildings on your dashboard. Emails are sent for qualifying forecast cold spells when the team's alert service is running.",
       "terms": [
         "get alerts",
         "heat alerts",
@@ -654,7 +654,7 @@
       "id": "remove-alerts",
       "category": "Accounts and alerts",
       "question": "How do I stop alerts or remove a building?",
-      "answer": "Sign in with the same Google account you used to save the building. Under Your saved buildings, choose Stop alerts & remove. You can also use the unsubscribe link in an alert email and confirm the removal.",
+      "answer": "Sign in with the same email address you used to save the building. Turn on My buildings & alerts in your profile if needed. Under Your saved buildings, choose Stop alerts & remove. You can also use the unsubscribe link in an alert email and confirm the removal.",
       "terms": [
         "stop alerts",
         "remove a building",
@@ -693,7 +693,7 @@
       "id": "landlord",
       "category": "What to do",
       "question": "How can landlords use HeatAhead?",
-      "answer": "Look up your building to check its history and the available owner or agent details. Choose I own or manage it to draft a message about checking your building's heating. Choosing Landlord in your account sets your alert preferences; it doesn't verify that you own the building.",
+      "answer": "Look up your building to check its history and available owner or agent details. Choose I own or manage it under Draft a notice to prepare a message about a heating check. If you sign in, you can turn on Landlord self-audit tools in your profile. That dashboard choice doesn't verify ownership.",
       "terms": [
         "i am a landlord",
         "i own a building",
@@ -774,7 +774,7 @@
       "id": "inspector",
       "category": "What to do",
       "question": "How do I find buildings to inspect?",
-      "answer": "Open the Live monitor or download the top-500 list. The ranking suggests which buildings to check first; it doesn't confirm a violation. Choosing Government in your account changes your preferred view. It doesn't verify your job or give you access to private records.",
+      "answer": "Download the saved top-500 ranking to see which buildings the model suggests checking first. Open Published complaints to see recent reports, or Historical model replay to see rankings change during a past cold spell. Signed-in users can turn on Inspection queue in their profile; that preference doesn't verify their job or grant private access.",
       "terms": [
         "inspection queue",
         "inspector queue",
@@ -802,12 +802,16 @@
       ],
       "links": [
         {
-          "label": "Open the monitor",
+          "label": "Download the saved top-500 ranking",
+          "href": "/api/queue.csv?k=500"
+        },
+        {
+          "label": "See published complaints",
           "href": "/monitor"
         },
         {
-          "label": "Download the top-500 list",
-          "href": "/api/queue.csv?k=500"
+          "label": "See the historical replay",
+          "href": "/monitor?mode=replay"
         }
       ],
       "follow": [
@@ -820,7 +824,7 @@
       "id": "replay",
       "category": "What to do",
       "question": "Is the live monitor showing what's happening now?",
-      "answer": "The monitor replays past complaints so you can see how building rankings change. Check its replay clock and scoring label to see what's running. It isn't a live report of today's heating problems. If the replay is offline, you can still use the map and building pages.",
+      "answer": "Published complaints shows recent heat reports released by NYC, with a delay. It refreshes every 15 seconds while the source is checked every five minutes; it doesn't confirm an outage is still active. Historical model replay is separate: it replays February 7–9, 2026 complaints to show rankings changing. Check the replay clock for its date. Building pages and the map still work if the monitor is offline.",
       "terms": [
         "live monitor",
         "real time",
@@ -843,8 +847,12 @@
       ],
       "links": [
         {
-          "label": "Open the monitor",
+          "label": "See published complaints",
           "href": "/monitor"
+        },
+        {
+          "label": "See the historical replay",
+          "href": "/monitor?mode=replay"
         }
       ],
       "follow": [

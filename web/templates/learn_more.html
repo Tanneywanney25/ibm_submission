@@ -1,15 +1,16 @@
 {% extends "base.html" %}
-{% block title %}How HeatAhead works{% endblock %}
+{% block title %}How to use HeatAhead{% endblock %}
 {% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='help-pages.css') }}">{% endblock %}
 {% block body %}
 <div class="help-page">
   <header class="help-hero">
-    <p class="help-eyebrow">About HeatAhead</p>
-    <h1>How HeatAhead works</h1>
+    <p class="help-eyebrow">Start here</p>
+    <h1>How to use HeatAhead</h1>
     <p class="help-lead">Check a building's heating history and its estimated risk for this winter.
       HeatAhead brings weather and public building records together to help you decide what to check.</p>
     <div class="help-actions"><a class="help-primary" href="/building">Check a building</a><a class="help-secondary" href="/map">Explore the map</a></div>
-    <p class="help-small">All five boroughs. You can browse without an account.</p>
+    <p class="help-small">All five boroughs. You can browse without an account.
+      For the model's test results, see <a href="/about#methods">About &amp; methods</a>.</p>
   </header>
 
   <nav class="help-toc" aria-label="On this page">
@@ -69,7 +70,7 @@
     <div class="help-steps">
       <article class="help-panel"><h3>For tenants</h3><p>Check your building's history and the available owner details. When sign-in is ready, you can save a building for email alerts. Emails also need the team's alert service to be running.</p><a href="/#account">Building alerts →</a></article>
       <article class="help-panel"><h3>For owners &amp; managers</h3><p>Review your building's history and draft a message about checking the heating. You can edit the message and send it yourself.</p><a href="/building?as=landlord">Check your building →</a></article>
-      <article class="help-panel"><h3>For inspectors</h3><p>See which buildings the model suggests checking first, or download the top-500 list. The live monitor replays past complaints to show how rankings change.</p><a href="/monitor">Open the monitor →</a></article>
+      <article class="help-panel"><h3>For inspectors</h3><p>Download the saved ranking to see which buildings the model suggests checking first. The monitor shows recent published complaints; its separate historical replay shows rankings changing during a past cold spell.</p><a href="/api/queue.csv?k=500">Download the top-500 list →</a><br><a href="/monitor">See published complaints →</a></article>
     </div>
     <aside class="help-callout" aria-labelledby="help-no-heat"><h3 id="help-no-heat">No heat or hot water?</h3>
       <p>Tell your landlord or managing agent. If the problem isn't fixed, report it to NYC311. Give your contact and apartment details directly to NYC311. You don't need to wait for a high score or an email alert.</p>

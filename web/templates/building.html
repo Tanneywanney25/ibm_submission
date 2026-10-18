@@ -8,6 +8,10 @@
 .lookup-card .ha-search-box { flex:1 1 220px; }
 @media (max-width:520px) { .lookup-card .ha-search button { width:100%; } }
 #status { font-weight:600; margin-top:.3rem; }
+.lookup-hint { margin:.8rem 0 0; font-size:.85rem; }
+.record-actions { display:flex; flex-wrap:wrap; gap:.5rem 1.2rem; margin:1rem 0 0; font-size:.85rem; font-weight:700; }
+#who, #draft, #accuracy { scroll-margin-top:120px; }
+@media (max-width:640px) { #who, #draft, #accuracy { scroll-margin-top:200px; } }
 .ha-photo-heading { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:.7rem 1rem; margin-bottom:1rem; }
 .ha-photo-heading h2 { margin:0 0 .3rem; }
 .ha-photo-heading p { margin:0; font-size:.85rem; font-weight:600; }
@@ -65,7 +69,7 @@
 <div class="page-head">
   <p class="eyebrow">Building lookup</p>
   <h1>Check a building</h1>
-  <p>Winter risk, complaint history and who answers for the heat, for any NYC residential building.</p>
+  <p>Look up a NYC building to see its available winter risk, complaint history and owner details.</p>
 </div>
 <div class="card lookup-card">
   <form id="lookupform" data-ha-search class="ha-search" role="search"
@@ -75,9 +79,44 @@
     <button type="submit">Look up</button>
   </form>
   <div class="ha-search-status" role="status" aria-live="polite"></div>
-  <div id="status" class="muted"></div>
+  <p class="muted lookup-hint">Enter the street address and borough. A BBL is NYC's 10-digit property ID.
+    Leave out your apartment number.
+    <a href="/building?bbl=2023010004">Try an example: 330 E 139 St, Bronx →</a></p>
+  <div id="status" class="muted" role="status" aria-live="polite"></div>
 </div>
 <div id="result" style="display:none">
+  <div class="grid2">
+    <div class="card winter">
+      <h2>This winter</h2>
+      <p class="verdict-label">Chance of at least one heat outage</p>
+      <div class="big"><span id="p_season"></span></div>
+      <div class="meter" aria-hidden="true">
+        <div class="meter-track"><span class="meter-pin" id="meterpin" style="left:13px"></span></div>
+        <div class="meter-ticks"><span>0%</span><span>50%</span><span>99%</span></div>
+      </div>
+      <div class="facts">
+        <div><b><span id="vs_median"></span>×</b><span>the citywide median</span></div>
+        <div><b id="rank"></b><span>citywide rank this winter</span></div>
+      </div>
+      <p id="coldday" class="muted"></p>
+      <div class="chips" id="chips"></div>
+      <p class="muted" style="font-size:.85rem">Use this estimate to plan a heating check. It doesn't tell you whether the heat is working today.</p>
+      <nav class="record-actions" aria-label="Building next steps">
+        <a href="#who">Owner details</a>
+        <a href="#draft">Draft a notice</a>
+        <a href="#accuracy" onclick="document.getElementById('accuracy').open = true">How was this checked?</a>
+      </nav>
+    </div>
+    <div class="card">
+      <h2>History</h2>
+      <h3 style="margin:.4rem 0">Heat complaints per season</h3>
+      <div class="bars" id="cbars"></div>
+      <h3 style="margin:1.4rem 0 .4rem">Heat violations per season</h3>
+      <div class="bars" id="vbars"></div>
+      <p class="muted" style="margin:1rem 0 0; font-size:.9rem">
+        last complaint: <span id="lastc"></span> · last violation: <span id="lastv"></span></p>
+    </div>
+  </div>
   <section class="card" aria-labelledby="ha-photo-title">
     <div class="ha-photo-heading">
       <div>
@@ -99,34 +138,6 @@
     </div>
     <p class="muted ha-photo-note">The ring marks the property's mapped location. Imagery dates vary; this is not a live photo. Street View opens the nearest available street-level panorama.</p>
   </section>
-  <div class="grid2">
-    <div class="card winter">
-      <h2>This winter</h2>
-      <p class="verdict-label">Chance of at least one heat outage</p>
-      <div class="big"><span id="p_season"></span></div>
-      <div class="meter" aria-hidden="true">
-        <div class="meter-track"><span class="meter-pin" id="meterpin" style="left:13px"></span></div>
-        <div class="meter-ticks"><span>0%</span><span>50%</span><span>99%</span></div>
-      </div>
-      <div class="facts">
-        <div><b><span id="vs_median"></span>×</b><span>the citywide median</span></div>
-        <div><b id="rank"></b><span>citywide rank this winter</span></div>
-      </div>
-      <p id="coldday" class="muted"></p>
-      <div class="chips" id="chips"></div>
-      <p style="margin-bottom:0"><a href="#draft">Draft a notice to the owner</a>
-         <span class="muted">(nothing is sent)</span></p>
-    </div>
-    <div class="card">
-      <h2>History</h2>
-      <h3 style="margin:.4rem 0">Heat complaints per season</h3>
-      <div class="bars" id="cbars"></div>
-      <h3 style="margin:1.4rem 0 .4rem">Heat violations per season</h3>
-      <div class="bars" id="vbars"></div>
-      <p class="muted" style="margin:1rem 0 0; font-size:.9rem">
-        last complaint: <span id="lastc"></span> · last violation: <span id="lastv"></span></p>
-    </div>
-  </div>
   <div class="card" id="mappanel" style="display:none">
     <h2>On the risk map</h2>
     <p class="muted" style="margin-top:0">The searched building is highlighted with a ring;
@@ -175,7 +186,7 @@
     overnight. This page describes the building's record; it is not an accusation.</p>
   </div>
   <div class="card">
-    <details><summary>How accurate is this number?</summary>
+    <details id="accuracy"><summary>How accurate is this number?</summary>
       <p class="muted">Verified on last winter, which the model never trained on —
       grouped by what we predicted vs what happened:</p>
       <table id="rel"><tr><th>we said</th><th>buildings</th><th>actually failed</th></tr></table>
@@ -237,7 +248,7 @@ function loadPropertyImagery(building){
   const urls = propertyImageURLs(building.coords);
   $('ha-photo-location').textContent = 'BBL ' + building.bbl;
   if (!urls) {
-    $('ha-photo-state').textContent = 'A mapped location is not available for this property. Its risk and history are shown below.';
+    $('ha-photo-state').textContent = 'A mapped location is not available for this property. You can still read its risk and history above.';
     return;
   }
   $('ha-street-view').href = urls.street; $('ha-street-view').hidden = false;

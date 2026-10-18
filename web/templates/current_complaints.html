@@ -14,16 +14,22 @@
   This page checks <a href="https://data.cityofnewyork.us/Housing-Development/Housing-Maintenance-Code-Complaint-Problems/ygpa-z7cr" target="_blank" rel="noopener">HPD's public complaint data</a> every five minutes.
   Public data arrives after submission; refreshing this page cannot remove NYC's publication delay.
   A report is not confirmation that an outage is still active.</p>
-<div class="card table-card">
-  <h2>Most recently published heat reports</h2>
+<nav class="mon-jump" aria-label="Complaint monitor sections">
+  <a href="#current-report-list">Recent reports</a>
+  <a href="#current-building-list">Buildings with the most reports</a>
+  <a href="/map">Explore winter risk →</a>
+</nav>
+<div class="card table-card" id="current-report-list">
+  <h2 id="current-reports-heading">Most recently published heat reports</h2>
   <p class="muted">Ordered by complaint received time · past 7 days · up to 100 reports</p>
-  <div style="overflow-x:auto"><table><thead><tr><th>Received (NYC)</th><th>Building BBL</th><th>Reported problem</th></tr></thead>
+  <div class="mon-report-scroll" role="region" aria-labelledby="current-reports-heading" tabindex="0"><table><thead><tr><th>Received (NYC)</th><th>Building BBL</th><th>Reported problem</th></tr></thead>
     <tbody id="current-events"></tbody></table></div>
   <p id="current-empty"></p>
 </div>
-<div class="card table-card">
+<div class="card table-card" id="current-building-list">
   <h2>Buildings with the most reported complaints</h2>
-  <p class="muted">Unique complaints received in the past 7 days. This is observed volume; current model risk is unavailable until features and weather are refreshed.</p>
+  <p class="muted">Unique complaints received in the past 7 days. More reports doesn't mean higher predicted risk.
+    Click a BBL (NYC property ID) to see the building's saved winter estimate and history.</p>
   <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Building BBL</th><th>Complaints (7 days)</th><th>Latest received (NYC)</th></tr></thead>
     <tbody id="current-queue"></tbody></table></div>
   <p id="current-unlocated" class="muted"></p>
