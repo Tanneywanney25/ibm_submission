@@ -52,8 +52,12 @@ a 3D hexagon zero height, and zoom replaces hexagons with property markers. An a
 overlay is not proof of no complaints or working heat. Keep this explanation aligned in
 the map, Learn more, and the shared FAQ/guide entry.
 Do not call a reported complaint a confirmed outage. Do not promise that an email will
-arrive while the team's alert service is not configured. Roles are view preferences,
-not verified owner/inspector credentials. The guide must never invent a risk score.
+arrive while the team's alert service is not configured. There is one account type;
+dashboard panels are preferences, not verified owner/inspector credentials. Keep Google
+and email-link instructions aligned with T14. `/monitor` shows delayed published reports;
+`/monitor?mode=replay` shows the historical ranking demonstration. The top-500 download
+is a saved model ranking, not a queue of today's confirmed outages. The guide must never
+invent a risk score.
 
 NYC action guidance was checked against these official pages on October 17, 2026:
 

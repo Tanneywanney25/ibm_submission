@@ -22,6 +22,12 @@
 .mon-note a { font-weight:700; }
 .table-card h2 { margin-bottom:.2rem; }
 .table-card > p.muted { margin-top:0; font-size:.9rem; }
+.mon-jump { display:flex; flex-wrap:wrap; gap:.6rem 1.3rem; margin:0 0 1.4rem; font-size:.9rem; font-weight:700; }
+.mon-report-scroll { max-height:28rem; overflow:auto; }
+.mon-report-scroll:focus-visible { outline:3px solid var(--accent); outline-offset:4px; }
+.mon-report-scroll th { position:sticky; top:0; background:var(--panel); z-index:1; }
+#current-report-list, #current-building-list { scroll-margin-top:120px; }
+@media (max-width:640px) { #current-report-list, #current-building-list { scroll-margin-top:200px; } }
 </style>
 {% endblock %}
 {% block body %}
@@ -32,7 +38,7 @@
 {% if request.args.get("mode") == "replay" %}
 <header class="mon-head">
   <span class="live-pill">Replay</span>
-  <h1>Live monitor</h1>
+  <h1>Historical model replay</h1>
   <p>The February 7–9, 2026 cold snap, replayed complaint by complaint and scored by the frozen model on IBM LinuxONE.</p>
 </header>
 <div class="card mon-banner" id="banner" style="display:none"></div>
@@ -45,10 +51,10 @@
 <div class="mon-actions">
   <button onclick="startReplay()">Start replay</button>
   <span class="muted">scoring: <b id="mode" style="color:var(--ink)">—</b></span>
-  <a href="/api/queue.csv?k=500">Download top-500 CSV (gov) ↓</a>
+  <a href="/api/queue.csv?k=500">Download saved top-500 ranking ↓</a>
 </div>
 <div class="card table-card">
-  <h2>Inspector queue — top 25 right now</h2>
+  <h2>Inspection queue — top 25 in this replay</h2>
   <table id="queue"><tr><th>#</th><th>BBL</th><th>score</th>
     <th>replay complaints</th><th>units</th></tr></table>
 </div>
