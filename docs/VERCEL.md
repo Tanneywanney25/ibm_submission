@@ -107,6 +107,11 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/learn-more` | GET | how the site works, map reading, prediction windows, actions, data and privacy | template + shared guide content |
 | `/faq` | GET | 26 searchable, categorized questions with deep links and official sources | shared guide content, server-rendered answers (works without JavaScript) |
 | `/about` | GET | About/Methods page: what HeatAhead is, methods, why precision@k, ranges and calibration, open source (`about.html`; copy source `docs/about-copy.md`) | template only, static content |
+| `/contact` | GET | team contact address, FAQs, project-update link and NYC311 direction | template; no account required |
+| `/privacy` | GET | actual cookies, optional browser storage, accounts, newsletter and external services; reopen cookie settings | template; no account required |
+| `/api/newsletter/subscribe` | POST | `{name?,email,consent:true,website?}` or equivalent form (`consent=yes`); records a pending request and sends a confirmation email; generic receipt, 400 invalid input, 403 cross-origin/missing Origin, 429 send budget, 503 delivery/storage unavailable | anonymous same-origin request forwarded to `REGISTER_FORWARD_URL`; never saves subscribers in Vercel `/tmp` |
+| `/newsletter/confirm?token=`, `/newsletter/unsubscribe?token=` | GET | read-only signed-link landing pages; GET never changes a subscription; invalid/expired link 410 | template; shared secret verifies an opaque subscriber id; no email in token |
+| `/api/newsletter/confirm`, `/api/newsletter/unsubscribe` | POST | `{token}` or form; confirms opt-in / stops project updates without sign-in; Origin required; 410 invalid/replaced link; does not change account registrations or heat alerts | forwards to durable instance; private/no-store and no-referrer |
 | `/api/guide/ask` | POST | `{question,previous_topic?}` → `{topic,mode}`; optional AI selects an existing FAQ id; no generated URLs, scores, account actions or conversation storage; 400 invalid/private input, 403 cross-origin, 429 warm-worker request limit | stdlib + requests; 200 `{topic:null,mode:"guide"}` if unconfigured or provider fails |
 | `/api/lookup?address=` | GET | `{bbl, normalized}` from NYC GeoSearch; 502 when the geocoder is down | live call, same in both modes |
 | `/api/building/<bbl>` | GET | the building payload | `public/data/b/NN.json` |
@@ -114,7 +119,7 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/api/reliability` | GET | calibration table | `public/data/reliability.json` |
 | `/api/register` | POST | save a building to the signed-in account (`{address or bbl, phone?}`); `role` is optional since T14 (one account type) and defaults to `tenant`, the value the `users.role` column and `web/alerts.py` use for building alerts; older clients may still send one of the four legacy roles; signed-in identity and `X-CSRF-Token` required; email comes from the session; 400 missing/invalid building, unknown role or bad phone, 401 signed out, 403 other email or bad CSRF, 503 unavailable account service | signed request forwarded to the instance; no ephemeral fallback |
 | `/api/my_buildings` | GET | `{buildings, total, registrations:[{role,bbl}]}` for the signed-in email, plus public portfolio context; optional legacy `email=` must equal that account | signed request forwarded to the instance; 503 when unavailable |
-| `/api/account/panels` | GET, POST | the signed-in account's dashboard panel set (T14: `buildings`, `audit`, `queue`, `stats`); GET returns `{panels}` where null means "never customized" (the page derives defaults from the account's registration roles); POST `{panels:[...]}` stores a distinct subset in fixed display order; 400 unknown panel, 401 signed out, 403 bad CSRF, 503 account service unavailable (the page then falls back to role defaults and a per-device copy) | signed request forwarded to the instance; 503 when unavailable |
+| `/api/account/panels` | GET, POST | the signed-in account's dashboard panel set (T14: `buildings`, `audit`, `queue`, `stats`); GET returns `{panels}` where null means "never customized" (the page derives defaults from the account's registration roles); POST `{panels:[...]}` stores a distinct subset in fixed display order; 400 unknown panel, 401 signed out, 403 bad CSRF, 503 account service unavailable (a local fallback is used only with optional-storage consent; otherwise changes last for that visit) | signed request forwarded to the instance; 503 when unavailable |
 | `/unsubscribe?email=&bbl=` | GET | sign-in followed by a confirmation form; GET never deletes data | signed-in website template |
 | `/api/account/remove` | POST | `{ok,removed}`; JSON/form optional `bbl` (omit to remove all own registrations), signed-in identity and CSRF required; form success redirects home | signed request to durable instance storage |
 | `/api/auth/google` | GET | start Google sign-in; optional safe local `next`, `remember=1` (30 days) or `0` (browser session, maximum 12 hours); 503 when unconfigured | Google library authorization-code flow with PKCE, state and nonce |
@@ -124,7 +129,7 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/api/account/email_link`, `/api/account/email_consume` | POST | instance side of email sign-in: mail the website's link / consume a link nonce; 403 for anything but the signed website-to-backend protocol | FULL mode only (the instance) |
 | `/api/auth/session` | GET | `{user,google_ready,email_ready,csrf_token}`; user is null when signed out | signed cookie, private/no-store |
 | `/api/auth/logout` | POST | clear session, redirect home; form or `X-CSRF-Token` required | website session |
-| `/api/health` | GET | existing health fields plus `account_protocol` (1 when shared secret configured), `google_sign_in`, `email_sign_in` (on the instance: true only with `SMTP_HOST` set; on Vercel: the instance's value, cached two minutes) | adds instance health under `linuxone` (3 s timeout, `{offline:true}` when down) |
+| `/api/health` | GET | existing health fields plus `account_protocol`, `google_sign_in`, `email_sign_in`, `newsletter_protocol:1` and `newsletter_delivery_ready` (instance: secret and SMTP settings present; Vercel: shared-secret presence plus new backend readiness, not a mail-delivery test) | adds instance health under `linuxone` (3 s timeout, `{offline:true}` when down) |
 | `/data/<path>` | GET | the files in `public/data/` | Vercel's CDN serves them before any rewrite; Flask serves them for local runs |
 | `/api/queue.csv?k=` | GET | top-k CSV | `public/data/top500.csv` (k capped at 500 in LITE) |
 | `/api/draft_message/<bbl>?as=&address=` | GET | `{to, recipients, subject, body, framing, note}`: a notice the user copies or opens in their own mail client, never sent. `as=tenant` (default) is a resident's request to the registered owner care of the managing agent; `as=landlord` is the owner's pre-winter self-audit; `address` names the building in the text (units are cut). 400 for another `as`, 404 for an unranked building | computed from the shard |
@@ -140,11 +145,11 @@ New endpoints go under `/api/` and get a row in this table in the same commit.
 |---|---|---|
 | `REALTIME_URL` | `http://148.100.77.112:8080/api/live` (the instance's FULL app proxies its own realtime service on `127.0.0.1:5000`, so only port 8080 is open) | live monitor proxy |
 | `COMPLAINT_URL` | LinuxONE: `http://127.0.0.1:5001`; Vercel Production: `http://148.100.78.43:8080/api/current` | published complaint monitor |
-| `REGISTER_FORWARD_URL` | `http://148.100.77.112:8080` | registrations, landlord portfolio, unsubscribe, health |
+| `REGISTER_FORWARD_URL` | `http://148.100.77.112:8080` | registrations, landlord portfolio, account removal, newsletter opt-in/confirmation/unsubscribe, health |
 | `APP_MODE` | leave unset (auto); `lite` forces the JSON path | `web/app.py` |
-| `SMTP_*` | only if alerts ever send from Vercel (they should not; the alert worker runs on the instance) | `web/alerts.py` |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | instance only; port defaults to 587; never commit credentials or put them in browser code | shared mailer for building alerts, email sign-in and newsletter confirmations |
 | `SITE_URL` | base URL used in email links (default `https://ibmsubmission.vercel.app`); set on the instance, where the emails are sent from | `web/mailer.py` |
-| `FLASK_SECRET_KEY` | stable random secret of at least 32 characters; exactly the same value on Vercel and LinuxONE; never commit it | signed cookies and one-use account forwarding |
+| `FLASK_SECRET_KEY` | stable random secret of at least 32 characters; exactly the same value on Vercel and LinuxONE; never commit it | signed cookies, one-use account forwarding, purpose-bound newsletter tokens |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth web application credentials; Vercel only | Google sign-in |
 | `AUTH_BASE_URL` | `https://ibmsubmission.vercel.app` for Production; exact stable preview origin for a preview; no trailing path | OAuth callback origin and cookie host |
 | `OPENAI_API_KEY` | optional server-side provider key; never send it to the browser or commit it | guide AI topic matching only |
@@ -409,3 +414,22 @@ All frontend calls remain same-origin `/api/current/*`. No pandas/scientific pac
 enter the Vercel import path. The public collector API is read-only; no synthetic inputs
 are accepted. Automated tests use temporary databases and offline source fixtures. No
 emails or NYC complaints are sent by tests, checks, installation, or page polling.
+
+## 13. Project updates, contact and cookie choices
+
+`web/newsletter.py` owns the public newsletter and contact/privacy routes in section 3.
+The instance keeps pending/confirmed/unsubscribed records in a separate SQLite table;
+Vercel forwards public opt-in actions to the existing account backend and never falls
+back to `/tmp` for this data. Both deployments need the new module and shared secret;
+confirmation email needs working SMTP on the instance. No campaign sender is included.
+Signup is separate from building alerts and never establishes a login session.
+
+`web/static/privacy.js` gates the existing optional `heatahead_panels` localStorage copy.
+It is off until accepted. Reject optional removes that copy, while sign-in cookies and
+explicit server-side account preferences keep working. The necessary versioned
+`heatahead_privacy` choice expires after 180 days. Reopen settings in the footer or on
+`/privacy`; the embedded building map has no duplicate banner. The audited site has no
+analytics/advertising integration. Existing external map/photo/search requests are
+explained, not falsely advertised as controlled by the dashboard-storage toggle.
+
+Setup, exact storage, failure behavior and tests: [NEWSLETTER_CONTACT_PRIVACY.md](NEWSLETTER_CONTACT_PRIVACY.md).

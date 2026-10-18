@@ -322,6 +322,24 @@ document.getElementById('dots100').innerHTML =
     calibrated threshold get one email for that spell; inspectors get the ranked queue.</p></div>
 </div>
 
+<section class="card newsletter-card" id="newsletter" aria-labelledby="newsletter-title">
+  <h2 id="newsletter-title">Get HeatAhead updates</h2>
+  <p>Hear about new features and what we're working on. These are project updates, separate from your building's heat alerts.</p>
+  <form id="newsletter-form" action="/api/newsletter/subscribe" method="post">
+    <div class="newsletter-fields">
+      <label for="newsletter-name"><span>Name <span class="muted">(optional)</span></span>
+        <input id="newsletter-name" name="name" autocomplete="name" maxlength="80"></label>
+      <label for="newsletter-email">Email address
+        <input id="newsletter-email" name="email" type="email" autocomplete="email" maxlength="254" required></label>
+      <button type="submit">Subscribe</button>
+    </div>
+    <input type="hidden" name="consent" value="yes">
+    <div hidden aria-hidden="true"><label>Leave this empty<input name="website" tabindex="-1" autocomplete="off"></label></div>
+    <p class="newsletter-note">By choosing Subscribe, you're asking for project-update emails. We'll send a confirmation link before you join. Unsubscribe any time. <a href="/privacy#updates">How we use your email</a></p>
+    <p class="newsletter-status" id="newsletter-status" role="status" aria-live="polite"></p>
+  </form>
+</section>
+
 <section class="band" aria-labelledby="band-title">
   <div><h2 id="band-title">No heat right now?</h2>
     <p>Don't wait for a score or an alert. Tell your landlord, then report it to NYC311 with your
@@ -491,7 +509,7 @@ function applyPanels(list){
 }
 function devicePanels(){
   try {
-    const v = JSON.parse(localStorage.getItem('heatahead_panels'));
+    const v = window.HeatAheadPrivacy?.readPanels();
     return Array.isArray(v) ? v.filter(p => PANEL_ORDER.includes(p)) : null;
   } catch { return null; }
 }
@@ -525,10 +543,9 @@ async function savePanels(){
     if (!r.ok) throw new Error();
     message = 'Saved to your account.';
   } catch {
-    try {
-      localStorage.setItem('heatahead_panels', JSON.stringify(chosen));
-      message = 'Saved on this device — your account service is unreachable right now.';
-    } catch { message = 'Your choice could not be saved. Please try again.'; }
+    message = window.HeatAheadPrivacy?.savePanels(chosen)
+      ? 'Saved on this device — your account service is unreachable right now.'
+      : 'Changed for this visit. We couldn’t save it to your account. Please try again later.';
   }
   if (version === panelSaveVersion) status.textContent = message;
 }
