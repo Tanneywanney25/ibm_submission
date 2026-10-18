@@ -26,7 +26,7 @@
       "links": [
         {
           "label": "How it works",
-          "href": "/learn-more"
+          "href": "/?help=guide"
         },
         {
           "label": "Check a building",
@@ -210,7 +210,7 @@
         },
         {
           "label": "More about the map",
-          "href": "/learn-more#reading-the-map"
+          "href": "/?help=guide#reading-the-map"
         }
       ],
       "follow": [
@@ -252,7 +252,7 @@
         },
         {
           "label": "More about the colors",
-          "href": "/learn-more#reading-the-map"
+          "href": "/?help=guide#reading-the-map"
         }
       ],
       "follow": [
@@ -293,7 +293,7 @@
         },
         {
           "label": "How to read the scores",
-          "href": "/learn-more#understanding-risk"
+          "href": "/?help=guide#understanding-risk"
         }
       ],
       "follow": [
@@ -333,7 +333,7 @@
         },
         {
           "label": "More about the two scores",
-          "href": "/learn-more#understanding-risk"
+          "href": "/?help=guide#understanding-risk"
         }
       ],
       "follow": [
@@ -377,7 +377,7 @@
         },
         {
           "label": "How to read the scores",
-          "href": "/learn-more#understanding-risk"
+          "href": "/?help=guide#understanding-risk"
         }
       ],
       "follow": [
@@ -447,7 +447,7 @@
         },
         {
           "label": "What to do without heat",
-          "href": "/learn-more?help=no-heat#taking-action"
+          "href": "/?help=no-heat"
         }
       ],
       "follow": [
@@ -484,7 +484,7 @@
       "links": [
         {
           "label": "See the data sources",
-          "href": "/learn-more#data-and-privacy"
+          "href": "/?help=guide#data-and-privacy"
         }
       ],
       "follow": [
@@ -726,7 +726,7 @@
         },
         {
           "label": "What you can do",
-          "href": "/learn-more#taking-action"
+          "href": "/?help=guide#taking-action"
         }
       ],
       "follow": [
@@ -774,8 +774,8 @@
     {
       "id": "inspector",
       "category": "What to do",
-      "question": "How do I find buildings to inspect?",
-      "answer": "Open Inspection queue to see the first 50 building records in the saved cold-day model ranking. Each row links to its building and map, and you can download the same top 50 as a CSV. This snapshot is separate from winter risk and is not HPD’s official inspection schedule. Use Published complaints for recent reports or Historical model replay to see a past queue change.",
+      "question": "How can city teams use the monitor?",
+      "answer": "Open Published complaints to review recent reports. The separate Historical model replay shows how building priorities change during a past cold spell. These are planning and demonstration tools, not HPD’s official inspection schedule.",
       "terms": [
         "inspection queue",
         "inspector queue",
@@ -802,14 +802,6 @@
         "government"
       ],
       "links": [
-        {
-          "label": "Open the top-50 inspection queue",
-          "href": "/inspection-queue"
-        },
-        {
-          "label": "Download the top-50 CSV",
-          "href": "/api/queue.csv?k=50"
-        },
         {
           "label": "See published complaints",
           "href": "/monitor"
@@ -1037,11 +1029,11 @@
       "links": [
         {
           "label": "How to read a score",
-          "href": "/learn-more#understanding-risk"
+          "href": "/?help=guide#understanding-risk"
         },
         {
           "label": "Report a heat problem",
-          "href": "/learn-more?help=no-heat#taking-action"
+          "href": "/?help=no-heat"
         }
       ],
       "follow": [

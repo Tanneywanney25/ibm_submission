@@ -143,8 +143,8 @@ input[aria-invalid=true] { border-color:var(--bad); }
     <p class="hero-note">Same risk, history and owner record the map shows. Building only: never type an apartment number.</p>
     <div class="hero-ctas">
       <a class="btn ghost" href="/map">Explore the risk map</a>
-      <a class="text" href="/learn-more">How HeatAhead works →</a>
-      <a class="text" href="/learn-more?help=1#help-answers" data-open-guide data-guide-browse>Find an answer →</a>
+      <a class="text" href="/?help=guide" data-open-guide data-guide-view="guide">How HeatAhead works →</a>
+      <a class="text" href="/?help=1" data-open-guide data-guide-browse>Find an answer →</a>
     </div>
   </div>
   <aside class="proof" aria-label="86 of the top 100 flagged buildings lost heat during the cold spell">
@@ -191,7 +191,7 @@ document.getElementById('dots100').innerHTML =
       <div class="panel-picks">
         <label><input type="checkbox" data-panel="buildings">My buildings &amp; alerts</label>
         <label><input type="checkbox" data-panel="audit">Landlord self-audit tools</label>
-        <label><input type="checkbox" data-panel="queue">Inspection queue</label>
+        <label><input type="checkbox" data-panel="queue">Live monitoring</label>
         <label><input type="checkbox" data-panel="stats">City-wide stats</label>
       </div>
       <p id="panels_status" class="muted" role="status" aria-live="polite"
@@ -273,13 +273,7 @@ document.getElementById('dots100').innerHTML =
         the rest of each registered owner's portfolio, riskiest first. Run the self-audit before
         the first cold spell.</p>
       </div>
-      <div class="panel" id="panel-queue" hidden>
-        <h3>Inspection queue</h3>
-        <p class="muted" style="font-size:.9rem">The first 50 buildings in the saved cold-day model
-        ranking, with building records and a CSV for planning checks.</p>
-        <a class="btnlink" href="/inspection-queue">Open inspection queue</a>
-        <a class="btnlink ghost" href="/api/queue.csv?k=50">Download top-50 CSV</a>
-      </div>
+      <div class="panel" id="panel-queue" hidden><h3>Live monitoring</h3><p class="muted">Review published complaints or explore the historical model replay.</p><a class="btnlink" href="/monitor">Open live monitor</a></div>
       <div class="panel" id="panel-stats" hidden>
         <h3>City-wide picture</h3>
         <p class="muted" style="font-size:.9rem"><b class="accent">{{ '{:,}'.format(site_meta.ranked) }}</b>
@@ -310,7 +304,7 @@ document.getElementById('dots100').innerHTML =
 
 <div class="section-title">
   <div><p class="eyebrow">How it works</p><h2>Forecast in. Ranked list out.</h2></div>
-  <a class="btn ghost sm" href="/learn-more">Read the full guide</a>
+  <a class="btn ghost sm" href="/?help=guide" data-open-guide data-guide-view="guide">How to use HeatAhead</a>
 </div>
 <div class="steps">
   <div class="card lift"><div class="num">1</div><h3>Detect</h3><p>An hourly job on the LinuxONE

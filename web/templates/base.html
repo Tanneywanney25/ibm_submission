@@ -49,10 +49,7 @@ function esc(s){
     <nav class="site-links" aria-label="Main navigation">
       <a href="/building" class="{{ 'active' if page == 'building' }}">Check a building</a>
       <a href="/map" class="{{ 'active' if page == 'map' }}">Risk map</a>
-      <a href="/inspection-queue" class="{{ 'active' if page == 'queue' }}">Inspection queue</a>
       <a href="/monitor" class="{{ 'active' if page == 'monitor' }}">Live monitor</a>
-      <a href="/learn-more" class="{{ 'active' if page == 'learn' }}">Learn more</a>
-      <a href="/learn-more?help=1#help-answers" data-open-guide data-guide-browse>Help</a>
       <a href="/about" class="{{ 'active' if page == 'about' }}">About</a>
     </nav>
     <form data-ha-search class="ha-search" role="search" aria-label="Find a building by address">
@@ -83,13 +80,12 @@ function esc(s){
     <div>
       <h4>Explore</h4>
       <ul><li><a href="/building">Check a building</a></li><li><a href="/map">Risk map</a></li>
-        <li><a href="/monitor">Live monitor</a></li>
-        <li><a href="/inspection-queue">Inspection queue</a></li><li><a href="/#newsletter">Project updates</a></li>
+        <li><a href="/monitor">Live monitor</a></li><li><a href="/#newsletter">Project updates</a></li>
         {% if not account_user %}<li><a href="/#account">Sign in</a></li>{% endif %}</ul>
     </div>
     <div>
       <h4>Help</h4>
-      <ul><li><a href="/learn-more">How it works</a></li><li><a href="/learn-more?help=1#help-answers" data-open-guide data-guide-browse>Help &amp; answers</a></li>
+      <ul><li><a href="/?help=1" data-open-guide data-guide-browse>Ask HeatAhead</a></li>
         <li><a href="/about">About &amp; methods</a></li>
         <li><a href="/contact">Contact us</a></li>
         <li><a href="/privacy">Privacy &amp; cookies</a></li>

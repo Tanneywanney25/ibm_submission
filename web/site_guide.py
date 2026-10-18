@@ -101,8 +101,11 @@ def match_topic(message, previous=None):
 
 
 @bp.get("/learn-more")
+@bp.get("/help")
 def learn_more():
-    return render_template("learn_more.html", page="learn")
+    topic = request.args.get("help")
+    topic = topic if topic in ITEMS or topic == "1" else "guide"
+    return redirect("/?help=" + topic, code=302)
 
 
 @bp.get("/about")
@@ -127,9 +130,8 @@ def about():
 
 @bp.get("/faq")
 def faq():
-    # Browsers preserve an old #topic fragment; the guide recognizes it with help=1.
-    # Learn more also holds the answers in a no-JavaScript fallback.
-    return redirect("/learn-more?help=1", code=302)
+    # The browser preserves legacy #topic fragments; help now lives in the widget.
+    return redirect("/?help=1", code=302)
 
 
 @bp.post("/api/guide/ask")

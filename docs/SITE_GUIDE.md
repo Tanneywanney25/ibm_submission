@@ -1,15 +1,18 @@
-# Help chat and Learn more
+# Ask HeatAhead: questions and walkthroughs
 
 ## What changed
 
-The separate FAQ page is retired. Help in the navigation, footer and home page opens
-Ask HeatAhead on the page the visitor is already using. Inside the chat:
+Standalone Help, Learn more and FAQ pages are retired. The footer and homepage help
+links open Ask HeatAhead on the current page. The floating button is available across
+the site. Inside the chat:
 
 - **Ask a question** answers clear requests and offers nearby published questions when
   wording is unclear or misspelled.
 - **Browse questions** holds all 26 original answers plus newsletter, team contact and
   cookie choices: 29 in total. Search accepts nearby spelling; a topic filter narrows
   the list. Choosing a question opens its answer in the conversation.
+- **How to use** contains the five former Learn more guides: how it works, map reading,
+  scores, actions and data/privacy. Sections expand inside the chat.
 - Answers keep the existing source links, action shortcuts, follow-up questions and
   valid building BBL. Choosing a suggestion does not submit a complaint, change an
   account, send mail or run a model.
@@ -42,19 +45,21 @@ message elements, and clears on navigation or Clear chat. No chat localStorage i
 
 - Any site page can use ?help=TOPIC-ID to open that answer, or ?help=1 to open Browse
   questions. Valid topic ids come from the catalog.
-- /faq redirects with 302 to /learn-more?help=1. A browser preserves an old #topic-id
+- /faq redirects with 302 to /?help=1. A browser preserves an old #topic-id
   fragment, which the chat recognizes. New site links do not point to /faq.
 - Map coverage links open the unranked explanation in place, retaining the current map.
   Building action links retain the selected valid BBL.
-- Both tabs support keyboard arrows, Home and End. Escape closes help and returns
+- All three tabs support keyboard arrows, Home and End. Escape closes help and returns
   focus; suggestions focus a question for keyboard selection. Closing and reopening
   within the page preserves the conversation.
 - The undecided cookie banner temporarily hides while help is open, preventing it from
   covering the chat on small screens. It returns when help closes. This records no
   consent and enables no optional storage, including when a help deep link opens before
   the privacy widget finishes initializing.
-- Without JavaScript, Learn more shows the same answers as native details. Contact and
-  project-update links still work. The chat itself needs JavaScript.
+- ?help=guide opens the walkthrough tab; a section fragment such as #reading-the-map
+  expands that section. /learn-more and /help redirect here, preserving known help topics.
+- Without JavaScript, the shared widget renders all guides and answers as native details.
+  Contact and project-update links still work. The chat itself needs JavaScript.
 
 The unused web/templates/faq.html is deleted in this change. A GitHub file-upload update
 may leave the old file in the repository; no route renders it, so the separate page is
@@ -93,7 +98,7 @@ invalidate pending responses, so late results cannot overwrite the new interacti
 Edit guide-content.json for question titles, answers, terms, keywords, action links and
 follow-ups. Keep all original ids stable for legacy links. New help questions should use
 the existing schema and supported public paths. Keep map color/height/coverage explanations
-consistent with the map and Learn more. Missing color is not proof of no complaints or
+consistent with the map and the How to use tab. Missing color is not proof of no complaints or
 working heat; reported complaints are not confirmed current outages.
 
 Keep accounts and building heat alerts separate from project-update subscriptions.
@@ -139,33 +144,30 @@ Preview checks:
    Choose one and verify the answer and shortcuts.
 3. Ask clear building/map/action questions and an unrelated question. Verify BBL links,
    source links and the absence of invented answers or scores.
-4. Open /faq#heights, /learn-more?help=1 and /building?bbl=3000410007&help=alerts.
+4. Open /faq#heights, /?help=guide#reading-the-map and /building?bbl=3000410007&help=alerts.
+   Confirm /help and /learn-more open chat, and /inspection-queue redirects to /monitor.
 5. Test keyboard tabs, Escape, focus return, Clear chat and a narrow screen. Cookie
    choices must remain undecided when opening/closing help.
-6. With JavaScript disabled, read the answers in Learn more.
+6. With JavaScript disabled, read the shared guides and answers beneath the page content.
 7. If AI is configured, verify a proposed topic requires selection; simulate downtime
    and a late response. No key belongs in page source or browser payloads.
 
 Local tests do not prove actual-device layout, map GPU rendering or real provider quality;
 those remain preview checks. No automated test sends real mail or files a city complaint.
 
-## Navigation and the public top-50 queue (October 18)
+## Navigation cleanup (October 18)
 
-- The logo links home; there is no duplicate Home / My account navigation tab.
-  Sign-in, saved buildings and account settings remain on the homepage.
-- `/faq` redirects to the help browser; navigation and authored help links do not
-  send visitors to a separate FAQ page. Its obsolete template is deleted locally;
-  a leftover copy after GitHub file upload is unreachable through the app.
-- `/inspection-queue` is public, server-rendered and read-only. It displays exactly
-  the same first 50 rows as `/api/queue.csv?k=50`, preserving model order and ties.
-- Each row is a BBL property record, not an aggregate map cell. Some lots contain
-  more than one physical building. Rows link to the existing building and map URLs.
-- The score is calibrated cold-day/48-hour risk, not the map's season risk. The
-  list is labeled a saved model snapshot, not a live forecast or HPD schedule.
-- Display uses the existing risk formatter (cap 99%, bands from 20%). Missing
-  history counts display a dash. Missing/invalid snapshots display a clear state.
-- Top-50 CSV: `public/data/top50.csv`, deterministically sliced from the current
-  `top500.csv`; `web/build_assets.py` regenerates both from the same model output.
-  The canonical download API remains `/api/queue.csv?k=50`. No model was retrained.
-- The existing signed-in inspection panel and the help assistant now link directly
-  to the public shortlist. No login is required to view or download it.
+- Main navigation: Check a building, Risk map, Live monitor and About. The logo opens
+  home. Existing sign-in, saved buildings, preferences and newsletter remain intact.
+- The standalone Inspection queue page is removed at the user's request. Its old URL
+  redirects to the existing monitor. No authored site link points to the retired page.
+- The optional saved-account panel retains the existing `queue` key for compatibility
+  with stored preferences; its visible name is Live monitoring and it links to /monitor.
+- The original model ranking and /api/queue.csv are unchanged. The separate top50.csv
+  asset and shortlist-only template and CSS are no longer needed. The old page's test
+  module now checks that its redirect works even without a ranking snapshot.
+- GitHub upload cannot remove old files. Updated routes never render the retired
+  templates, so upload alone retires the pages. Optional cleanup: delete
+  web/templates/inspection_queue.html, web/templates/learn_more.html,
+  web/static/inspection-queue.css and
+  public/data/top50.csv. None of these is needed by the remaining app.

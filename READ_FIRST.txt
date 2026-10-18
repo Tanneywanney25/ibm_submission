@@ -1,0 +1,40 @@
+HEATAHEAD: HELP IN THE CHAT + INSPECTION PAGE REMOVED
+
+Built from main 21ddb2b. Local change: 6b8e5ba.
+
+WHAT THIS UPDATE DOES
+- Removes Inspection queue, Help and Learn more from the menu.
+- Keeps all 29 help answers in Ask HeatAhead.
+- Adds How to use inside the chat, with all five former help walkthroughs.
+- Old /help, /learn-more and /faq links open the chat. The retired inspection page
+  redirects to the existing monitor.
+- Preserves the latest About source links, account sign-in, saved-building search,
+  newsletter, privacy controls, map behavior and original backend CSV export.
+
+UPLOAD
+1. Unzip this download.
+2. On GitHub, open the repository root on main (the page containing web/ and docs/).
+3. Choose Add file > Upload files.
+4. Drag the TWO INNER folders web and docs into the upload area.
+   Do not upload the surrounding download folder or this READ_FIRST.txt.
+5. Commit on a new branch. Suggested message:
+   Move help into Ask HeatAhead and remove inspection page
+6. Open the pull request and its Vercel preview. Check the map, About and Ask HeatAhead.
+   In chat, try Browse questions, How to use, and "why no color". Merge when satisfied.
+
+No new environment variables or installation commands are required.
+
+OLD FILES
+GitHub uploads do not delete old files. Updated routes never render the old pages,
+so the upload alone removes them from the site. Optional later cleanup in GitHub:
+  web/templates/inspection_queue.html
+  web/templates/learn_more.html
+  web/static/inspection-queue.css
+  public/data/top50.csv
+The replacement test_inspection_queue.py is included to replace the old page tests.
+
+CHECKED LOCALLY
+50 Python tests; real-template chat DOM tests; guide matching, privacy/newsletter
+and map tests; 24 anonymous/signed-in page renders; 33 LITE HTTP routes/assets;
+Python and JavaScript syntax. Real-device appearance and the Vercel deployment
+still need the preview check above. No live email was sent and no model was changed.
