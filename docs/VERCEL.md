@@ -105,7 +105,8 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/map` | GET | risk map (`map.html`); `?bbl=` opens centered on that building with a highlight ring, `?embed=1` is the chrome-free embed the building page's map panel uses (T17) | template |
 | `/inspection-queue` | GET | legacy 302 redirect to `/monitor`; the separate shortlist page is retired | redirect |
 | `/monitor` | GET | live monitor (`monitor.html`) | template |
-| `/learn-more`, `/help` | GET | legacy 302 redirect to `/?help=guide`, or `/?help=<known topic>`; walkthroughs now live in Ask HeatAhead | redirect + shared widget |
+| `/learn-more` | GET | practical guide: checking a building, map color/height/coverage, risk windows, published complaints vs historical replay, actions and privacy; keeps original section anchors and the shared chat | server-rendered `learn_more.html`, `help-pages.css` and scoped `learn-more.css`; no model/database/provider/network required |
+| `/help` | GET | legacy 302 redirect to `/?help=guide`, or `/?help=<known topic>`; questions remain in Ask HeatAhead | redirect + shared widget |
 | `/faq` | GET | legacy 302 redirect to `/?help=1`; the standalone FAQ page is retired; browsers preserve old `#topic` fragments and the guide opens that answer | redirect; shared help chat is on every page |
 | `/about` | GET | research and methods: cleaning/labels, 36-feature pipeline, model recipes, holdouts/backtests, versioned results, experiment decisions, IBM Z, LLM-help steps and limits; original anchors retained (`about.html`, `about.css`, claim ledger `docs/about-copy.md`) | server-rendered prose and native details; uses existing public META/RELIABILITY via read-only callback, no model/provider/database/network needed |
 | `/contact` | GET | team contact address, chat help, project-update link and NYC311 direction | template; no account required |
@@ -321,8 +322,10 @@ the preview; logic tests cannot prove frame rate or GPU rendering.
 
 ## 11. Ask HeatAhead
 
-`web/site_guide.py` redirects the retired `/learn-more`, `/help` and `/faq` pages into
-the shared chat and owns the optional AI topic endpoint. All 29 answers live once in
+`web/site_guide.py` serves the restored `/learn-more` guide, redirects retired `/help`
+and `/faq` links into the shared chat, and owns the optional AI topic endpoint. Learn more
+has a place in the main navigation; Help, FAQ and Inspection queue do not. The guide
+explains site usage; `/about` covers research and model methods. All 29 answers live once in
 `web/static/guide-content.json`. The chat has Ask a question, Browse questions (search
 and categories) and How to use (five expandable walkthroughs). Footer and homepage
 help links open it in place. Without JavaScript, the shared widget exposes the same

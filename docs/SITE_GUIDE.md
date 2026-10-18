@@ -2,9 +2,9 @@
 
 ## What changed
 
-Standalone Help, Learn more and FAQ pages are retired. The footer and homepage help
-links open Ask HeatAhead on the current page. The floating button is available across
-the site. Inside the chat:
+Standalone Help and FAQ pages are retired. Learn more is restored as a practical
+reading guide at /learn-more, with a main-navigation link. The footer and homepage
+question links open Ask HeatAhead on the current page. Inside the chat:
 
 - **Ask a question** answers clear requests and offers nearby published questions when
   wording is unclear or misspelled.
@@ -57,7 +57,9 @@ message elements, and clears on navigation or Clear chat. No chat localStorage i
   consent and enables no optional storage, including when a help deep link opens before
   the privacy widget finishes initializing.
 - ?help=guide opens the walkthrough tab; a section fragment such as #reading-the-map
-  expands that section. /learn-more and /help redirect here, preserving known help topics.
+  expands that section. /help redirects here, preserving known help topics.
+- /learn-more is a normal page. Its original section anchors work without JavaScript;
+  links such as /learn-more?help=heights can still open an answer in the shared widget.
 - Without JavaScript, the shared widget renders all guides and answers as native details.
   Contact and project-update links still work. The chat itself needs JavaScript.
 
@@ -145,7 +147,8 @@ Preview checks:
 3. Ask clear building/map/action questions and an unrelated question. Verify BBL links,
    source links and the absence of invented answers or scores.
 4. Open /faq#heights, /?help=guide#reading-the-map and /building?bbl=3000410007&help=alerts.
-   Confirm /help and /learn-more open chat, and /inspection-queue redirects to /monitor.
+   Confirm /help opens chat, /learn-more opens the reading guide, and /inspection-queue
+   redirects to /monitor. Check all guide section links and its Ask HeatAhead shortcut.
 5. Test keyboard tabs, Escape, focus return, Clear chat and a narrow screen. Cookie
    choices must remain undecided when opening/closing help.
 6. With JavaScript disabled, read the shared guides and answers beneath the page content.
@@ -157,7 +160,7 @@ those remain preview checks. No automated test sends real mail or files a city c
 
 ## Navigation cleanup (October 18)
 
-- Main navigation: Check a building, Risk map, Live monitor and About. The logo opens
+- Main navigation: Check a building, Risk map, Live monitor, Learn more and About. The logo opens
   home. Existing sign-in, saved buildings, preferences and newsletter remain intact.
 - The standalone Inspection queue page is removed at the user's request. Its old URL
   redirects to the existing monitor. No authored site link points to the retired page.
@@ -168,6 +171,6 @@ those remain preview checks. No automated test sends real mail or files a city c
   module now checks that its redirect works even without a ranking snapshot.
 - GitHub upload cannot remove old files. Updated routes never render the retired
   templates, so upload alone retires the pages. Optional cleanup: delete
-  web/templates/inspection_queue.html, web/templates/learn_more.html,
+  web/templates/inspection_queue.html,
   web/static/inspection-queue.css and
   public/data/top50.csv. None of these is needed by the remaining app.

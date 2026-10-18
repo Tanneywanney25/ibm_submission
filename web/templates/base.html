@@ -50,6 +50,7 @@ function esc(s){
       <a href="/building" class="{{ 'active' if page == 'building' }}">Check a building</a>
       <a href="/map" class="{{ 'active' if page == 'map' }}">Risk map</a>
       <a href="/monitor" class="{{ 'active' if page == 'monitor' }}">Live monitor</a>
+      <a href="/learn-more" class="{{ 'active' if page == 'learn' }}">Learn more</a>
       <a href="/about" class="{{ 'active' if page == 'about' }}">About</a>
     </nav>
     <form data-ha-search class="ha-search" role="search" aria-label="Find a building by address">
@@ -85,7 +86,8 @@ function esc(s){
     </div>
     <div>
       <h4>Help</h4>
-      <ul><li><a href="/?help=1" data-open-guide data-guide-browse>Ask HeatAhead</a></li>
+      <ul><li><a href="/learn-more">Learn more</a></li>
+        <li><a href="/?help=1" data-open-guide data-guide-browse>Ask HeatAhead</a></li>
         <li><a href="/about">About &amp; methods</a></li>
         <li><a href="/contact">Contact us</a></li>
         <li><a href="/privacy">Privacy &amp; cookies</a></li>

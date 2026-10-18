@@ -101,8 +101,12 @@ def match_topic(message, previous=None):
 
 
 @bp.get("/learn-more")
-@bp.get("/help")
 def learn_more():
+    return render_template("learn_more.html", page="learn")
+
+
+@bp.get("/help")
+def help_redirect():
     topic = request.args.get("help")
     topic = topic if topic in ITEMS or topic == "1" else "guide"
     return redirect("/?help=" + topic, code=302)
