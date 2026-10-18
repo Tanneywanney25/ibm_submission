@@ -124,6 +124,38 @@ def test_display_rules():
     assert sr.p_season.min() >= 0
 
 
+def test_narrative_features_use_only_prior_complaints():
+    """M14 category features: prior-season aggregates see only season S-1, and
+    in-season counts stop at the eve - the spell day and later never count."""
+    import sys
+    sys.path.insert(0, str(ROOT / "model"))
+    from narrative import narrative_features, prep
+    start = pd.Timestamp("2025-01-20")                       # season 2024
+    rows = [  # (bbl, complaint_id, day, problem_code, unit_key)
+        (1, 1, "2024-01-10", "NO HOT WATER", 11.0),          # S-1: counts
+        (1, 2, "2024-02-01", "NO HEAT AND NO HOT WATER", 12.0),  # S-1: counts
+        (1, 3, "2022-12-01", "NO HOT WATER", 13.0),          # S-3: never
+        (1, 4, "2025-01-19", "NO HOT WATER", 14.0),          # eve: in-season
+        (1, 5, "2025-01-20", "NO HOT WATER", 15.0),          # spell day: never
+        (1, 6, "2025-02-05", "NO HEAT", 16.0),               # after: never
+        (1, 7, "2024-12-01", "NO HEAT", 17.0),               # in-season heat
+        (2, 8, "2025-01-20", "NO HEAT", 21.0),               # spell day only
+    ]
+    c = pd.DataFrame(rows, columns=["bbl", "complaint_id", "day", "problem_code",
+                                    "unit_key"])
+    c["day"] = pd.to_datetime(c.day)
+    c["minor_category"] = "APARTMENT ONLY"
+    c["problem_duplicate_flag"] = "N"
+    c["complaint_anonymous_flag"] = "N"
+    X = narrative_features(prep(c), [1, 2, 3], 2024, start)
+    assert X.loc[1, "nhw_last1"] == 1                        # id 1 only
+    assert X.loc[1, "hhw_share_last1"] == 1.0                # id 2 is the S-1 heat
+    assert X.loc[1, "units_last1"] == 1
+    assert X.loc[1, "nhw_season"] == 1                       # eve yes, spell day no
+    assert X.loc[1, "units_season"] == 1                     # id 7; id 6 is after
+    assert (X.loc[2] == 0).all() and (X.loc[3] == 0).all()   # spell-day only / none
+
+
 def test_no_apartment_columns_shipped():
     """Nothing under public/ or model/out ships an apartment column."""
     pat = re.compile(r"(^|,)\s*apartment\s*(,|$)", re.I)

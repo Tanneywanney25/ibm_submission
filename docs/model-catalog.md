@@ -239,6 +239,33 @@ All metrics are on the held-out 2025-26 winter unless marked otherwise.
   would be fitting to the test winter, so M10b is where this line stops for
   the submission.
 
+## M14 — Complaint categories + per-unit rates (T20; NOT adopted, a wash)
+
+- **Question:** do the complaint records' category fields and per-unit
+  normalization add signal beyond counts and timing? The extract has **no
+  prose** (0 free-text fields), so embeddings were not possible; the
+  categorical fields cover every complaint (`narrative_coverage.csv`).
+- **Features** (`model/narrative.py`, building-level, strictly before the
+  eve; leakage-tested): M14a adds 7 — prior-season hot-water-only complaints
+  (a signal 01 drops entirely), heat+hot-water share, anonymous share,
+  duplicate share, distinct complaining units (counted at load, unit values
+  dropped), and in-season hot-water / distinct-unit counts through the eve.
+  M14c adds 3 per-unit rates (complaints per 100 units last season and last
+  14 days, unit breadth). M14ac adds both.
+- **Protocol:** the M13 substrate (model/13 spell snapshots), M11's config,
+  early-stopped on 2024-25, refit, 3 seeds; selection on validation only;
+  `model/20_narrative.py` → `m14_results.csv`, `m14_per_spell.csv`,
+  `m14_backtest.csv`, `heat_model_m14.json` (M14a, seed 0).
+- **Result (8 held-out spells, mean of 3 seeds):** control 89.0 / 64.8 /
+  51.1 / 34.9 vs **M14a 89.0 / 65.0 / 51.1 / 35.0** (val-chosen); M14c 88.9,
+  M14ac 89.1 @100. Per spell @100: 4 wins, 4 losses. Backtest (train ≤ T−1):
+  M14a ahead in 5 of 6 winters @100 by ≤2.2pp and ≥ control @2500 in all 6
+  by ≤0.5pp — sign-test p ≈ 0.11, inside the seed spread (88.0–89.9).
+- **Decision: not adopted.** The categories mostly restate what
+  `bw_last1`/`bw_prev14` (ENTIRE BUILDING) and the counts already carry. The
+  measured answer to "did you use the complaint text?" — there is none to
+  use, and the categories are a wash. Frozen numbers untouched.
+
 ## B1–B3 — The baselines (every eval runs them under the identical protocol)
 
 - **B1 last-season complaints:** rank by prior season's distinct complaints.

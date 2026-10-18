@@ -322,6 +322,21 @@ Full detail in `task 2/deliverables/02_stream2_report.md`; every number below is
   pseudonymized with HMAC-SHA256 in 5.85 s before any table was built, so nothing below
   building level exists outside `raw/`.
 
+## Post-freeze experiment — complaint categories + per-unit rates (M14, T20)
+
+Asked whether the complaint records hold severity signal the counts miss. The
+extract has no free text, only categories and intake flags, so the test was
+categorical: hot-water-only complaints (which 01 discards), heat+hot-water,
+anonymous and duplicate shares, distinct complaining units, and complaints per
+100 units. Same spell substrate and recipe as M11, 3 seeds, selection on the
+validation winter. On the 8 held-out spells the val-chosen variant (M14a)
+**ties** the identically-trained 31-feature control (89.0 vs 89.0 @100, 4
+spell wins and 4 losses); the six-winter backtest leans its way (5 of 6 @100,
+all 6 @2500) but by 0.1–2.2pp, inside seed noise. Not adopted. The lesson
+matches the M7/M9 one: the information is real, but the hand-built features
+(`bw_last1`, `bw_prev14`, the trailing counts) already carry it.
+`model/20_narrative.py`, `docs/model-catalog.md` M14.
+
 ## Honest limitations (say out loud)
 
 - The label is "tenants called 311 twice in 48h", not "the boiler died" — reporting

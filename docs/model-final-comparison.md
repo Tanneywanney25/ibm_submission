@@ -22,7 +22,10 @@ late gain came from aligning the training objective with the evaluated task.
 
 Related but different jobs: M8 (verified-violation queue, 30.2 @100 on
 violation truth — 2× best baseline), M4 (season risk, the tenant number,
-calibration verified bin-by-bin), M10 (hazard/timing — unbuilt, T10).
+calibration verified bin-by-bin), M10/M10b (hazard/timing, T10 — C-index
+0.87, curves not calibrated enough to ship). Post-freeze feature test: M14
+(complaint categories + per-unit rates, T20) ties an identically-trained
+control, 89.0 vs 89.0 @100 — not adopted.
 
 ## Why we trust the M11/M12 result (model/23, ceiling_verification.csv)
 

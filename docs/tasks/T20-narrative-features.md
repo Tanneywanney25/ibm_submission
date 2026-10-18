@@ -39,9 +39,39 @@ documents at the ranking level.
 
 ## Acceptance
 
-- [ ] Coverage table: how many building-seasons have usable text/categories.
-- [ ] M11 variants evaluated on the same universe, days and k's as M4/M13;
-      the table says plainly whether text helps, hurts, or is a wash.
-- [ ] Leakage suite extended with one test asserting narrative features use
-      only prior-season complaints; suite green.
-- [ ] Frozen numbers untouched; new entries only.
+- [x] Coverage table: how many building-seasons have usable text/categories.
+      **No prose exists** in the extract (0 free-text fields); four
+      categorical fields cover every complaint; 28–36k buildings per season
+      have heat complaints, 10–14k have hot-water-only complaints, 50–69% of
+      complaints carry a unit. `model/out/narrative_coverage.csv`.
+- [x] Variants evaluated on the same universe, spells and k's as M13 (the 8
+      held-out 2025-26 spells), 3 seeds each — **a wash** (table below).
+- [x] Leakage suite extended (`test_narrative_features_use_only_prior_complaints`,
+      synthetic, runs in CI); suite green 10/10.
+- [x] Frozen numbers untouched; new entries only.
+
+## Result (built 2026-10-18, run on the LinuxONE guest)
+
+Renamed **M14**: "M11" was already taken (spell-direct) when this task was
+written. `model/narrative.py` (feature builder) + `model/20_narrative.py`
+(experiment). Step 3 (embeddings) was skipped: there is no prose to embed.
+
+Same recipe for every variant (M11's config, early-stopped on the 2024-25
+spells, refit, test once); mean of 3 seeds, spell precision@k:
+
+| variant | features | val @100 | test @100 | @500 | @1000 | @2500 |
+|---|---|---|---|---|---|---|
+| control | the 31 | 87.8 | 89.0 | 64.8 | 51.1 | 34.9 |
+| **M14a** | + 7 category/flag features | **88.7** | 89.0 | 65.0 | 51.1 | 35.0 |
+| M14c | + 3 per-unit rates | 86.8 | 88.9 | 64.6 | 51.1 | 34.9 |
+| M14ac | + both | 88.2 | 89.1 | 64.6 | 51.1 | 35.0 |
+
+Validation picked M14a. On the held-out spells it ties the control: 4 wins,
+4 losses @100, mean −0.1pp; seed spread (control 88.0–89.9) is larger than
+any variant gap. Forward-chaining backtest (2 seeds, train ≤ T−1): M14a ahead
+@100 in **5 of 6 winters** (+2.2, +0.8, +1.0, +0.8, +0.6; −0.2 in 2020-21)
+and ≥ control @2500 in all 6, but by 0.1–0.5pp: a sign-test p ≈ 0.11, not
+distinguishable from noise. **Verdict: not adopted.** Category text is
+mostly already captured by `bw_last1`/`bw_prev14` (ENTIRE BUILDING) and the
+complaint counts; per-unit normalization did not help the ranking either, so
+the T18 mega-lot inflation needs a display fix, not a model fix.
