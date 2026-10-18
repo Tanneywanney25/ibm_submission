@@ -15,6 +15,8 @@ The steps below have been done once for production; use them again only to rebui
 | OAuth web client | "HeatAhead website" in that project | one redirect URI, `https://ibmsubmission.vercel.app/api/auth/callback` |
 | Vercel Production | Config: `AUTH_BASE_URL`, `GOOGLE_CLIENT_ID`; Secret: `FLASK_SECRET_KEY`, `GOOGLE_CLIENT_SECRET` | the two Secret values are pasted in by a person, never by an agent or through chat |
 | LinuxONE | `~/.config/heatahead/accounts.env` (mode 600) holds `FLASK_SECRET_KEY`; the systemd drop-in `heatahead-web.service.d/accounts.conf` loads it | the Vercel value must be byte-for-byte this one |
+| Live check | a real Google sign-in on production, October 18 | **works**: the account was created and the dashboard loaded |
+| Email sign-in | `SMTP_*` in the same `accounts.env`, written by `web/set_smtp.py` | off until a person runs the script (VERCEL.md section 10) |
 
 The site does its own Google sign-in; it does not use Supabase. The Supabase project's
 Google provider uses a different client (`IBM_Submission` in the "Default Gemini Project",

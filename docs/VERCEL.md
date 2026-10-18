@@ -284,6 +284,14 @@ The instance counts as ready only when `SMTP_HOST` is set, because without it `m
 only logs messages and nobody would receive the link; Vercel offers email sign-in only
 while the instance's `/api/health` says `email_sign_in: true` (checked at most every two
 minutes). A laptop run (`host: local`) treats its log as the inbox for testing.
+To turn email on, a person runs `ssh -t -i datathon.pem linux1@148.100.77.112
+"python3 ~/heatahead/site/web/set_smtp.py"` in their own terminal (not through an agent).
+It asks for the sending Gmail address and an app password (hidden input; the account needs
+2-Step Verification, then myaccount.google.com/apppasswords), logs in and mails a test
+message before saving anything, writes `SMTP_*` into `accounts.env` (mode 600) and
+restarts `heatahead-web`. Outbound ports 587 and 465 are open from the instance; 25 is not.
+An email account and a Google account with the same address are the same HeatAhead
+account: saved buildings and dashboard panels are keyed by the verified email.
 The instance only mails links that point at its own `SITE_URL`, so preview deploys cannot
 send sign-in email. Remembered sessions last up to 30 days; browser cookies are Secure,
 HttpOnly and SameSite=Lax.

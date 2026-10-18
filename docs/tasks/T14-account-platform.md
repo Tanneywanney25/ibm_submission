@@ -84,8 +84,11 @@ live once `FLASK_SECRET_KEY` and `GOOGLE_CLIENT_SECRET` are pasted into Vercel P
 as Secret variables by a person and the site is redeployed; `/api/health` then reports
 `google_sign_in: true`.
 
-Email sign-in stays off until the instance has `SMTP_*` (add them to the same
-`accounts.env` and restart `heatahead-web`). Before this change the instance had no SMTP
+Google sign-in was confirmed live on production on October 18 with a real sign-in.
+
+Email sign-in stays off until the instance has `SMTP_*`: a person runs
+`web/set_smtp.py` over SSH (docs/VERCEL.md section 10), which tests the login, saves the
+settings to the same `accounts.env` and restarts `heatahead-web`. Before this change the instance had no SMTP
 at all, so every "sent" email, including welcome emails, was only written to
 `web/alerts.log`; email sign-in now shows as available only when a link can really be
 delivered.
