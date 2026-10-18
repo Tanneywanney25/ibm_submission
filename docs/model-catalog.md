@@ -266,7 +266,7 @@ All metrics are on the held-out 2025-26 winter unless marked otherwise.
   measured answer to "did you use the complaint text?" — there is none to
   use, and the categories are a wash. Frozen numbers untouched.
 
-## M16 — Feature elimination across three model types (finished; 8 features match 36)
+## M16 — Feature elimination across three model types (finished; 8 features match 36; tuned in M17)
 
 - **Question:** which of the 36 features carry signal? Greedy backward
   elimination on the M11 spell substrate for logistic regression, sklearn
@@ -293,7 +293,45 @@ All metrics are on the held-out 2025-26 winter unless marked otherwise.
 - **Decision: not adopted yet.** Removing 28 features cost nothing, which
   makes a far simpler model available. The fair comparison with M13 needs
   the same 12-trial spell HPO and 5-seed bag on the 8-feature set, selected
-  on validation and tested once. Frozen numbers untouched.
+  on validation and tested once. Frozen numbers untouched. M17 below ran
+  that comparison: a tie.
+
+## M17 — M13's recipe on M16's 8 features (finished; ties M13, NOT adopted)
+
+- **Question:** with M13's exact treatment, does the 8-feature XGBoost set
+  from M16 (`c_last2`, `c_prev7`, `c_prev14`, `c_prev30`, `rate_freezing2`,
+  `days_since_c`, `c_prev2`, `bldgarea`) beat the frozen 36-feature M13?
+- **Protocol:** `model/29_tuned_small.py`, identical to `model/24`: the same
+  12-trial spell HPO (same search space and RNG seed, so the same 12 candidate
+  configs), fit on 2018-2023 spells, early-stopped on and selected by the
+  2024-25 validation spells only (p@100 + p@2500); the winner bagged over 5
+  seeds refit on 2018-2024; one look at the 8 held-out 2025-26 spells. M13's
+  blend step chose w_bag = 1.0 (M13 is the pure bag), so M17 has no blend,
+  which would also have reintroduced the 36-feature M12. M13's per-spell
+  scores are recomputed from the `final_spell_ensemble.json` members on the
+  same spells and reproduce the frozen 90.12 / 65.40 / 51.40 / 35.16 exactly.
+  Run on the LinuxONE training guest (about 2 minutes) →
+  `heat_model_m17_s0..4.json`, `m17_ensemble.json` (config, all 12 trials),
+  `m17_results.csv`, `m17_per_spell.csv`.
+- **HPO:** validation scores of the 12 trials span 1.236 to 1.249, a narrow
+  band. The winner is trial 4 (depth 7, learning rate 0.03, min_child_weight
+  20, subsample 0.68, colsample 0.63, lambda 1, 91 trees; val p@100 90.1,
+  p@2500 34.7). M13 had picked trial 3, the same depth and learning rate.
+- **Test (8 held-out spells, 5-seed bag):**
+
+  | k | M17 (8 features) | M13 (36, frozen) | delta | per spell W / T / L | seed range M17 | seed range M13 |
+  |---|---|---|---|---|---|---|
+  | 100 | 90.00 | 90.12 | -0.12 | 3 / 3 / 2 | 89.9 to 91.0 | 89.8 to 90.8 |
+  | 500 | 65.37 | 65.40 | -0.03 | 3 / 0 / 5 | 65.2 to 65.6 | 65.2 to 65.5 |
+  | 1000 | 51.62 | 51.40 | +0.22 | 5 / 2 / 1 | 51.5 to 51.7 | 51.2 to 51.6 |
+  | 2500 | 35.13 | 35.16 | -0.03 | 4 / 0 / 4 | 35.0 to 35.1 | 35.0 to 35.1 |
+
+- **Decision: a tie, not adopted.** Every mean gap is inside the seed spread
+  and no k shows a consistent per-spell win (the best case, k=1000, is 5 wins
+  to 1 loss on a 0.2-point gap). M13 stays the frozen per-spell scorer. The
+  finding that does stand: 8 features, all from the HPD complaint file plus
+  PLUTO floor area, do exactly the job of 36 once both get the same tuning.
+  Frozen numbers untouched.
 
 ## B1–B3 — The baselines (every eval runs them under the identical protocol)
 

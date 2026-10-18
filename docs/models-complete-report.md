@@ -388,7 +388,8 @@ After freezing M1, we kept testing new ideas. Each idea got a new model name and
 | M10 and M10b | Predict when a building will first fail | Good ordering, but not calibrated well enough to show | Not shipped |
 | M14 | Use complaint categories and per unit rates | A tie with the control | Not adopted |
 | Watchlist v2 | Add year over year trend features to M4 | A tie with M4 | Not adopted |
-| M16 | Remove features one by one, across three model types | 8 features match all 36 (90.0% against 89.5% at 100) | A simpler equal model; tuning it is the next step |
+| M16 | Remove features one by one, across three model types | 8 features match all 36 (90.0% against 89.5% at 100) | A simpler equal model, tuned in M17 |
+| M17 | Tune the 8 feature model exactly as M13 was tuned | 90.0% at 100 against M13's 90.1%, with no consistent win on individual spells | A tie; not adopted |
 
 All the spell level comparisons below use the same eight held out spells of the 2025 to 2026 winter and report precision at 100, 500, 1,000 and 2,500 during the spell. For reference, frozen M1 scores 86.1, 64.6, 51.4 and 34.8 percent on this protocol, and the 14 day baseline scores 77.1, 59.9, 47.8 and 31.9 percent.
 
@@ -569,7 +570,19 @@ All three model types kept the same five core features. The two tree models also
 - **The 8 feature XGBoost model is at least as good as the 36 feature version.** It scored 0.5 points higher at 100, and it was equal or higher at every other k. Spell by spell it won 3, lost 3 and tied 2 at 100, so the gain is not statistically clear, but all three of its seeds (89.5, 90.0 and 90.5 percent) landed at or above the full model's average. The honest summary is that removing 28 of the 36 features cost nothing.
 - **The 9 feature HistGradientBoosting model tied its full version.** It was 0.2 points lower at 100 and slightly higher at 500 and 1,000, which is inside the noise.
 - **Logistic regression lost 1.5 points with only 5 features.** A linear model cannot combine features the way trees do, so it needs more of them. Its smaller set is not a good trade.
-- **The comparison with M13 is not a fair contest yet.** M13 had its settings tuned by a 12 trial search and averages five seeds. The 8 feature XGBoost model used untuned settings and was averaged over three seeds, and it still landed within 0.1 points of M13 at 100 and above it at 1,000. The fair next step is to give the 8 feature set exactly M13's treatment (the same tuning search run on the validation winter, then five seeds) and test it once against M13.
+- **The first comparison with M13 was not a fair contest.** M13 had its settings tuned by a 12 trial search and averages five seeds. The 8 feature XGBoost model used untuned settings and was averaged over three seeds, and it still landed within 0.1 points of M13 at 100 and above it at 1,000. So we gave the 8 feature set exactly M13's treatment in a follow up experiment named M17, described next.
+
+**The fair comparison with M13 (M17).** The script `model/29_tuned_small.py` repeats M13's recipe on the 8 features with nothing changed. It runs the same 12 trial search, with the same range of settings and the same random seed, so it tries the same 12 candidate settings that M13 tried. Each candidate is trained on the 2018 through 2023 spells and judged only on the 2024 to 2025 validation spells, by precision at 100 plus precision at 2,500. The winning settings are then trained five times with different seeds on 2018 through 2024, the five models are averaged, and the average is tested once on the eight held out spells. M13's last step, a blend with the M12 model, chose to give M12 no weight at all, so M13 is simply the five seed average and M17 skips the blend. M13's own scores on each spell were recomputed from its five saved models, and they reproduce its frozen numbers exactly. The whole run took about two minutes on the LinuxONE machine.
+
+The 12 candidates scored very close to each other on the validation winter. The winner used a depth of 7, a learning rate of 0.03 and 91 trees, and it was the runner up setting next to the one M13 chose.
+
+| Model | Features | At 100 | At 500 | At 1,000 | At 2,500 |
+|---|---|---|---|---|---|
+| M13, frozen | 36 | 90.1% | 65.4% | 51.4% | 35.2% |
+| M17, tuned the same way | 8 | 90.0% | 65.4% | 51.6% | 35.1% |
+| Spells where M17 won, tied or lost | | 3, 3, 2 | 3, 0, 5 | 5, 2, 1 | 4, 0, 4 |
+
+**M17 ties M13 and is not adopted.** The two models differ by at most 0.2 points at any k, and every difference is smaller than the spread between seeds of the same model. At 100, M17's five seeds ranged from 89.9 to 91.0 percent and M13's ranged from 89.8 to 90.8 percent. Spell by spell, neither model wins consistently: at 100 M17 won 3 spells, tied 3 and lost 2, and at 500 it won 3 and lost 5. The best case for M17 is at 1,000, where it won 5 spells and lost 1, but by only 0.2 points on average. Adoption required a consistent win on the individual spells, not just a higher average, and M17 does not have one, so M13 remains the frozen per spell model. What the experiment does establish is that 8 features do the same job as all 36 once both models get the same tuning. The results are saved in `model/out/m17_results.csv` and `model/out/m17_per_spell.csv`, and the five models in `model/out/heat_model_m17_s0.json` through `heat_model_m17_s4.json`.
 
 **Why this matters even though the top number barely moved.** A model with 8 inputs instead of 36 is easier to explain to a city agency, faster to compute, and depends on far fewer data sources. All 8 of its inputs come from the public HPD complaint file, apart from floor area, which comes from PLUTO. It no longer needs the owner registration file, the two boiler data sets, the violation file or the weather feed to rank buildings within a cold spell. Fewer data sources also means fewer ways for a stale table or a leak to creep in. The weather is still essential to the product, because it decides **when** a cold spell is coming and therefore when to rank, but it does not help decide **which** building is at risk once the spell is known.
 
@@ -621,7 +634,8 @@ Training is slower than scoring because the guest has only 3 cores, which is rou
 | M13 | Adopted and frozen | The per spell inspection list and the dispatch simulation |
 | M14 | Not adopted | Complaint categories tie the control |
 | Watchlist v2 | Not adopted | Trend features tie M4 |
-| M16 | Finished, not yet adopted | An 8 feature model matches the full model; to be tuned and compared with M13 |
+| M16 | Finished, not adopted | An 8 feature model matches the full model |
+| M17 | Not adopted | The tuned 8 feature model ties M13, so M13 stays frozen |
 | T8 thresholds | Adopted | The alert email thresholds and their guarantee |
 
 Across all of these experiments a consistent picture emerged. The strongest signal is a building's own recent and past complaint history. Hand built features that capture landlords, neighbors and whole building outages already carry what graph networks and complaint categories could offer. The one change that produced a large gain was training the model on exactly the task it is scored on.
