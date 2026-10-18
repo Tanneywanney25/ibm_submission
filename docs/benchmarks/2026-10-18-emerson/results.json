@@ -1,0 +1,65 @@
+{
+  "started_utc": "2026-10-18T06:45:20.887179+00:00",
+  "architecture": "s390x",
+  "machine_type": "9175",
+  "nnpa_flag_present": true,
+  "versions": {
+    "snapml": "1.17.2",
+    "xgboost": "3.4.1",
+    "numpy": "2.0.2",
+    "pandas": "3.0.6",
+    "scikit-learn": "1.9.0"
+  },
+  "requested_threads_per_engine": 3,
+  "batch_repeats": 20,
+  "single_row_repeats": 1000,
+  "warmup_calls_per_engine_per_workload": 3,
+  "metadata": {
+    "rows_in_file": 62716,
+    "rows_benchmarked": 62487,
+    "rows_excluded_missing_or_nonfinite": 229,
+    "feature_count": 36,
+    "snapshot_asof": "2026-02-06",
+    "input_dtype": "float32",
+    "input_sha256": {
+      "heat_model_final.json": "2bd2638fa5a1d99d7716fa8245c49a3be17a9743d3a0ea78399ebc1c58049125",
+      "feature_schema.json": "831de94bf680e5307c6455c8d17c07320e7168845fd16c072567514712981b43",
+      "building_features.csv": "314bd34330dbf72cfec1b33dcc6a6d4712e04044bdc495aed735179ab4de7594",
+      "heat_model_snapml_compat.json": "440d433da34ed8f53c53bab6551a9a18414c4ffcc31dc3e2e3e2079a9ef6fc19"
+    }
+  },
+  "prediction_checks": {
+    "snapml_cpu": {
+      "all_scores_finite": true,
+      "max_absolute_difference_vs_xgboost": 4.0368924801581496e-07,
+      "closely_matches_xgboost": true,
+      "rtol": 1e-05,
+      "atol": 1e-06,
+      "selected_tree_format": "compress_trees"
+    },
+    "ibm_zdnn": {
+      "all_scores_finite": true,
+      "max_absolute_difference_vs_xgboost": 4.0368924801581496e-07,
+      "closely_matches_xgboost": true,
+      "rtol": 1e-05,
+      "atol": 1e-06,
+      "selected_tree_format": "zdnn_tensors"
+    }
+  },
+  "scope": "Historical complete-case inputs; uncalibrated model inference only. Excludes file/model loading, optimization, feature updates, calibration, HTTP and queue handling. This is not an accuracy evaluation or replay latency benchmark and does not replace frozen submission results.",
+  "status": "completed",
+  "timings": {
+    "snapml_cpu": {
+      "median_batch_ms": 97.6235585,
+      "scores_per_second_from_median_batch": 640081.1541816518,
+      "single_row_p50_ms": 0.011473,
+      "single_row_p99_ms": 0.02800956
+    },
+    "ibm_zdnn": {
+      "median_batch_ms": 459.85024,
+      "scores_per_second_from_median_batch": 135885.54395448396,
+      "single_row_p50_ms": 0.0296815,
+      "single_row_p99_ms": 0.06734556999999998
+    }
+  }
+}
