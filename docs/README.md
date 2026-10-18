@@ -8,6 +8,7 @@ Planning documents for the build. Start with the brief.
 - `progress-report.md` — one-page status of everything built, verified and frozen so far
 - `VERCEL.md` — how the public site deploys to Vercel and the rules every web/realtime change must follow (the root `CLAUDE.md` points every Claude session here)
 - `GOOGLE_LOGIN.md` — Google credentials, remembered sessions, durable account storage, and coordinated deployment checks
+- `ibm_integration.txt` — the IBM Z plan, highest points per hour first: s390x proof, Snap ML on CPU vs the Telum II accelerator, real-time replay, on-chip compression and encryption, Granite briefs, a "Why IBM Z" README section
 
 ## Data location (not in git)
 
