@@ -42,7 +42,7 @@
 .about-numbers { font-variant-numeric:tabular-nums; }
 .about-numbers tbody th { width:30%; }
 .about-numbers tbody td { font-weight:700; color:var(--ink); }
-.about-numbers tbody td:nth-child(2) { background:var(--accent-soft); }
+.about-scoreboard tbody td:nth-child(2) { background:var(--accent-soft); }
 .about-details { margin:1rem 0; border:2px solid var(--line); border-radius:14px; background:#fff; }
 .about-details > summary { position:relative; padding:1rem 1.15rem; color:var(--ink);
   font-size:.95rem; line-height:1.6; border-radius:12px; }
@@ -112,4 +112,60 @@
   .about-table thead th { font-size:.65rem; }
   .about-process > li { padding-left:2.9rem; }
   .about-note,.about-benchmark { padding:1rem; }
+}
+
+/* Research-page refinements: restrained hero, readable evidence and native disclosure. */
+.about-page .about-hero { background:#fff; border-radius:22px; }
+.about-page .about-hero::after { height:5px; background:var(--accent); border-top:0; }
+.about-page .about-hero .help-eyebrow { padding:0; background:none; border:0;
+  color:var(--accent); border-radius:0; letter-spacing:.11em; }
+.about-page .about-hero h1 { max-width:22ch; font-size:clamp(2.5rem,5.2vw,4.1rem); }
+.about-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.2rem;
+  margin:1.7rem 0 .8rem; padding:1.35rem 0 .4rem; border-top:2px solid var(--line); }
+.about-facts > div { min-width:0; }
+.about-facts dt { color:var(--muted); font-weight:700; font-size:.75rem; line-height:1.6; }
+.about-facts dd { margin:.25rem 0 0; font-size:clamp(1.5rem,3vw,2.15rem);
+  font-weight:800; color:var(--ink); line-height:1.2; letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums; }
+.about-facts dd span { display:block; margin:.35rem 0 0; font-size:.76rem;
+  color:var(--muted); line-height:1.6; letter-spacing:0; font-weight:500; }
+.about-plain-steps { padding-left:1.25rem; color:var(--muted); line-height:1.75; }
+.about-plain-steps li { margin:.55rem 0; padding-left:.2rem; }
+.about-section code { font-size:.85em; overflow-wrap:anywhere; }
+.about-details > summary { display:flex; align-items:center; justify-content:space-between;
+  gap:1rem; list-style:none; min-height:54px; }
+.about-details > summary::-webkit-details-marker { display:none; }
+.about-details > summary::marker { content:""; }
+.about-details > summary::after { content:"+"; display:grid; place-items:center;
+  flex:0 0 24px; width:24px; height:24px; border:1.5px solid var(--line);
+  border-radius:6px; color:var(--accent-dark); font-size:1.15rem; line-height:1; }
+.about-details[open] > summary::after { content:"−"; }
+.about-model-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:1rem; padding:1rem !important; }
+.about-model-grid article { padding:1rem; background:var(--well);
+  border:1.5px solid var(--line); border-radius:12px; }
+.about-model-grid h3 { font-size:1rem; line-height:1.4; }
+.about-model-grid p { font-size:.86rem; margin:.6rem 0 0; }
+.about-model-id { display:block; color:var(--accent-dark); font-size:.68rem;
+  letter-spacing:.05em; font-weight:800; text-transform:uppercase; }
+.about-features tbody td:nth-child(2) { text-align:center; font-weight:800;
+  color:var(--accent-dark); font-variant-numeric:tabular-nums; }
+.about-log tbody th { width:35%; }
+.about-log tbody td { font-size:.86rem; }
+.about-code { margin:.9rem 0; padding:1rem; overflow-x:auto; color:var(--ink);
+  background:var(--well); border:1.5px solid var(--line); border-radius:10px; }
+.about-page .about-source-note { max-width:76ch; }
+@media (max-width:600px) {
+  .about-model-grid { grid-template-columns:1fr; }
+  .about-page .about-hero h1 { font-size:clamp(2.15rem,8.4vw,3rem); }
+  .about-facts { gap:.8rem; }
+}
+@media (max-width:480px) {
+  .about-facts { grid-template-columns:1fr; gap:1rem; }
+  .about-facts > div { display:grid; grid-template-columns:1fr 1.3fr; align-items:start; gap:.7rem; }
+  .about-facts dd { margin:0; font-size:1.6rem; }
+  .about-facts dd span { font-size:.73rem; }
+}
+@media (max-height:700px) and (min-width:901px) {
+  .about-nav { position:static; }
 }

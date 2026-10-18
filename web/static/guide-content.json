@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "about",
@@ -447,7 +447,7 @@
         },
         {
           "label": "What to do without heat",
-          "href": "/faq#no-heat"
+          "href": "/learn-more?help=no-heat#taking-action"
         }
       ],
       "follow": [
@@ -521,8 +521,8 @@
       ],
       "links": [
         {
-          "label": "Data and privacy",
-          "href": "/learn-more#data-and-privacy"
+          "label": "Privacy and cookies",
+          "href": "/privacy"
         },
         {
           "label": "Your account",
@@ -530,6 +530,7 @@
         }
       ],
       "follow": [
+        "cookies",
         "sign-in",
         "remove-alerts"
       ],
@@ -774,7 +775,7 @@
       "id": "inspector",
       "category": "What to do",
       "question": "How do I find buildings to inspect?",
-      "answer": "Download the saved top-500 ranking to see which buildings the model suggests checking first. Open Published complaints to see recent reports, or Historical model replay to see rankings change during a past cold spell. Signed-in users can turn on Inspection queue in their profile; that preference doesn't verify their job or grant private access.",
+      "answer": "Open Inspection queue to see the first 50 building records in the saved cold-day model ranking. Each row links to its building and map, and you can download the same top 50 as a CSV. This snapshot is separate from winter risk and is not HPD’s official inspection schedule. Use Published complaints for recent reports or Historical model replay to see a past queue change.",
       "terms": [
         "inspection queue",
         "inspector queue",
@@ -802,8 +803,12 @@
       ],
       "links": [
         {
-          "label": "Download the saved top-500 ranking",
-          "href": "/api/queue.csv?k=500"
+          "label": "Open the top-50 inspection queue",
+          "href": "/inspection-queue"
+        },
+        {
+          "label": "Download the top-50 CSV",
+          "href": "/api/queue.csv?k=50"
         },
         {
           "label": "See published complaints",
@@ -1036,7 +1041,7 @@
         },
         {
           "label": "Report a heat problem",
-          "href": "/faq#no-heat"
+          "href": "/learn-more?help=no-heat#taking-action"
         }
       ],
       "follow": [
@@ -1084,6 +1089,124 @@
           "label": "NYC HPD: heating safety",
           "href": "https://www.nyc.gov/site/hpd/services-and-information/heat-and-hot-water-information.page"
         }
+      ]
+    },
+    {
+      "id": "newsletter",
+      "category": "Accounts and alerts",
+      "question": "How do I get or stop project updates?",
+      "answer": "Project updates are separate from building heat alerts. Use the newsletter form near the bottom of the home page. Your email is required; your name is optional. You join after confirming the link in your email. To stop updates, open the unsubscribe link in a project-update email and confirm. This won't change your building alerts. If signup is being set up, try later or contact our team.",
+      "terms": [
+        "newsletter",
+        "project updates",
+        "project emails",
+        "project news",
+        "subscribe to updates",
+        "stop project updates",
+        "unsubscribe from newsletter",
+        "email newsletter"
+      ],
+      "keywords": [
+        "newsletter",
+        "updates",
+        "update",
+        "news",
+        "project",
+        "subscription",
+        "email"
+      ],
+      "links": [
+        {
+          "label": "Project-update signup",
+          "href": "/#newsletter"
+        },
+        {
+          "label": "Contact the team",
+          "href": "/contact"
+        }
+      ],
+      "sources": [],
+      "follow": [
+        "alerts",
+        "remove-alerts",
+        "privacy"
+      ]
+    },
+    {
+      "id": "team-contact",
+      "category": "Getting started",
+      "question": "How do I contact the HeatAhead team?",
+      "answer": "Email heataheadnyc@gmail.com with questions, feedback or corrections. A building's street address or BBL is enough; leave out apartment details, passwords and sign-in links. For a heating complaint, use NYC311. Our team inbox doesn't file reports or send inspectors.",
+      "terms": [
+        "contact the team",
+        "contact heatahead",
+        "contact you",
+        "email you",
+        "your email",
+        "team email",
+        "get in touch",
+        "send feedback",
+        "report a mistake",
+        "suggest a feature",
+        "customer support"
+      ],
+      "keywords": [
+        "contact",
+        "team",
+        "feedback",
+        "support",
+        "correction",
+        "mistake"
+      ],
+      "links": [
+        {
+          "label": "Contact details",
+          "href": "/contact"
+        }
+      ],
+      "sources": [],
+      "follow": [
+        "no-heat",
+        "newsletter",
+        "privacy"
+      ]
+    },
+    {
+      "id": "cookies",
+      "category": "Data and privacy",
+      "question": "How do I change my cookie choices?",
+      "answer": "Choose Accept all, Reject optional or Settings in the cookie banner. You can reopen Cookie settings in the footer any time. Optional storage remembers dashboard choices on this device and starts off until you accept it. Rejecting it doesn't sign you out or remove saved buildings. Essential sign-in cookies stay on. HeatAhead doesn't use analytics or advertising cookies; the privacy page explains external map and photo services.",
+      "terms": [
+        "cookie settings",
+        "cookie choices",
+        "reject cookies",
+        "accept cookies",
+        "optional storage",
+        "tracking cookies",
+        "change cookie permission",
+        "cookie banner",
+        "local storage"
+      ],
+      "keywords": [
+        "cookie",
+        "cookies",
+        "consent",
+        "tracking",
+        "storage",
+        "settings",
+        "banner"
+      ],
+      "links": [
+        {
+          "label": "Privacy and cookie settings",
+          "href": "/privacy#cookies"
+        }
+      ],
+      "sources": [],
+      "follow": [
+        "privacy",
+        "remember",
+        "team-contact"
       ]
     }
   ]

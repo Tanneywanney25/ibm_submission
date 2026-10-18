@@ -9,6 +9,7 @@ Writes (docs/VERCEL.md section 2):
     public/data/b/<n>.json        n = bbl % 128; {bbl: [record over app.FIELDS]}
     public/data/reliability.json  the season calibration table
     public/data/top500.csv        the government export, /api/queue.csv?k=500
+    public/data/top50.csv         the first 50 rows of the same inspection ranking
     public/data/meta.json         citywide median, counts, build time, git sha, model files
 Building-level only: nothing here carries an apartment number.
 """
@@ -53,6 +54,7 @@ def main():
     dump(ASSETS / "map_data.json", web.map_rows())
     dump(ASSETS / "reliability.json", web.RELIABILITY)
     (ASSETS / "top500.csv").write_text(web.queue_csv(500))
+    (ASSETS / "top50.csv").write_text(web.queue_csv(50))
 
     try:
         sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=web.ROOT,

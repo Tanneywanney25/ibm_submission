@@ -144,7 +144,7 @@ input[aria-invalid=true] { border-color:var(--bad); }
     <div class="hero-ctas">
       <a class="btn ghost" href="/map">Explore the risk map</a>
       <a class="text" href="/learn-more">How HeatAhead works →</a>
-      <a class="text" href="/faq">Find an answer →</a>
+      <a class="text" href="/learn-more?help=1#help-answers" data-open-guide data-guide-browse>Find an answer →</a>
     </div>
   </div>
   <aside class="proof" aria-label="86 of the top 100 flagged buildings lost heat during the cold spell">
@@ -275,10 +275,10 @@ document.getElementById('dots100').innerHTML =
       </div>
       <div class="panel" id="panel-queue" hidden>
         <h3>Inspection queue</h3>
-        <p class="muted" style="font-size:.9rem">The ranked queue inspectors work from during a
-        cold snap, and the export for routing them.</p>
-        <a class="btnlink" href="/monitor">Open live monitor</a>
-        <a class="btnlink ghost" href="/api/queue.csv?k=500">Download top-500 CSV</a>
+        <p class="muted" style="font-size:.9rem">The first 50 buildings in the saved cold-day model
+        ranking, with building records and a CSV for planning checks.</p>
+        <a class="btnlink" href="/inspection-queue">Open inspection queue</a>
+        <a class="btnlink ghost" href="/api/queue.csv?k=50">Download top-50 CSV</a>
       </div>
       <div class="panel" id="panel-stats" hidden>
         <h3>City-wide picture</h3>

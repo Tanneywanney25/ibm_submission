@@ -15,7 +15,10 @@ The live monitor proxies the realtime service (realtime/app.py, port 5000);
 set REALTIME_URL to point elsewhere.
 """
 
+import csv
+import io
 import json
+import math
 import os
 import platform
 import re
@@ -25,6 +28,7 @@ import threading
 import time
 from decimal import ROUND_HALF_UP, Decimal
 from functools import lru_cache
+from itertools import islice
 from pathlib import Path
 
 import requests
@@ -220,6 +224,48 @@ def queue_csv(k):
     if not f.exists():
         return None
     return "\n".join(f.read_text().splitlines()[:k + 1]) + "\n"
+
+
+def inspection_shortlist():
+    """Read the same first 50 rows as the existing cold-day CSV export.
+
+    Keep the model's order, including tied calibrated probabilities. A missing or
+    malformed snapshot must show an unavailable state, never a fabricated queue.
+    """
+    try:
+        body = queue_csv(50)
+    except (OSError, UnicodeError):
+        return None
+    if not body:
+        return None
+    rows, seen, previous = [], set(), 0
+    boroughs = {"1": "Manhattan", "2": "Bronx", "3": "Brooklyn",
+                "4": "Queens", "5": "Staten Island"}
+    try:
+        for raw in islice(csv.DictReader(io.StringIO(body)), 50):
+            bbl = raw["bbl"]
+            position = int(raw["rank"])
+            probability = float(raw["p_calibrated"])
+            if (not re.fullmatch(r"[1-5]\d{9}", bbl) or bbl in seen or
+                    position <= previous or not math.isfinite(probability) or
+                    not 0 <= probability <= 1):
+                return None
+            def count(name):
+                value = raw.get(name)
+                if value in (None, ""):
+                    return None
+                number = float(value)
+                if not math.isfinite(number) or number < 0 or not number.is_integer():
+                    raise ValueError("invalid building count")
+                return int(number)
+            seen.add(bbl)
+            previous = position
+            rows.append(dict(bbl=bbl, rank=position, risk=fmt_risk(probability),
+                             borough=boroughs[bbl[0]], units=count("unitsres"),
+                             complaints=count("c_last1"), violations=count("v_last1")))
+    except (csv.Error, KeyError, TypeError, ValueError):
+        return None
+    return rows or None
 
 
 # ------------------------------------------------------------------ database
@@ -506,6 +552,13 @@ def building_page():
 @app.get("/monitor")
 def monitor_page():
     return render_template("monitor.html", page="monitor")
+
+
+@app.get("/inspection-queue")
+def inspection_queue_page():
+    return render_template("inspection_queue.html", page="queue",
+                           queue_rows=inspection_shortlist(),
+                           snapshot_at=META.get("built_at"), last_season=LAST_SEASON)
 
 
 @app.get("/data/<path:name>")
@@ -965,7 +1018,7 @@ newsletter.init_app(app, database=lambda: db(), forward_url=lambda: FORWARD_URL,
 account_auth.init_app(app, consume_account_nonce, email_backend=dict(
     ready=sign_in_email_ready,
     send_link=send_sign_in_link, consume=consume_sign_in_nonce))
-site_guide.init_app(app)
+site_guide.init_app(app, about_data=lambda: dict(reliability=RELIABILITY, snapshot=META))
 
 
 if __name__ == "__main__":

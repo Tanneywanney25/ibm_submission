@@ -1,7 +1,7 @@
 """Shared help content and optional, read-only AI topic matching.
 
 The browser handles common questions locally. An explicitly configured provider can
-select a known FAQ id for unfamiliar wording; it never generates answers, URLs,
+select a known help id for unfamiliar wording; it never generates answers, URLs,
 building scores or account actions. No conversation or identity is sent to it.
 """
 import hashlib
@@ -13,7 +13,7 @@ import threading
 import time
 from collections import OrderedDict, deque
 
-from flask import Blueprint, current_app, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, redirect, render_template, request
 import requests
 
 CONTENT = json.loads((Path(__file__).parent / "static/guide-content.json").read_text(encoding="utf-8"))
@@ -107,13 +107,29 @@ def learn_more():
 
 @bp.get("/about")
 def about():
-    return render_template("about.html", page="about")
+    # Reuse the published public metadata/reliability table in both hosting modes.
+    # No model, database, AI provider or network call is needed to read this page.
+    provider = current_app.extensions.get("about_data")
+    data = provider() if provider else {}
+    bins = []
+    for row in data.get("reliability", []):
+        try:
+            lower, upper = map(float, row["bin"].strip("()[]").split(","))
+            bins.append(dict(label=f"{max(0, lower)*100:g}–{upper*100:g}%",
+                             buildings=int(row["buildings"]),
+                             predicted=float(row["predicted"])*100,
+                             observed=float(row["actually_failed"])*100))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return render_template("about.html", page="about", calibration_bins=bins,
+                           about_snapshot=data.get("snapshot", {}))
 
 
 @bp.get("/faq")
 def faq():
-    return render_template("faq.html", page="faq", faq_items=CONTENT["items"],
-                           categories=list(dict.fromkeys(item["category"] for item in CONTENT["items"])))
+    # Browsers preserve an old #topic fragment; the guide recognizes it with help=1.
+    # Learn more also holds the answers in a no-JavaScript fallback.
+    return redirect("/learn-more?help=1", code=302)
 
 
 @bp.post("/api/guide/ask")
@@ -147,11 +163,13 @@ def private_ai_response(response):
     return response
 
 
-def init_app(app):
+def init_app(app, about_data=None):
     app.config["GUIDE_AI_KEY"] = os.environ.get("OPENAI_API_KEY", "").strip()
     # Require an explicit, currently supported model; no silently stale default.
     app.config["GUIDE_AI_MODEL"] = os.environ.get("GUIDE_AI_MODEL", "").strip()
     app.extensions["guide_budget"] = RequestBudget()
+    if about_data:
+        app.extensions["about_data"] = about_data
     app.register_blueprint(bp)
 
     @app.context_processor

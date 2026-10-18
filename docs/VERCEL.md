@@ -73,6 +73,7 @@ returned 503).
 | `map_data.json` | `{columns:[lon,lat,p_season,c_last1,units], rows:[...], bbls:[...]}`, exactly what `/api/map_data` returns today | about 4 MB |
 | `b/<n>.json` for n = `bbl % 128` (0 to 127) | `{bbl: [record]}` where the record is a positional list over `FIELDS` in `web/app.py` (season risk and rank, units, community district, chronic flag, complaints and violations by season, last dates, cold-day risk and rank, coordinates, landlord name and portfolio size, then the T5a fields: managing agent, whether it files as a company, its address, the corporate owner's business address, HPD building id and last registration date); `building_payload()` turns a record into the `/api/building` JSON in both modes. New fields go at the end of `FIELDS`, so a shard built before them still reads (the missing ones are None) | about 78 KB each before T5a; see `meta.json` for the current total |
 | `reliability.json` | the calibration table (`/api/reliability`) | tiny |
+| `top50.csv` | first 50 rows of the same cold-day inspection ranking; refreshed alongside top500.csv by `web/build_assets.py` | small |
 | `top500.csv` | the government export (`/api/queue.csv?k=500`) | small |
 | `meta.json` | citywide median season risk, ranked count, build timestamp, git sha, model file names | tiny |
 
@@ -100,13 +101,14 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 
 | route | method | serves | LITE mode source |
 |---|---|---|---|
-| `/` | GET | Google sign-in or signed-in account, saved buildings and registration (`index.html`) | template + authenticated account API |
+| `/` | GET | homepage with sign-in or saved buildings and registration (`index.html`); logo is the home link, no duplicate My account/Home tab | template + authenticated account API |
 | `/building` | GET | lookup page (`building.html`); `?bbl=` opens a building directly, `?q=` runs an address search on arrival (T17) | template |
 | `/map` | GET | risk map (`map.html`); `?bbl=` opens centered on that building with a highlight ring, `?embed=1` is the chrome-free embed the building page's map panel uses (T17) | template |
+| `/inspection-queue` | GET | public top-50 cold-day model priorities, building/map links, history and the existing top-50 CSV export; original model order retained, unavailable state for missing/malformed snapshot | same `queue_csv(50)` source as `/api/queue.csv?k=50`, stdlib CSV parsing; no login, live-feed or model dependency |
 | `/monitor` | GET | live monitor (`monitor.html`) | template |
 | `/learn-more` | GET | how the site works, map reading, prediction windows, actions and privacy; the 29 chat help answers are also readable here without JavaScript | template + shared guide content |
 | `/faq` | GET | legacy 302 redirect to `/learn-more?help=1`; the standalone FAQ page is retired; browsers preserve old `#topic` fragments and the guide opens that answer | redirect; shared help chat is on every page |
-| `/about` | GET | project and methods: data, training, model-specific results, calibration, IBM Z, help-chat scope, limits and team; stable original anchors retained (`about.html`, page-scoped `about.css`; claim ledger `docs/about-copy.md`) | template only, static content; native expandable details, no new JS or services |
+| `/about` | GET | research and methods: cleaning/labels, 36-feature pipeline, model recipes, holdouts/backtests, versioned results, experiment decisions, IBM Z, LLM-help steps and limits; original anchors retained (`about.html`, `about.css`, claim ledger `docs/about-copy.md`) | server-rendered prose and native details; uses existing public META/RELIABILITY via read-only callback, no model/provider/database/network needed |
 | `/contact` | GET | team contact address, chat help, project-update link and NYC311 direction | template; no account required |
 | `/privacy` | GET | actual cookies, optional browser storage, accounts, newsletter and external services; reopen cookie settings | template; no account required |
 | `/api/newsletter/subscribe` | POST | `{name?,email,consent:true,website?}` or equivalent form (`consent=yes`); records a pending request and sends a confirmation email; generic receipt, 400 invalid input, 403 cross-origin/missing Origin, 429 send budget, 503 delivery/storage unavailable | anonymous same-origin request forwarded to `REGISTER_FORWARD_URL`; never saves subscribers in Vercel `/tmp` |

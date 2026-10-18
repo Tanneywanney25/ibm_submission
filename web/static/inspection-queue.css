@@ -1,0 +1,38 @@
+.inspection-page { max-width:1100px; margin:auto; }
+.inspection-page .page-head { max-width:800px; }
+.inspection-context { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.2rem;
+  padding:1.25rem 1.4rem; margin:1.5rem 0; background:var(--accent-soft);
+  border:3px solid var(--ink); border-radius:18px; }
+.inspection-context p { margin:.35rem 0 0; color:var(--muted); font-size:.9rem; line-height:1.7; }
+.inspection-actions { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center;
+  gap:.75rem; margin:1.5rem 0 1rem; }
+.inspection-actions p { margin:0; color:var(--muted); font-size:.9rem; }
+.inspection-actions strong { color:var(--ink); }
+.inspection-actions > div { display:flex; flex-wrap:wrap; gap:.6rem; }
+.inspection-table { overflow-x:auto; background:#fff; border:3px solid var(--ink); border-radius:18px; }
+.inspection-table table { min-width:760px; font-variant-numeric:tabular-nums; }
+.inspection-table caption { text-align:left; padding:.9rem 1rem; font-size:.82rem;
+  background:var(--well); color:var(--muted); border-bottom:2px solid var(--line); }
+.inspection-table thead th { padding:.9rem .8rem; font-size:.68rem; line-height:1.5; }
+.inspection-table tbody th { width:70px; }
+.inspection-table tbody th,.inspection-table tbody td { padding:1rem .8rem; vertical-align:middle; }
+.inspection-table tbody tr:last-child > * { border-bottom:0; }
+.inspection-rank { display:inline-grid; place-items:center; min-width:35px; height:35px;
+  padding:0 .4rem; border:2px solid var(--ink); border-radius:10px; background:var(--accent-soft);
+  color:var(--ink); font-size:.9rem; letter-spacing:0; }
+.inspection-building { display:block; white-space:nowrap; font-weight:800; font-size:.9rem; }
+.inspection-borough { display:block; font-size:.78rem; color:var(--muted); margin:.15rem 0; }
+.inspection-map { font-size:.75rem; }
+.inspection-risk { display:block; min-width:145px; max-width:190px; font-size:.86rem;
+  font-weight:700; color:var(--ink); }
+.inspection-note { font-size:.83rem; color:var(--muted); line-height:1.75; margin:1rem 0; }
+.inspection-scroll { display:none; margin:.7rem 0; font-size:.8rem; color:var(--muted); }
+@media (max-width:800px) {
+  .inspection-context { grid-template-columns:1fr; gap:1rem; }
+  .inspection-actions { align-items:flex-start; flex-direction:column; }
+  .inspection-scroll { display:block; }
+}
+@media (max-width:500px) {
+  .inspection-context { padding:1rem; }
+  .inspection-actions .btn { white-space:normal; text-align:center; }
+}

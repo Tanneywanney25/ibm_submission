@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Top 50 inspection priorities · HeatAhead{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='inspection-queue.css') }}">{% endblock %}
+{% block body %}
+<div class="inspection-page">
+  <header class="page-head">
+    <p class="eyebrow pill">Saved model ranking</p>
+    <h1>Inspection priority queue</h1>
+    <p>The first 50 buildings in our cold-day inspection ranking. Open a building to review its
+      record, or download the list to plan checks.</p>
+  </header>
+
+  <div class="inspection-context">
+    <div><strong>What is the risk?</strong><p>The model’s estimated chance of a heat-complaint cluster
+      over 48 hours around freezing weather. This is different from the map’s winter-risk score.</p></div>
+    <div><strong>When is this list from?</strong><p>A saved model snapshot{% if snapshot_at %}, built
+      <time datetime="{{ snapshot_at }}">{{ snapshot_at[:10] }}</time>{% endif %}.
+      This is a suggested priority list, not HPD’s inspection schedule or a live forecast.</p></div>
+  </div>
+
+  {% if queue_rows %}
+  <div class="inspection-actions">
+    <p><strong>{{ queue_rows|length }} buildings</strong> · highest model priority first</p>
+    <div><a class="btn" href="/api/queue.csv?k=50">Download top 50 CSV</a>
+      <a class="btn ghost" href="/monitor?mode=replay">See historical replay</a></div>
+  </div>
+  <p class="inspection-scroll">Scroll across the table to see all columns.</p>
+  <div class="inspection-table" role="region" aria-label="Top 50 inspection priorities" tabindex="0">
+    <table>
+      <caption>Saved cold-day ranking · complaint and violation history is for {{ last_season }}–{{ (last_season + 1)|string }}.</caption>
+      <thead><tr><th scope="col">Priority</th><th scope="col">Building record</th>
+        <th scope="col">Cold-day risk</th><th scope="col">Residential units</th>
+        <th scope="col">Last-winter complaints</th><th scope="col">Last-winter violations</th></tr></thead>
+      <tbody>
+        {% for row in queue_rows %}
+        <tr>
+          <th scope="row"><span class="inspection-rank">{{ row.rank }}</span></th>
+          <td><a class="inspection-building" href="/building?bbl={{ row.bbl }}">BBL {{ row.bbl }}</a>
+            <span class="inspection-borough">{{ row.borough }}</span>
+            <a class="inspection-map" href="/map?bbl={{ row.bbl }}">View on map</a></td>
+          <td><span class="inspection-risk">{{ row.risk }}</span></td>
+          <td>{{ '{:,}'.format(row.units) if row.units is not none else '—' }}</td>
+          <td>{{ '{:,}'.format(row.complaints) if row.complaints is not none else '—' }}</td>
+          <td>{{ '{:,}'.format(row.violations) if row.violations is not none else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="inspection-note">Each row is one ranked property record identified by its NYC BBL,
+    rather than a map hexagon. A tax lot can contain several physical buildings. The original
+    model order is preserved even when displayed risk bands look the same.</p>
+  {% else %}
+  <section class="card tint-sun" role="status">
+    <h2>The saved queue is unavailable.</h2>
+    <p>We cannot load a valid inspection list right now. You can still look up a building
+      or explore the risk map.</p>
+    <a class="btnlink" href="/building">Check a building</a>
+    <a class="btnlink ghost" href="/map">Open risk map</a>
+  </section>
+  {% endif %}
+  <p class="inspection-note">A complaint is a report, not a confirmed violation.
+    <a href="/about#methods">Read how we trained and tested the models</a>.</p>
+</div>
+{% endblock %}

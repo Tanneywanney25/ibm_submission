@@ -62,7 +62,7 @@ The primary evidence is the actual pipeline plus the team's frozen reports.
 | M1 spell precision at 100/500/1000/2500 = 86.1/64.6/51.4/34.8%; 14-day baseline = 77.1/59.9/47.8/31.9% | `docs/model-iterations.md` spell table, `docs/model-final-comparison.md`. Mean over eight 2025–26 spells; not a probability for every mapped building or a confirmed-violation rate. |
 | Original model wins six of six forward-moving winter tests | `model/05_backtest.py`, M6 in `docs/model-catalog.md`. Historical comparisons; not a future performance guarantee. |
 | Approximate spell 95% interval 81–92%; cold-day-block daily interval 66–71% | T7 statistical notes in `docs/model-iterations.md`, `model/15_inference.py`. Saved follow-up inference run has slight training variation vs frozen M1 points (about 87% vs 86.1%, 69.4% vs 69.1%). Page explicitly labels ranges approximate and states they come from the follow-up run. No invented M13 confidence interval. |
-| Daily top-100 69.1% at 48h, 96.6% at 30d; preseason top-100 99% | Frozen summary in `docs/model-iterations.md`. Preseason value belongs to a different model/task; do not show it as the same daily model with a longer horizon. |
+| Daily top-100 69.1% at 48h, 96.6% at 30d; first-spell watchlist top-100 99% | Frozen summary in `docs/model-iterations.md`, Part 6 of `docs/models-complete-report.md`, and the first-spell output in `model/07_spell_eval.py`. The 99% is a first-spell ranking followed through the rest of that winter, not M4 calibration. Corrects the earlier page/ledger interpretation. |
 | M13 top-100 spell precision = 90.1% | `docs/model-final-comparison.md`, `model/24_final_squeeze.py`. Report separately; preserve original M1 numbers. The current `public/data/meta.json` lists M2/M4 outputs, so do not assert M13 powers the public map or every current score. |
 | Ranking-objective and graph experiments not adopted | M7 and M9 in `docs/model-catalog.md`, `docs/experiments-report.md`. M7 improves top 100 but loses at greater depth; M9 scores below M1. Do not claim both lose at every cutoff. |
 | Dispatch simulation: 183,384 cases, 700/day, expiry 14d, +7.8% estimated confirmations, 2.03 vs 3.12 day failing-case waits, 5,546 failing cases expired | T12 in `docs/experiments-report.md`. A retrospective simulation, with capacity/expiry assumptions and unvisited-case trade-offs; not a deployment trial, outage prevention, or observed health benefit. |
@@ -101,3 +101,65 @@ The primary evidence is the actual pipeline plus the team's frozen reports.
 - Responsive rules are included for tablet/phone widths; this environment did not
   provide a local Chromium binary, so physical-device visual testing remains a
   Vercel preview check.
+
+## Deeper methods expansion from the supplied October 18 report
+
+The supplied `models-complete-report(1).md` was byte-identical to the current
+`docs/models-complete-report.md` when read. The report is left unchanged; the
+page uses it as an evidence source, checked against code and the public data.
+
+- New hero: research/methodology framing, training counts, calm solid-green
+  accents and an editorial reading layout. No repeated building-lookup CTA.
+- `model/common.py` has 36 FEATS (verified by parsing the actual declaration),
+  grouped 6+7+3+6+4+1+9 on the page. `09_season_risk.py` has 21 SFEATS.
+- Expanded cleaning/label workflow, 1.87x historical confirmation association,
+  sampling, original M1 settings and five-seed M13 recipe. The 61-tree/depth-7
+  winner is a reported run finding, not a new fit made for this website change.
+- Distinguish M1 evaluation ensemble, M2 XGBoost deployment refit, M3 calibration,
+  M4 winter risk and M13 spell experiments. `06_final_scores.py` calls
+  `make_model()` and fits XGBoost when available: do not label M2 an exported
+  two-backend ensemble just because the narrative report says “same recipe.”
+- Four evaluation windows are named precisely. Cold-day test uses TMIN<32F;
+  spell test uses >=2 consecutive mean-temperature<32F days plus a grace day.
+  The watchlist's 99% is not an M4 season-risk calibration result.
+- M13 results and cumulative gain are separate from M1 headlines and from the
+  current site queue. Six-winter table explicitly tests ten coldest days per
+  fold, so its 2025-26 value does not replace the 71-day headline.
+- Development runs, rejected models, confirmed-violation target, M14's lack of
+  narrative text, unfinished feature-removal work and alert threshold trade-offs
+  have their own native disclosures. No validation-only RFE score is promoted.
+- Live public reliability data, not the older report's example table, supplies
+  the season calibration table. `site_guide.init_app(..., about_data=...)` takes
+  a read-only callback over the existing app's META/RELIABILITY objects. No
+  network call, model import, database or additional package is introduced.
+- LLM section documents local matching, optional pretrained-model topic
+  classification, visitor confirmation, authored answers, strict topic schema,
+  filtering and fallback. It does not invent fine-tuning on complaint stories.
+- Engineering disclosure adds CPU benchmark comparison, separate compression/
+  cryptography benchmarks and reproducible pipeline script names. Not Telum
+  tree offload, web latency or observed tenant-health impact.
+- Limitations explicitly include present-day ownership snapshots and large
+  multi-building BBL complexes, alongside missing reports and unranked records.
+- The original five deep-link IDs remain; new `experiments` ID joins the index.
+
+The source-license rule from T16 remains as before. Reading or expanding this
+page does not require publishing a new source link or changing model artifacts.
+
+### Final combined-update checks
+
+The navigation/queue/About package passed 52 backend tests, 24 anonymous/signed-in
+page renders, 34 LITE HTTP route/asset checks, About HTML and all local-anchor
+checks, all eight reliability-row comparisons against published data, CSS parsing,
+help-chat/matcher/privacy checks and the existing map regression checks.
+`public/data/top50.csv` has exactly 50 unique BBLs in the existing model order.
+No new model training, real email, remote database write or production deployment
+was performed. A local Chromium binary was not available for visual browser QA.
+
+Source nuance: the report calls the time-filtered boiler variant adopted, while
+`08_stream2_ablation.py` demonstrates it as a tested variant and the shared
+loader still reads a boiler snapshot. The page says the corrected variant was
+**tested**, without claiming every published artifact used it. The ownership/
+snapshot limitation remains visible.
+
+Before packaging, synced main through `f1acaec` and retained the teammate's new
+Save-a-building address autocomplete, SMTP setup script and deployment notes.
