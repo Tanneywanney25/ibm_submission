@@ -62,6 +62,15 @@ async function run(){
     win.dispatchEvent(new win.StorageEvent('storage',{key:KEY}));
     assert.equal(api.preferencesAllowed(),false);assert.equal(win.localStorage.getItem(PANELS),null);
   }
+  {
+    const {win,doc,api}=setup();
+    api.setHelpOpen(true);
+    assert.equal(doc.getElementById('privacy-banner').hidden,true);
+    assert.equal(api.preferencesAllowed(),false);
+    assert.equal(win.localStorage.getItem(KEY),null,'Opening help never records acceptance');
+    api.setHelpOpen(false);
+    assert.equal(doc.getElementById('privacy-banner').hidden,false,'Undecided choices return after closing help');
+  }
   for(const choice of [{version:1,preferences:true,decidedAt:Date.now()-181*86400000},
                        {version:0,preferences:true,decidedAt:Date.now()},
                        {version:1,preferences:true,decidedAt:Date.now()+100000}]){

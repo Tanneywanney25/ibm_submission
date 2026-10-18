@@ -34,7 +34,7 @@ class SiteGuideTests(unittest.TestCase):
         self.module.app.config.update(GUIDE_AI_KEY="test-only-not-a-real-api-key", GUIDE_AI_MODEL="test-model")
 
     def test_help_pages_and_widget_work_without_auth_or_provider(self):
-        for route in ["/", "/learn-more", "/faq", "/map", "/building", "/monitor"]:
+        for route in ["/", "/learn-more", "/learn-more?help=1", "/map", "/building", "/monitor"]:
             result = self.client.get(route, base_url=ORIGIN)
             self.assertEqual(result.status_code, 200)
             self.assertIn(b'id="hg-dialog"', result.data)
@@ -50,17 +50,28 @@ class SiteGuideTests(unittest.TestCase):
 
     def test_catalog_and_deep_links_are_complete(self):
         catalog = site_guide.CONTENT["items"]
-        self.assertEqual(len(catalog), 26)
-        self.assertEqual(len({i["id"] for i in catalog}), 26)
-        faq = self.client.get("/faq").data.decode()
+        self.assertEqual(len(catalog), 29)
+        self.assertEqual(len({i["id"] for i in catalog}), 29)
         learn = self.client.get("/learn-more").data.decode()
         for item in catalog:
-            self.assertIn('id="'+item["id"]+'"', faq)
+            self.assertIn('data-guide-question="'+item["id"]+'"', learn)
+            self.assertIn('id="help-answer-'+item["id"]+'"', learn)
             self.assertTrue(item["answer"])
             self.assertTrue(all(id in site_guide.ITEMS for id in item["follow"]))
             for link in item["links"]:
+                self.assertFalse(link["href"].startswith("/faq"))
                 if link["href"].startswith("/learn-more#"):
                     self.assertIn('id="'+link["href"].split("#")[1]+'"', learn)
+
+    def test_old_faq_is_a_redirect_and_navigation_opens_chat(self):
+        result = self.client.get("/faq")
+        self.assertEqual(result.status_code, 302)
+        self.assertEqual(result.headers["Location"], "/learn-more?help=1")
+        page = self.client.get("/faq", follow_redirects=True).data
+        self.assertIn(b'id="hg-browser"', page)
+        self.assertNotIn(b'Frequently asked questions</h1>', page)
+        self.assertNotIn(b'href="/faq', page)
+        self.assertIn(b'data-open-guide data-guide-browse>Help</a>', page)
 
     def test_unconfigured_guide_makes_no_provider_requests(self):
         with patch.object(site_guide.requests, "post") as provider:
@@ -92,7 +103,7 @@ class SiteGuideTests(unittest.TestCase):
             self.assertNotIn("auth_user", body["input"])
             self.assertEqual(body["text"]["format"]["type"], "json_schema")
             self.assertFalse(provider.call_args.kwargs["allow_redirects"])
-        page = self.client.get("/faq").data
+        page = self.client.get("/learn-more").data
         self.assertNotIn(b"test-only-not-a-real-api-key", page)
         self.assertIn(b'"ai_enabled": true', page)
 

@@ -52,7 +52,7 @@ function esc(s){
       <a href="/map" class="{{ 'active' if page == 'map' }}">Risk map</a>
       <a href="/monitor" class="{{ 'active' if page == 'monitor' }}">Live monitor</a>
       <a href="/learn-more" class="{{ 'active' if page == 'learn' }}">Learn more</a>
-      <a href="/faq" class="{{ 'active' if page == 'faq' }}">FAQs</a>
+      <a href="/learn-more?help=1#help-answers" data-open-guide data-guide-browse>Help</a>
       <a href="/about" class="{{ 'active' if page == 'about' }}">About</a>
     </nav>
     <form data-ha-search class="ha-search" role="search" aria-label="Find a building by address">
@@ -88,7 +88,7 @@ function esc(s){
     </div>
     <div>
       <h4>Help</h4>
-      <ul><li><a href="/learn-more">How it works</a></li><li><a href="/faq">Help &amp; FAQs</a></li>
+      <ul><li><a href="/learn-more">How it works</a></li><li><a href="/learn-more?help=1#help-answers" data-open-guide data-guide-browse>Help &amp; answers</a></li>
         <li><a href="/about">About &amp; methods</a></li>
         <li><a href="/contact">Contact us</a></li>
         <li><a href="/privacy">Privacy &amp; cookies</a></li>

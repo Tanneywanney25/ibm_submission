@@ -1,7 +1,7 @@
 """Shared help content and optional, read-only AI topic matching.
 
 The browser handles common questions locally. An explicitly configured provider can
-select a known FAQ id for unfamiliar wording; it never generates answers, URLs,
+select a known help id for unfamiliar wording; it never generates answers, URLs,
 building scores or account actions. No conversation or identity is sent to it.
 """
 import hashlib
@@ -13,7 +13,7 @@ import threading
 import time
 from collections import OrderedDict, deque
 
-from flask import Blueprint, current_app, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, redirect, render_template, request
 import requests
 
 CONTENT = json.loads((Path(__file__).parent / "static/guide-content.json").read_text(encoding="utf-8"))
@@ -112,8 +112,9 @@ def about():
 
 @bp.get("/faq")
 def faq():
-    return render_template("faq.html", page="faq", faq_items=CONTENT["items"],
-                           categories=list(dict.fromkeys(item["category"] for item in CONTENT["items"])))
+    # Browsers preserve an old #topic fragment; the guide recognizes it with help=1.
+    # Learn more also holds the answers in a no-JavaScript fallback.
+    return redirect("/learn-more?help=1", code=302)
 
 
 @bp.post("/api/guide/ask")

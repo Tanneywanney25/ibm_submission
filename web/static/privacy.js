@@ -10,7 +10,7 @@
         Number.isFinite(value.decidedAt)&&age>=0&&age<TTL?value:null;
     }catch{return null;}
   }
-  let choice=readChoice(),openSettings=()=>{};
+  let choice=readChoice(),openSettings=()=>{},helpOpen=false,refreshBanner=()=>{};
   function allowed(){return !!(choice&&choice.preferences&&Date.now()-choice.decidedAt<TTL);}
   function clearOptional(){try{win.localStorage.removeItem(PANELS);}catch{}}
   if(!allowed())clearOptional();
@@ -18,7 +18,8 @@
     preferencesAllowed:allowed,
     readPanels(){if(!allowed())return null;try{return JSON.parse(win.localStorage.getItem(PANELS));}catch{return null;}},
     savePanels(value){if(!allowed())return false;try{win.localStorage.setItem(PANELS,JSON.stringify(value));return true;}catch{return false;}},
-    openSettings(){openSettings();}
+    openSettings(){openSettings();},
+    setHelpOpen(value){helpOpen=!!value;refreshBanner();}
   };
   function init(){
     const $=id=>doc.getElementById(id),banner=$('privacy-banner'),overlay=$('privacy-overlay');
@@ -30,7 +31,8 @@
       doc.documentElement.style.setProperty('--privacy-space',height+'px');
       doc.body.classList.toggle('has-privacy-banner',!banner.hidden);
     }
-    function showBanner(){banner.hidden=!!choice;layout();}
+    function showBanner(){banner.hidden=!!choice||helpOpen;layout();}
+    refreshBanner=showBanner;
     function close(){
       overlay.hidden=true;
       if(returnFocus&&returnFocus.isConnected&&!returnFocus.closest('[hidden]'))returnFocus.focus({preventScroll:true});
