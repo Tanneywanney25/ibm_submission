@@ -200,7 +200,7 @@ document.getElementById('dots100').innerHTML =
 
     <form id="reg" class="profile-section" onsubmit="return register(event)" novalidate>
       <h3>Save a building</h3>
-      <div class="row"><input id="address" type="text"
+      <div class="row"><input id="address" type="text" data-ha-suggest
         placeholder="building street address, e.g. 330 E 139 St, Bronx (or a 10-digit BBL)"
         autocomplete="street-address" aria-describedby="address_hint"
         aria-label="Building street address or 10-digit BBL">
@@ -403,7 +403,9 @@ async function register(e){
   if (!checkPhone()) return $('phone').focus(), false;
   if (!$('consent').checked) return fail('Please confirm the alert checkbox: saving a building turns on its cold-snap alerts. You can browse the map and building pages without saving.'), false;
   const body = {phone:$('phone').value.trim()};
-  if (/^\d{10}$/.test(address)) body.bbl = address; else body.address = address;
+  const picked = $('address').dataset.bbl;
+  if (picked) body.bbl = picked;
+  else if (/^\d{10}$/.test(address)) body.bbl = address; else body.address = address;
   $('submit').disabled = true;
   $('reg_out').textContent = 'Saving to your account…';
   try {
@@ -411,7 +413,7 @@ async function register(e){
       headers:{'Content-Type':'application/json', 'X-CSRF-Token':accountCSRF}, body:JSON.stringify(body)});
     const result = await accountResponse(response, 'Your registration could not be saved. Please try again.');
     $('reg_out').textContent = result.already_registered ? 'That building was already saved — it is up to date.' : 'Saved to your account.';
-    $('address').value = ''; checkAddress();
+    $('address').value = ''; delete $('address').dataset.bbl; checkAddress();
     if (!panelsCustomized) {
       // keep what the user is looking at (plus their buildings) rather than letting the
       // stored building row re-derive a narrower legacy default

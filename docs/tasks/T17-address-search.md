@@ -76,3 +76,11 @@ same risk presentation as clicking the map, minus the map.
       suggestions are tax-lot addresses: label, borough, zip only).
 - [x] VERCEL.md §3 updated with any new endpoint in the same commit (no new
       endpoint; the new `/building` and `/map` query params are documented).
+
+**Follow-up (Oct 18): the profile's "Save a building" field uses the same
+autocomplete.** `search.js` gained a fill-only mode for an input marked
+`data-ha-suggest`: the same GeoSearch suggestions and keyboard behavior, but
+choosing one fills the field and keeps the lot's BBL (`input.dataset.bbl`,
+cleared on further typing) instead of navigating. `register()` then saves that
+exact BBL; a typed address or 10-digit BBL without a pick works as before. No
+new endpoint or third-party service.
