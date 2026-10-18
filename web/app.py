@@ -44,8 +44,15 @@ ON_VERCEL = bool(os.environ.get("VERCEL"))
 DB = Path("/tmp/heatahead.db") if ON_VERCEL else Path(__file__).resolve().parent / "heatahead.db"
 MODE = (os.environ.get("APP_MODE") or
         ("full" if (OUT / "season_risk_2026.csv").exists() else "lite")).lower()
-REALTIME_URL = os.environ.get("REALTIME_URL", "http://127.0.0.1:5000").rstrip("/")
-COMPLAINT_URL = os.environ.get("COMPLAINT_URL", "http://127.0.0.1:5001").rstrip("/")
+# The two monitor feeds are read-only public data. Vercel preview deploys do not get the
+# Production-only env vars, so on Vercel they default to the production collectors
+# (docs/VERCEL.md section 4) instead of a localhost that does not exist there.
+REALTIME_URL = os.environ.get("REALTIME_URL") or (
+    "http://148.100.77.112:8080/api/live" if ON_VERCEL else "http://127.0.0.1:5000")
+REALTIME_URL = REALTIME_URL.rstrip("/")
+COMPLAINT_URL = os.environ.get("COMPLAINT_URL") or (
+    "http://148.100.78.43:8080/api/current" if ON_VERCEL else "http://127.0.0.1:5001")
+COMPLAINT_URL = COMPLAINT_URL.rstrip("/")
 FORWARD_URL = os.environ.get("REGISTER_FORWARD_URL", "").rstrip("/") if MODE == "lite" else ""
 ARCH = platform.machine().lower()
 HOST = "vercel" if ON_VERCEL else ("linuxone" if ARCH == "s390x" else "local")
