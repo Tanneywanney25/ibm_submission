@@ -31,6 +31,27 @@ One model, one list, four honest clocks — of the **top 100** ranked buildings:
   buildings/sec (p99 0.51 ms)** on a 3-core s390x guest — 1.3–1.4× XGBoost. `nnpa`
   (Telum accelerator) present on the guest.
 
+## Why IBM Z
+
+HeatAhead can compare CPU and on-chip accelerator inference on the same IBM Z
+guest, using the same exported model. A supplementary October 18 benchmark
+verified both paths on `s390x`, machine type `9175`, with `nnpa` present and three
+requested threads per engine:
+
+| Snap ML engine | Median time for 62,487 building rows | Scores/second | Single-row p99 |
+|---|---:|---:|---:|
+| CPU (`compress_trees`) | 97.624 ms | 640,081 | 0.028010 ms |
+| IBM zDNN (`zdnn_tensors`) | 459.850 ms | 135,886 | 0.067346 ms |
+
+Both paths closely matched the original XGBoost scores across every tested row.
+CPU batch scoring was **4.71× faster in this run**, supporting CPU inference for
+this workload. The comparison uses 62,487 complete rows from a February 6 feature
+snapshot, excludes 229 incomplete rows, and times model inference with setup,
+calibration and web/replay processing excluded. It is a separate workload from
+the frozen 172,485-row benchmark above.
+
+[Full benchmark, raw timings, hardware metadata, execution diagram and reproduction steps](docs/benchmarks/2026-10-18-emerson/README.md).
+
 ## Repo map
 
 | where | what |

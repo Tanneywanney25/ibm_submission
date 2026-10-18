@@ -1,38 +1,28 @@
-HEATAHEAD: LEARN MORE RESTORED
+HeatAhead IBM Z evidence update
 
-Use this update after the chat-only cleanup. It adds Learn more back without
-bringing back the separate Help, FAQ or Inspection queue pages.
+Prepared against GitHub main commit 543ebde.
 
-LEARN MORE NOW EXPLAINS
-- How to find a building and read its history.
-- Map color, hexagon height, area clicks and buildings without color.
-- Winter risk versus the 48-hour cold-day score.
-- Published complaints versus the historical replay.
-- Practical actions for tenants and owners, alerts and NYC311.
-- Where the data comes from and where to read about privacy and model methods.
+WHAT IS INCLUDED
+- README.md adds a Why IBM Z section.
+- docs/SUBMISSION.md links the supplementary benchmark.
+- docs/benchmarks/2026-10-18-emerson/ contains the original measurements,
+  the measured benchmark script, the figure, a verifier/plotting script,
+  reproduction instructions, model fingerprints and an execution diagram.
 
-Ask HeatAhead still contains all 29 help answers and the five quick walkthroughs.
-About and all model/data outputs are unchanged.
-
-UPLOAD
+GITHUB UPLOAD
 1. Unzip this download.
-2. Open the repository ROOT on current main in GitHub.
-3. Choose Add file > Upload files.
-4. Drag the TWO INNER folders web and docs into the upload area.
-   Do not upload the surrounding folder, the ZIP itself or this READ_FIRST.txt.
-5. Commit on a new branch. Suggested message:
-   Restore Learn more with a clear guide to HeatAhead
-6. Open the pull request's Vercel preview. Confirm Learn more appears in the menu;
-   its sections and links work; Ask HeatAhead still opens on the current page;
-   Help and Inspection queue do not return as tabs. Merge when satisfied.
+2. Open Tanneywanney25/ibm_submission on GitHub at the repository root.
+3. From the main branch dropdown, create a branch named ibm-benchmark-evidence.
+4. Choose Add file > Upload files.
+5. Drag README.md and the docs folder into the upload area together.
+   Do not drag their outer containing folder or this READ_FIRST.txt file.
+6. Use this commit message: Add IBM Z CPU and accelerator benchmark evidence
+7. Commit, then open a pull request from ibm-benchmark-evidence into main.
+8. Review the changed files and merge when ready.
 
-Keep web/templates/learn_more.html: this update restores and uses that file.
-No deletions, new environment settings, installs or data rebuilds are needed.
+This package contains only documentation and the standalone benchmark evidence.
+The existing frozen results describe a different workload and remain in place.
 
-CHECKED LOCALLY
-50 Python tests; chat DOM and matching checks; 24 anonymous/signed-in page renders;
-34 LITE HTTP routes/assets; valid Learn more HTML, unique IDs, section anchors,
-all local links and styles; Python/JavaScript syntax. These checks do not replace
-the actual-device Vercel preview above. No real emails were sent.
-
-Based on current main bdda0e8; local change c2f353d.
+If a teammate changed README.md or docs/SUBMISSION.md after commit 543ebde,
+use the existing GitHub diff to keep their newer text while adding the new
+benchmark section and link. The new dated benchmark folder can be uploaded as-is.

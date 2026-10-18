@@ -107,8 +107,18 @@ s390x wheel. Full pipeline runs on the instance end to end.
 
 The whole city re-ranks in ~0.36 s. Stream 2 independently logged the z17 hardware
 (`task 2/deliverables/z17_hardware_log.md`). Honest caveat: the gain is Snap ML's
-CPU tree engine; we don't claim accelerator offload. No documented past winner has
+CPU tree engine; that original benchmark does not establish accelerator offload. No documented past winner has
 shown measured s390x performance at all.
+
+**Supplementary accelerator comparison, October 18:** the exported daily XGBoost
+model was imported into separate Snap ML CPU (`compress_trees`) and IBM zDNN
+(`zdnn_tensors`) objects on a machine-type 9175 s390x guest. Both paths closely
+matched XGBoost across 62,487 complete building rows. Median batch time was
+97.624 ms for CPU and 459.850 ms for zDNN, a 4.71× CPU advantage in this run.
+This is inference-only timing of a different input matrix from the frozen table
+above. The [benchmark appendix](benchmarks/2026-10-18-emerson/README.md) contains
+all 2,040 timing records, selected formats, versions, hashes, latency distribution,
+execution diagram and reproduction instructions.
 
 ## 7. Streams 3 & 6 — the product (`web/`, `realtime/`, `docs/webapp-spec.md`)
 
@@ -156,5 +166,6 @@ shown measured s390x performance at all.
 | per-building winter risk | `model/out/season_risk_2026.csv` |
 | ranked cold-snap list | `model/out/ranked_inspection_list.csv` |
 | throughput | pipeline4 log (04 section) |
+| supplementary CPU vs zDNN comparison | `docs/benchmarks/2026-10-18-emerson/` |
 | violation confirmation, saturation, geography | `task 2/deliverables/` |
 | band heatmaps, cold sensitivity | `analysis/analysis_outputs/` |
