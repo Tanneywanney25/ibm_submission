@@ -1,114 +1,74 @@
-# HeatAhead design language — "a winter night in New York"
+# HeatAhead design language: bold, bright and civic
 
-The graphic-design contract for every page, slide and screenshot. One sentence:
-**buildings are the shapes, a lit window is the only warmth, and every number is
-dead serious.** This is a civic tool people visit while worried — it borrows its
-restraint from government sites (gov.uk, nyc.gov) and modern product sites
-(Stripe, Linear): lots of neutral, one accent, color always *means* something.
+The graphic-design contract for every page, slide and screenshot. It replaced the dark
+"winter night" theme on October 17, 2026 (branch `ui-redesign-green`). The shared
+stylesheet is `web/static/site.css`; page templates add only page-specific rules on top
+of it, and they use its tokens rather than hard-coded colors.
 
-## 1. The color budget (the most important rule)
+The look borrows from two reference sites the team liked. The first gave us the typeface,
+the rounded cards and the uppercase pill buttons. The second gave us the bright tints, the
+thick dark outline around every card and button, and the hover effect where a solid
+diagonal shadow slides out behind a button as it lifts.
 
-A screen is **~90% neutrals, ~8% one warm accent, ~2% status colors.** If a
-screenshot looks "colorful," it's wrong. Orange is never decoration, never large
-fills, never gradients across sections — it is the lit window: small, warm,
-meaningful against the dark.
+## 1. Color
 
-### Palette — taken from what NYC buildings are actually made of
+One brand color, a small set of bright tints, and a near-black ink for outlines and text.
 
-| token | hex | material | use |
-|---|---|---|---|
-| `--night` | `#101317` | night sky | page background |
-| `--masonry` | `#1a1e24` | dark masonry | panels, cards |
-| `--mortar` | `#272c34` | mortar lines | borders, dividers, input strokes |
-| `--limestone` | `#e9e6e0` | limestone | primary text (warm off-white, not pure white) |
-| `--concrete` | `#9aa0a8` | concrete | secondary text, labels, axes |
-| `--slate` | `#5c636d` | slate | disabled, placeholders, grid lines |
-| `--brick` | `#b65c3f` | weathered brick | the ONLY brand accent: links, active states, small highlights |
-| `--window` | `#ffc46b` | a lit window at night | heat/risk emphasis ONLY: the glow in charts, high-risk markers, the flame mark |
+| token | value | use |
+|---|---|---|
+| `--accent` | `#0B7A51` (hsl 158 84% 26%) | the brand green: primary buttons, links, active states, key numbers |
+| `--accent-dark` / `--accent-soft` | `#075C3C` / `#DDF3E8` | link hover; tinted panels such as the hero and the lookup card |
+| `--ink` | `#072A20` | text, the 3px card and button outlines, the hard hover shadow, the footer |
+| `--muted` | `#4A675D` | secondary text (5.9:1 on white) |
+| `--bg` / `--panel` / `--well` | `#F4FAF7` / `#FFFFFF` / `#EEF6F1` | page background, cards, inputs and quiet surfaces |
+| `--line` | `#D5E6DD` | hairline dividers inside cards |
+| `--sun`, `--sky`, `--coral`, `--mint` and their `-soft` versions | `#FFD98F`, `#BDF3F7`, `#FF8A80`, `#B7EBD2` | stat tiles, chips, step badges, the hero's bottom stripe |
 
-Status (used only beside an icon + word, never color alone):
-`--ok #4f9e7a` (tended, muted green) · `--warn #c9973f` (amber) ·
-`--alert #c25450` (brick-red, not fire-engine).
+The tints are decoration only. Any tint that carries meaning ships with a word beside it,
+so color is never the only signal.
 
-Notes:
-- `--brick` replaces the current `#ff6b35`: same warmth, desaturated to what a
-  real brick wall looks like. The saturated orange reads "AI-generated SaaS";
-  weathered brick reads "New York."
-- `--window` is reserved for *heat itself*: lit cells in the building graphic,
-  the hot end of the risk ramp, the dot on an alerting building. Never buttons,
-  never headings.
-- Pure white and pure black never appear; everything is slightly warm.
+### The risk map keeps its own scale
 
-### The one allowed ramp
+The map's hexagons, property dots and legend keep the fixed pale-blue `rgb(219,239,255)`
+to deep-blue `rgb(27,92,180)` scale on the dark basemap (`docs/VERCEL.md` section 10). Only
+the controls around the map follow this theme. The Learn more page's map key uses the same
+blue ramp so it matches what people see on the map.
 
-Risk severity = **slate → brick → window** (cold masonry to lit window). Three
-steps max on any surface. No rainbows, no blue-to-red, no third hue anywhere.
+The building page shows a building's winter risk on a meter that runs from mint through
+sun to coral. The pin sits at the capped calibrated probability, and the banded text from
+`fmtRisk()` stays above it, so the display rules in `docs/webapp-spec.md` still hold.
 
-## 2. The signature graphic: the building with lit windows
+## 2. Type
 
-The one piece of art the site owns (hero, empty states, the favicon's spirit):
-a **flat-front building elevation** — a simple dark rectangle grid of window
-cells in `--mortar`, where **a handful of cells glow `--window`**. The glow is
-soft (one subtle outer blur, low spread), like real windows at 11 PM.
+One family, Bricolage Grotesque (SIL Open Font License), self-hosted from
+`web/static/fonts/` so the browser never calls a font CDN (`docs/VERCEL.md` section 6,
+rule 1). Headings use weight 800 with slightly tight letter-spacing; body text uses 400 at
+16px with a 1.55 line height. Buttons and small labels are uppercase with wide tracking.
+Numbers use tabular figures.
 
-- Hero: one wide low skyline band, 2–4 lit windows total across it. Quiet.
-- Building page: the looked-up building drawn as its own elevation — height
-  from floors, cells lit in proportion to risk ("your building, drawn from
-  city records"). Data as picture, not decoration.
-- History bars: season bar charts may take flat roofs and faint window grids —
-  the skyline IS the chart. Current-season bar tinted brick; the rest masonry.
-- Never: animated flames, flickering, mascots, isometric 3D illustration sets,
-  stock photos of radiators or shivering people.
+## 3. Surfaces and components
 
-## 3. Typography
+- **Cards** are white with a 3px `--ink` outline, an 18px radius and a soft drop shadow.
+  Cards people can click or scan lift 4px on hover.
+- **Buttons** use the brand green with white text and a 3px ink outline. On hover they move
+  up and left by 3px while a solid 5px ink shadow appears behind them; on press they settle
+  back. Secondary buttons are white with ink text. Any unclassed `<button>` gets this style
+  automatically; utility buttons such as map zoom, FAQ filters and guide follow-ups set
+  their own.
+- **Inputs** have a 2px outline, a 12px radius and a green focus ring.
+- **Header**: white, sticky, ink bottom border, the green house mark, pill-shaped page links,
+  the address search and a Sign in button.
+- **Footer**: dark ink with site links, the 311 link and the LinuxONE status line. The
+  decorative skyline strip that used to sit above the footer is gone.
 
-- One family: the system stack we ship (`"Segoe UI", system-ui`) or Inter in
-  Figma. No display font, no serif. Government-plain.
-- Hierarchy by size and weight only: 600/700 for headings, 400 for body;
-  generous line-height (1.5); max text column ~70ch.
-- **Numbers are sacred:** risk %, ranks, counts always in `--limestone` or
-  `--brick`, tabular, never italic, never on a patterned background, never
-  inside a building graphic. When someone checks their own building, the
-  verdict must look like a lab report, not a poster.
+## 4. What was removed
 
-## 4. Layout and surfaces
+The lit-window building drawings are gone everywhere: the hero skyline, the footer skyline,
+the building-page elevation and the window-grid history bars. The hero now shows the real
+held-out result as a grid of 100 dots, 86 of them filled, and the history charts are plain
+rounded bars with the latest season in green.
 
-- Flat panels (`--masonry`) with 1px `--mortar` borders and 8–10px radius.
-  No glassmorphism, no heavy shadows, no gradient cards — masonry doesn't glow.
-- Density like a well-set government form: one column of content, 16–24px
-  gaps, whitespace doing the hierarchy work.
-- Buttons: primary = `--brick` fill with near-black text; secondary = outline
-  on masonry. One primary button per view.
-- The map keeps the dark basemap; its columns use the slate→brick→window ramp
-  and nothing else.
+## 5. Tone
 
-## 5. Tone pairing (why this works for worried visitors)
-
-The warmth lives in *words and the lit windows*, never in loud color:
-"Know before the cold hits" · "we tell you first" · "one email per cold spell,
-never more." Copy is warm; chrome is calm; numbers are blunt. A tenant at 2 AM
-should read the page as: *competent, on my side, not selling me anything.*
-
-## 6. Hard don'ts (the "looks AI-generated" list)
-
-- No saturated orange floods, purple/blue gradients, neon glows, or more than
-  one accent hue per screen
-- No emoji in product UI or alert emails; no exclamation points in alerts
-- No decorative illustrations of people; no stock imagery
-- No color-only meaning (every status color ships with an icon + word)
-- No rounded 3D blob art, no confetti, no dark-mode-with-rainbow-charts
-
-## 7. Applying it to what's built (the migration is small)
-
-Current `base.html` tokens → new values: `--bg:#101317`, `--panel:#1a1e24`,
-`--line:#272c34`, `--ink:#e9e6e0`, `--muted:#9aa0a8`, `--accent:#b65c3f`,
-`--ok:#4f9e7a`, `--bad:#c25450`, plus new `--window:#ffc46b` for chart/glow use
-only. Everything else (layout, cards, nav) already complies — the site was
-built on these bones. The Figma flow file should adopt the same swap.
-
-## 8. Reference points (steal restraint, not style)
-
-- gov.uk / nyc.gov — one accent, flat surfaces, text-first hierarchy
-- Stripe docs / Linear — dark neutrals done quietly, color as meaning
-- NYC Planning's PLUTO maps — civic data that trusts its typography
-- Edward Hopper's night windows — the entire mood board in one painter
+Copy stays calm and plain: competent, on the tenant's side, not selling anything. The
+bright tints make the site feel friendly; the numbers stay blunt and exactly as measured.
