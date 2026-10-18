@@ -127,3 +127,11 @@ NYU Tingineers — IBM Z Datathon 2026. Prior art and what's new vs it:
 [the project brief, §9](docs/heat-project-brief.md) (short version: building-level heat prediction exists;
 a short-horizon, forecast-triggered, calibrated inspection ranking scored per fixed
 inspection budget does not — that is the contribution).
+
+### Team contributions
+
+- **Sid — Backend engineering:** Built backend services, data APIs and real-time complaint-processing integrations.
+- **Emerson — Predictive modeling:** Trained machine-learning models using building and weather data to estimate heat-failure risk.
+- **Tin — IBM LinuxONE and interactive mapping:** Handled LinuxONE setup and benchmarking, developed the interactive risk map, and improved website functionality and usability.
+- **Allen — Presentation design and editing:** Created the Google Slides presentation and edited the team’s presentation and demo materials.
+- **Tanush — Frontend engineering and UI design:** Developed the website frontend and designed its interface, page layouts and user flows.
