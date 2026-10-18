@@ -34,7 +34,7 @@ class SiteGuideTests(unittest.TestCase):
         self.module.app.config.update(GUIDE_AI_KEY="test-only-not-a-real-api-key", GUIDE_AI_MODEL="test-model")
 
     def test_help_pages_and_widget_work_without_auth_or_provider(self):
-        for route in ["/", "/?help=1", "/?help=guide", "/map", "/building", "/monitor", "/about"]:
+        for route in ["/", "/?help=1", "/?help=guide", "/learn-more", "/learn-more?help=heights", "/map", "/building", "/monitor", "/about"]:
             result = self.client.get(route, base_url=ORIGIN)
             self.assertEqual(result.status_code, 200)
             self.assertIn(b'id="hg-dialog"', result.data)
@@ -44,7 +44,7 @@ class SiteGuideTests(unittest.TestCase):
             ids = re.findall(rb'\bid="([^"\s]+)"', result.data)
             self.assertEqual(len(ids), len(set(ids)))
         self.assertFalse(self.module.DB.exists())
-        for asset in ["guide.js", "guide.css", "help-pages.css", "guide-content.json"]:
+        for asset in ["guide.js", "guide.css", "help-pages.css", "learn-more.css", "guide-content.json"]:
             with self.client.get("/static/"+asset) as result:
                 self.assertEqual(result.status_code, 200)
 
@@ -76,14 +76,13 @@ class SiteGuideTests(unittest.TestCase):
         self.assertNotIn(b'href="/faq', page)
         self.assertIn(b'data-open-guide data-guide-browse>Ask HeatAhead</a>', page)
         self.assertNotIn(b'href="/inspection-queue', page)
-        self.assertNotIn(b'href="/learn-more', page)
+        self.assertIn(b'href="/learn-more"', page)
 
     def test_retired_pages_redirect_to_chat_or_existing_monitor(self):
         for source, destination in [
-            ("/learn-more", "/?help=guide"), ("/help", "/?help=guide"),
-            ("/learn-more?help=heights", "/?help=heights"),
+            ("/help", "/?help=guide"), ("/help?help=heights", "/?help=heights"),
             ("/help?help=1", "/?help=1"),
-            ("/learn-more?help=unknown", "/?help=guide"),
+            ("/help?help=unknown", "/?help=guide"),
             ("/inspection-queue", "/monitor"),
         ]:
             with self.subTest(source=source):
