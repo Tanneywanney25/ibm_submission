@@ -35,6 +35,7 @@ sys.path.append(str(Path(__file__).resolve().parent))
 import mailer  # noqa: E402
 import account_auth  # noqa: E402
 import site_guide  # noqa: E402
+import newsletter  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "model/out"
@@ -521,6 +522,8 @@ def api_health():
                account_protocol=1 if len(app.secret_key or "") >= 32 else None,
                google_sign_in=account_auth.configured(),
                email_sign_in=account_auth.email_configured(),
+               newsletter_protocol=1,
+               newsletter_delivery_ready=newsletter.delivery_ready(),
                registrations_to="linuxone" if FORWARD_URL else
                ("unavailable (configure REGISTER_FORWARD_URL)" if ON_VERCEL else f"sqlite on {HOST}"))
     if MODE == "full" or not FORWARD_URL:
@@ -530,6 +533,11 @@ def api_health():
             out["linuxone"] = requests.get(f"{FORWARD_URL}/api/health", timeout=3).json()
         except (requests.RequestException, ValueError):
             out["linuxone"] = dict(offline=True)
+        backend = out["linuxone"] if isinstance(out["linuxone"], dict) else {}
+        out["newsletter_delivery_ready"] = bool(
+            len(app.secret_key or "") >= 32 and
+            backend.get("newsletter_protocol") == 1 and
+            backend.get("newsletter_delivery_ready"))
     return jsonify(out)
 
 
@@ -951,6 +959,9 @@ def api_draft_message(bbl):
     return jsonify(draft_message(p, role, address))
 
 
+# Register first so its no-referrer response header runs after account headers.
+newsletter.init_app(app, database=lambda: db(), forward_url=lambda: FORWARD_URL,
+                    on_vercel=lambda: ON_VERCEL)
 account_auth.init_app(app, consume_account_nonce, email_backend=dict(
     ready=sign_in_email_ready,
     send_link=send_sign_in_link, consume=consume_sign_in_nonce))
