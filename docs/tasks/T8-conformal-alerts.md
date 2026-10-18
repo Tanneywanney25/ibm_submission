@@ -33,10 +33,19 @@ bounds the missed-failure rate at α, by construction."
 
 ## Acceptance
 
-- [ ] Guarantee computed on calibration days that strictly pre-date 2025-26
-- [ ] Realized test FNR ≤ α for both tiers (or the miss honestly reported)
-- [ ] Alert volume per tier stated (the operational cost of the guarantee)
-- [ ] alerts.py falls back to current thresholds when the json is absent
+- [x] Guarantee computed on calibration days that strictly pre-date 2025-26
+      (model trained on 2018-2022 panel; 102 calibration cold days from
+      2023-24 + 2024-25)
+- [x] Realized test FNR ≤ α for both tiers: broad α=0.10 → **7.4%**,
+      strict α=0.25 → **21.1%** on the 71 held-out 2025-26 cold days
+- [x] Alert volume per tier stated: broad 13,107 mean (12,132 median) alerts
+      per cold day, strict 5,220 (4,740) — the cost of ≥90% / ≥75% recall
+- [x] alerts.py falls back to current thresholds when the json is absent
+      (verified: fallback line + both tier copy lines + compose end to end)
+
+**Built 2026-10-18 (run on the LinuxONE guest).** `model/16_conformal.py` →
+`model/out/conformal_thresholds.json` + `conformal_days.csv`; method note in
+`docs/experiments-report.md`.
 
 **Effort ~3-4h. Depends on:** per-day score dumps (small 03 extension), T7 helps
 but not required. **Feeds:** T4 alerts, deck ("provable guarantees").

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Contact HeatAhead{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='help-pages.css') }}">{% endblock %}
+{% block body %}
+<div class="help-page">
+  <header class="help-hero"><p class="help-eyebrow">Get in touch</p><h1>Contact HeatAhead</h1>
+    <p class="help-lead">Questions, feedback or something that looks wrong? Email our team.</p>
+    <p><a class="contact-email" href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
+    <p class="help-small">If you're asking about a building, its street address or BBL is enough. Please leave out apartment numbers, passwords and sign-in links.</p>
+  </header>
+  <div class="help-two">
+    <section class="help-panel"><h2>Help using the site</h2><p>Find quick answers about risk scores, the map and your account.</p>
+      <a href="/?help=1" data-open-guide data-guide-browse>Browse help questions →</a></section>
+    <section class="help-panel"><h2>Project updates</h2><p>Hear about new features and what we're working on.</p>
+      <a href="/#newsletter">Subscribe to project updates →</a></section>
+  </div>
+  <aside class="help-callout"><h2>No heat right now?</h2>
+    <p>Tell your landlord or managing agent, then report the problem to NYC311. Our team inbox doesn't file reports or dispatch inspectors.</p>
+    <a href="https://portal.311.nyc.gov/article/?kanumber=KA-01036" target="_blank" rel="noopener noreferrer">Report a heat problem through NYC311 ↗</a></aside>
+</div>
+{% endblock %}

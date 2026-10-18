@@ -1,0 +1,31 @@
+The plan, highest points per hour first
+
+1. Prove it runs on IBM Z (the video requires this anyway). Record about 20 seconds of the terminal showing uname -m (s390x), grep machine /proc/cpuinfo (9175), and the nnpa flag, then the model training in Jupyter on that machine. Most teams stop here, and it won’t score highly on its own.
+
+2. Use Snap ML as the model and show the accelerator test. Snap ML is IBM’s own library, and judges will recognize it. Its BoostingMachineClassifier is gradient boosting, so it replaces XGBoost without changing the method, and it trained 150,000 rows in under 3 seconds. Here’s the pattern I tested:
+
+python
+import snapml
+cpu = snapml.BoostingMachineClassifier(num_round=200, max_depth=6, n_jobs=3).fit(X_tr, y_tr)
+cpu.optimize_trees(tree_format="compress_trees", X=X_tr[:10000])   # CPU tree engine
+acc = snapml.BoostingMachineClassifier(num_round=200, max_depth=6, n_jobs=3).fit(X_tr, y_tr)
+acc.optimize_trees(tree_format="zdnn_tensors", X=X_tr[:10000])     # Telum II accelerator
+
+One trap I hit: calling optimize_trees twice on the same fitted model crashes, so fit a separate copy for each path. If the team sticks with XGBoost, booster.save_model("model.json") followed by Snap ML’s import_model(..., input_type="xgb_json") loads it into the same two paths.
+
+The pitch line: “We confirmed the accelerator from inside our guest and ran our model on it with identical scores. Our model is small enough that Snap ML’s CPU engine was 9 to 16 times faster on this shared machine, so production scoring uses the CPU path.” That’s the kind of technical depth the rubric names.
+
+3. Make it real-time. Replay the February 7 to 9, 2026 complaints as a stream. Each new complaint re-scores its building in microseconds, and each forecast update re-scores the whole city in about a tenth of a second. Plot the latency distribution. Scoring inside the live decision path is what IBM sells this hardware for, so judges will connect it to IBM Z without being told.
+
+4. Add the on-chip compression and encryption. Both are close to free and protect tenant data. The raw complaint file has apartment numbers in it, and the team already planned to show nothing below building level. Store raw extracts compressed (the 361 MB complaint file would take about 0.06 seconds at the measured rate) and encrypted with AES-256. Both run on the processor’s own hardware with no code changes. The “108 times faster with the hardware on” comparison takes 30 seconds to show live.
+
+5. Stretch, only after the core works: Snap ML predicts, Granite explains. The two required labs are titled “Predictive AI Hybrid AI scenarios (multi-model)” and “Predictive AI + Generative AI”, so this pattern is the one judges are primed for. llama.cpp has an accelerator backend that supports z17 and nothing older. A small Granite model could write one-paragraph inspector briefs for the top 50 buildings. Building it costs maybe 30 minutes and could fail, which is why it’s last.
+
+6. Write the IBM Z part into the repository. Add a “Why IBM Z” section to the README with the probe output, both benchmark tables, and an architecture diagram that labels which hardware feature each step uses. The 5 points for reproducibility depend on it too.
+
+Setup to run at the start of the build window
+sudo apt-get install -y libzdnn0 python3-xgboost
+source ~/datathon-env/bin/activate
+pip install --only-binary=:all: snapml flask
+
+The team environment picks up python3-xgboost automatically because it was created with access to the system packages.

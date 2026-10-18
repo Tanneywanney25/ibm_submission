@@ -68,10 +68,19 @@ same risk presentation as clicking the map, minus the map.
       highlighted, with neighborhood risk visible; page still usable if the
       map fails to load (record renders first; the map panel is a lazy
       `/map?bbl=…&embed=1` iframe with a full-map fallback link).
-- [ ] Works in LITE mode on the Vercel deploy; mobile keyboard flow works
-      (LITE verified locally and at 375px width; check the Vercel preview
-      before merging).
+- [x] Works in LITE mode on the Vercel deploy; mobile keyboard flow works
+      (verified on production after the PR #11 merge: autocomplete → keyboard
+      select → full record, embedded map "Map ready" and centered, zero
+      console errors; 375px tap flow verified locally).
 - [x] No apartment-level text anywhere in suggestions or results (GeoSearch
       suggestions are tax-lot addresses: label, borough, zip only).
 - [x] VERCEL.md §3 updated with any new endpoint in the same commit (no new
       endpoint; the new `/building` and `/map` query params are documented).
+
+**Follow-up (Oct 18): the profile's "Save a building" field uses the same
+autocomplete.** `search.js` gained a fill-only mode for an input marked
+`data-ha-suggest`: the same GeoSearch suggestions and keyboard behavior, but
+choosing one fills the field and keeps the lot's BBL (`input.dataset.bbl`,
+cleared on further typing) instead of navigating. `register()` then saves that
+exact BBL; a typed address or 10-digit BBL without a pick works as before. No
+new endpoint or third-party service.

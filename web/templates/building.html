@@ -2,50 +2,76 @@
 {% block title %}Check a building — HeatAhead{% endblock %}
 {% block head %}
 <style>
+.lookup-card { background:var(--accent-soft); box-shadow:5px 5px 0 var(--ink); }
+.lookup-card .ha-search input { background:#fff; font-size:1rem; min-height:50px; }
+.lookup-card .ha-search button { min-height:50px; }
+.lookup-card .ha-search-box { flex:1 1 220px; }
+@media (max-width:520px) { .lookup-card .ha-search button { width:100%; } }
+#status { font-weight:600; margin-top:.3rem; }
+.lookup-hint { margin:.8rem 0 0; font-size:.85rem; }
+.record-actions { display:flex; flex-wrap:wrap; gap:.5rem 1.2rem; margin:1rem 0 0; font-size:.85rem; font-weight:700; }
+#who, #draft, #accuracy { scroll-margin-top:120px; }
+@media (max-width:640px) { #who, #draft, #accuracy { scroll-margin-top:200px; } }
 .ha-photo-heading { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:.7rem 1rem; margin-bottom:1rem; }
 .ha-photo-heading h2 { margin:0 0 .3rem; }
-.ha-photo-heading p { margin:0; font-size:.83rem; }
+.ha-photo-heading p { margin:0; font-size:.85rem; font-weight:600; }
 .ha-photo-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; }
-.ha-photo-actions a, .ha-photo-actions button { border:1px solid var(--line); border-radius:7px; background:var(--well); color:var(--ink); padding:.45rem .65rem; font-size:.8rem; font-weight:500; text-decoration:none; }
-.ha-photo-actions a:hover { color:var(--accent); }
+.ha-photo-actions a, .ha-photo-actions button { border:2px solid var(--ink); border-radius:999px; background:#fff; color:var(--ink);
+  padding:.4rem .8rem; font-size:.8rem; font-weight:700; text-decoration:none; transition:transform .15s, box-shadow .15s; }
+.ha-photo-actions a:hover, .ha-photo-actions button:hover { transform:translate(-2px,-2px); box-shadow:3px 3px 0 var(--ink); color:var(--ink); }
 .ha-photo-actions [hidden], #ha-photo-pin[hidden], #ha-photo-state[hidden], #ha-photo-credit[hidden] { display:none; }
-.ha-photo-frame { position:relative; height:clamp(240px,32vw,350px); overflow:hidden; border:1px solid var(--line); border-radius:8px; background:var(--well); }
+.ha-photo-frame { position:relative; height:clamp(240px,32vw,360px); overflow:hidden; border:var(--bold); border-radius:14px; background:var(--well); }
 #ha-photo-slot, #ha-photo-slot img { width:100%; height:100%; }
 #ha-photo-slot img { display:block; object-fit:cover; }
 #ha-photo-slot img[hidden] { display:none; }
-.ha-photo-badge { position:absolute; left:12px; top:12px; padding:.25rem .5rem; border-radius:5px; background:rgba(16,19,23,.88); color:#e9e6e0; font-size:.7rem; pointer-events:none; }
-#ha-photo-pin { position:absolute; left:50%; top:50%; width:26px; height:26px; transform:translate(-50%,-50%); border:2px solid white; border-radius:50%; box-shadow:0 0 0 2px #101317; pointer-events:none; }
-#ha-photo-pin::after { content:""; position:absolute; width:6px; height:6px; border-radius:50%; background:white; left:8px; top:8px; box-shadow:0 0 0 1px #101317; }
-#ha-photo-state { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:2.4rem 1.2rem; color:var(--muted); text-align:center; font-size:.88rem; }
-#ha-photo-credit { position:absolute; right:0; bottom:0; left:0; margin:0; padding:.35rem .65rem; background:rgba(16,19,23,.88); color:#e9e6e0; text-align:right; font-size:.62rem; }
+.ha-photo-badge { position:absolute; left:12px; top:12px; padding:.25rem .6rem; border-radius:999px; background:#fff; border:2px solid var(--ink); color:var(--ink); font-size:.72rem; font-weight:700; pointer-events:none; }
+#ha-photo-pin { position:absolute; left:50%; top:50%; width:28px; height:28px; transform:translate(-50%,-50%); border:3px solid white; border-radius:50%; box-shadow:0 0 0 2px #072a20; pointer-events:none; }
+#ha-photo-pin::after { content:""; position:absolute; width:6px; height:6px; border-radius:50%; background:white; left:8px; top:8px; box-shadow:0 0 0 1px #072a20; }
+#ha-photo-state { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:2.4rem 1.2rem; color:var(--muted); text-align:center; font-size:.9rem; }
+#ha-photo-credit { position:absolute; right:0; bottom:0; left:0; margin:0; padding:.35rem .65rem; background:rgb(7 42 32 / .85); color:#e3f2eb; text-align:right; font-size:.62rem; }
 #ha-photo-credit a { color:inherit; }
-.ha-photo-note { margin:.65rem 0 0; font-size:.77rem; }
-.ha-photo-actions a:focus-visible, .ha-photo-actions button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.ha-photo-note { margin:.7rem 0 0; font-size:.78rem; }
 @media(max-width:600px) { #ha-photo-credit { font-size:.57rem; } .ha-photo-actions { width:100%; } }
 
-
+.winter { background:linear-gradient(180deg, var(--sun-soft), #fff 55%); }
+.verdict-label { font-size:.75rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:0 0 .2rem; }
+.meter { margin:1.1rem 0 .4rem; }
+.meter-track { position:relative; height:18px; border:var(--bold); border-radius:999px;
+  background:linear-gradient(90deg, var(--mint), var(--sun) 50%, var(--coral)); }
+.meter-pin { position:absolute; top:50%; width:26px; height:26px; margin-left:-13px; transform:translateY(-50%);
+  background:#fff; border:var(--bold); border-radius:50%; box-shadow:2px 2px 0 var(--ink); transition:left .5s cubic-bezier(.2,.8,.2,1); }
+.meter-ticks { display:flex; justify-content:space-between; font-size:.7rem; color:var(--muted); margin-top:.35rem; font-weight:600; }
+.facts { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin:1rem 0 .4rem; }
+.facts div { background:#fff; border:2px solid var(--ink); border-radius:12px; padding:.55rem .75rem; }
+.facts b { display:block; font-size:1.1rem; font-variant-numeric:tabular-nums; }
+.facts div > span { font-size:.76rem; color:var(--muted); }
+#coldday { font-size:.9rem; }
 .who th { width:10.5rem; vertical-align:top; }
-.who td b { font-weight:600; }
-.frame { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin:.6rem 0 .9rem; }
-.frame label { border:1px solid var(--line); border-radius:8px; padding:.55rem .7rem;
-               cursor:pointer; background:var(--well); font-size:.9rem; }
-.frame label:has(input:checked) { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
-.frame input { accent-color:var(--accent); margin-right:.35rem; }
-.frame small { display:block; color:var(--muted); font-size:.78rem; margin-left:1.3rem; }
+.who td b { font-weight:700; }
+.frame { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin:.6rem 0 1rem; }
+.frame label { border:2px solid #9fbdb0; border-radius:14px; padding:.7rem .8rem; background:#fff; font-weight:700;
+  font-size:.95rem; transition:border-color .15s, background-color .15s, box-shadow .15s; }
+.frame label:hover { border-color:var(--ink); }
+.frame label:has(input:checked) { border-color:var(--ink); background:var(--accent-soft); box-shadow:3px 3px 0 var(--ink); }
+.frame input { margin-right:.45rem; vertical-align:-2px; }
+.frame small { display:block; color:var(--muted); font-size:.78rem; font-weight:500; margin:.2rem 0 0 1.5rem; }
 @media (max-width:560px){ .frame { grid-template-columns:1fr; } }
 #draftbox textarea, #draftbox input { width:100%; }
-#draftbox textarea { font:inherit; font-size:.92rem; line-height:1.5; border-radius:7px;
-  border:1px solid var(--line); background:var(--well); color:var(--ink); padding:.8rem;
-  resize:vertical; min-height:18rem; }
-#draftbox textarea:focus { outline:2px solid var(--accent); outline-offset:-1px; }
-.btnlink { display:inline-block; background:var(--accent); color:var(--on-accent); font-weight:600;
-           text-decoration:none; padding:.55rem .9rem; border-radius:7px; margin:.3rem .4rem .3rem 0; }
-.btnlink.ghost { background:transparent; color:var(--ink); border:1px solid var(--line); }
+#draftbox textarea { font-size:.94rem; line-height:1.55; padding:.9rem; resize:vertical; min-height:18rem; }
+.draft-actions { display:flex; flex-wrap:wrap; gap:.7rem; align-items:center; margin-top:.7rem; }
+.help-card { background:var(--ink); color:#e3f2eb; }
+.help-card h2 { color:#fff; } .help-card p { color:#b6d3c7 !important; }
+#rel { margin-top:.6rem; }
+#notranked { background:var(--sky-soft); font-weight:500; }
 </style>
 {% endblock %}
 {% block body %}
-<h1>Check a building</h1>
-<div class="card">
+<div class="page-head">
+  <p class="eyebrow">Building lookup</p>
+  <h1>Check a building</h1>
+  <p>Look up a NYC building to see its available winter risk, complaint history and owner details.</p>
+</div>
+<div class="card lookup-card">
   <form id="lookupform" data-ha-search class="ha-search" role="search"
         aria-label="Find a building by address" style="flex-wrap:wrap">
     <input id="q" name="q" type="search" placeholder="street address, or a 10-digit BBL"
@@ -53,9 +79,44 @@
     <button type="submit">Look up</button>
   </form>
   <div class="ha-search-status" role="status" aria-live="polite"></div>
-  <div id="status" class="muted"></div>
+  <p class="muted lookup-hint">Enter the street address and borough. A BBL is NYC's 10-digit property ID.
+    Leave out your apartment number.
+    <a href="/building?bbl=2023010004">Try an example: 330 E 139 St, Bronx →</a></p>
+  <div id="status" class="muted" role="status" aria-live="polite"></div>
 </div>
 <div id="result" style="display:none">
+  <div class="grid2">
+    <div class="card winter">
+      <h2>This winter</h2>
+      <p class="verdict-label">Chance of at least one heat outage</p>
+      <div class="big"><span id="p_season"></span></div>
+      <div class="meter" aria-hidden="true">
+        <div class="meter-track"><span class="meter-pin" id="meterpin" style="left:13px"></span></div>
+        <div class="meter-ticks"><span>0%</span><span>50%</span><span>99%</span></div>
+      </div>
+      <div class="facts">
+        <div><b><span id="vs_median"></span>×</b><span>the citywide median</span></div>
+        <div><b id="rank"></b><span>citywide rank this winter</span></div>
+      </div>
+      <p id="coldday" class="muted"></p>
+      <div class="chips" id="chips"></div>
+      <p class="muted" style="font-size:.85rem">Use this estimate to plan a heating check. It doesn't tell you whether the heat is working today.</p>
+      <nav class="record-actions" aria-label="Building next steps">
+        <a href="#who">Owner details</a>
+        <a href="#draft">Draft a notice</a>
+        <a href="#accuracy" onclick="document.getElementById('accuracy').open = true">How was this checked?</a>
+      </nav>
+    </div>
+    <div class="card">
+      <h2>History</h2>
+      <h3 style="margin:.4rem 0">Heat complaints per season</h3>
+      <div class="bars" id="cbars"></div>
+      <h3 style="margin:1.4rem 0 .4rem">Heat violations per season</h3>
+      <div class="bars" id="vbars"></div>
+      <p class="muted" style="margin:1rem 0 0; font-size:.9rem">
+        last complaint: <span id="lastc"></span> · last violation: <span id="lastv"></span></p>
+    </div>
+  </div>
   <section class="card" aria-labelledby="ha-photo-title">
     <div class="ha-photo-heading">
       <div>
@@ -77,41 +138,13 @@
     </div>
     <p class="muted ha-photo-note">The ring marks the property's mapped location. Imagery dates vary; this is not a live photo. Street View opens the nearest available street-level panorama.</p>
   </section>
-  <div class="grid2">
-    <div class="card">
-      <h2>This winter</h2>
-      <div style="display:flex; gap:1.2rem; align-items:flex-start; flex-wrap:wrap">
-        <div id="elev"></div>
-        <div style="flex:1; min-width:200px">
-      <div class="big"><span id="p_season"></span></div>
-      <p class="muted">chance of at least one heat outage this winter —
-        <span id="vs_median"></span>× the citywide median,
-        rank <span id="rank"></span></p>
-      <p id="coldday" class="muted"></p>
-        </div>
-      </div>
-      <p class="muted" id="elevcap" style="font-size:.8rem"></p>
-      <div class="chips" id="chips"></div>
-      <p style="margin-bottom:0"><a href="#draft">Draft a notice to the owner</a>
-         <span class="muted">(nothing is sent)</span></p>
-    </div>
-    <div class="card">
-      <h2>History</h2>
-      <h3 class="muted" style="margin:.4rem 0">Heat complaints per season</h3>
-      <div class="bars" id="cbars"></div>
-      <h3 class="muted" style="margin:1.6rem 0 .4rem">Heat violations per season</h3>
-      <div class="bars" id="vbars"></div>
-      <p class="muted" style="margin-top:1.6rem">
-        last complaint: <span id="lastc"></span> · last violation: <span id="lastv"></span></p>
-    </div>
-  </div>
   <div class="card" id="mappanel" style="display:none">
     <h2>On the risk map</h2>
     <p class="muted" style="margin-top:0">The searched building is highlighted with a ring;
     the color around it is its neighbors' estimated winter risk.
     <a id="fullmap" href="/map">Open the full map ↗</a></p>
-    <div id="mapslot" style="position:relative; height:430px; border:1px solid var(--line);
-         border-radius:8px; overflow:hidden; background:var(--well)">
+    <div id="mapslot" style="position:relative; height:430px; border:var(--bold);
+         border-radius:14px; overflow:hidden; background:var(--well)">
       <p class="muted" style="position:absolute; inset:0; display:flex; align-items:center;
          justify-content:center; margin:0; padding:1rem; text-align:center">The map loads when
          this panel comes into view. If it does not, open the full map above.</p>
@@ -137,14 +170,14 @@
       <label class="muted" for="draft_out" style="font-size:.85rem">Message (edit freely;
         replace [Your name] before sending)</label>
       <textarea id="draft_out" style="margin-top:.2rem"></textarea>
-      <div style="margin-top:.5rem">
+      <div class="draft-actions">
         <button id="copybtn" onclick="copyDraft()">Copy subject and message</button>
-        <a class="btnlink ghost" id="mailto" href="#" onclick="return openMail()">Open in my email app</a>
+        <a class="btn ghost" id="mailto" href="#" onclick="return openMail()">Open in my email app</a>
         <span id="copied" class="muted"></span>
       </div>
     </div>
   </div>
-  <div class="card">
+  <div class="card help-card">
     <h2>If the heat fails</h2>
     <p class="muted" style="margin-bottom:0">Call 311 (or file at portal.311.nyc.gov) and
     give your name and apartment number: since October 1, 2026, HPD must attempt an
@@ -153,7 +186,7 @@
     overnight. This page describes the building's record; it is not an accusation.</p>
   </div>
   <div class="card">
-    <details><summary>How accurate is this number?</summary>
+    <details id="accuracy"><summary>How accurate is this number?</summary>
       <p class="muted">Verified on last winter, which the model never trained on —
       grouped by what we predicted vs what happened:</p>
       <table id="rel"><tr><th>we said</th><th>buildings</th><th>actually failed</th></tr></table>
@@ -215,7 +248,7 @@ function loadPropertyImagery(building){
   const urls = propertyImageURLs(building.coords);
   $('ha-photo-location').textContent = 'BBL ' + building.bbl;
   if (!urls) {
-    $('ha-photo-state').textContent = 'A mapped location is not available for this property. Its risk and history are shown below.';
+    $('ha-photo-state').textContent = 'A mapped location is not available for this property. You can still read its risk and history above.';
     return;
   }
   $('ha-street-view').href = urls.street; $('ha-street-view').hidden = false;
@@ -348,29 +381,22 @@ async function lookup(e){
   $('lastc').textContent = b.last_complaint; $('lastv').textContent = b.last_violation;
   who(b);
   $('draftbox').style.display = 'none'; $('draftstatus').textContent = '';
-  // the building, drawn: window grid sized from units, cells lit in risk share
-  const cols = 6, rows = Math.min(12, Math.max(4, Math.round((b.units || 24) / 8)));
-  const cells = cols * rows, lit = Math.max(1, Math.round(Math.min(b.season.p, 0.99) * cells));
-  $('elev').innerHTML = bldg(cols, rows, 13, 6, 10, litSet(lit, cells, 5),
-      'Risk illustration for this property');
-  $('elevcap').textContent = `Risk illustration - ${lit} of ${cells} ` +
-      `windows lit = this winter's risk share.`;
+  // the risk meter: the pin sits at the capped calibrated probability
+  $('meterpin').style.left = 'calc(13px + (100% - 26px) * ' + (Math.min(b.season.p, 0.99) / 0.99).toFixed(3) + ')';
   bars('cbars', b.complaints); bars('vbars', b.violations);
   reliability();
   return false;
 }
 function bars(el, obj){
-  // seasons as a skyline: each bar is a little building; the latest one is lit
+  // one bar per season; the latest season is filled in the brand green
   const seasons = Object.keys(obj).sort();
   const max = Math.max(1, ...Object.values(obj));
-  $(el).className = 'skybars';
+  $(el).className = 'hbars';
   $(el).innerHTML = seasons.map((s, k) => {
-    const v = obj[s], rows = Math.max(1, Math.round(v / max * 9));
-    const cur = k === seasons.length - 1;
-    return `<div class="col ${cur ? 'cur' : ''}">` +
-      bldg(2, rows, 6, 3, 4, cur ? litSet(Math.min(3, rows), 2*rows, 2) : null,
-           `${s}: ${v}`) +
-      `<span>${s.slice(2,4)}-${s.slice(5)}</span><b>${v}</b></div>`;
+    const v = obj[s], cur = k === seasons.length - 1;
+    return `<div class="col ${cur ? 'cur' : ''}" title="${esc(s)}: ${v}">` +
+      `<span class="v">${v}</span><div class="bar" style="height:${Math.max(3, v / max * 72)}%"></div>` +
+      `<span class="s">${s.slice(2,4)}-${s.slice(5)}</span></div>`;
   }).join('') || '<span class="muted">none on record</span>';
 }
 async function reliability(){

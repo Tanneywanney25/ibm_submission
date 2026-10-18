@@ -1,118 +1,655 @@
 {% extends "base.html" %}
-{% block title %}About HeatAhead{% endblock %}
-{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='help-pages.css') }}">{% endblock %}
+{% block title %}About & methods · HeatAhead{% endblock %}
+{% block head %}
+<meta name="description" content="Why NYU Tingineers built HeatAhead, the public records behind it, how we trained and tested the models, and what their predictions mean.">
+<link rel="stylesheet" href="{{ url_for('static', filename='help-pages.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='about.css') }}">
+{% endblock %}
 {% block body %}
-<div class="help-page">
-  <header class="help-hero">
-    <p class="help-eyebrow">About this project</p>
-    <h1>Heat should never<br>be a surprise.</h1>
-    <p class="help-lead">Every winter, thousands of New York City buildings lose heat during cold snaps — and the
-      city finds out one 311 call at a time. HeatAhead flips that order: it predicts which buildings are likely
-      to lose heat before the cold arrives, so inspectors, tenants and owners can act early instead of react late.</p>
-    <div class="help-actions"><a class="help-primary" href="/building">Check a building</a><a class="help-secondary" href="/learn-more">How to use the site</a></div>
-    <p class="help-small">Built by NYU Tingineers at the IBM Z Datathon, October 2026. Building-level only — never apartments.</p>
+<div class="help-page about-page">
+  <header class="help-hero about-hero">
+    <p class="help-eyebrow">Research &amp; methodology / October 2026</p>
+    <h1>How we built<br> HeatAhead.</h1>
+    <p class="help-lead">From public housing records to an inspection priority list.
+      This is the data we prepared, the models we trained, the tests we ran,
+      and the evidence behind the estimates you see.</p>
+    <p class="about-byline">Built by <strong>NYU Tingineers</strong> for the IBM Z Datathon · October 17–18, 2026</p>
+    <dl class="about-facts" aria-label="Study at a glance">
+      <div><dt>Daily-model inputs</dt><dd>36 <span>features from records and weather</span></dd></div>
+      <div><dt>Original training set</dt><dd>622,362 <span>building-day examples</span></dd></div>
+      <div><dt>2025–26 ranking tests</dt><dd>71 days <span>plus eight cold-spell evaluations</span></dd></div>
+    </dl>
+    <a class="about-jump" href="#methods">Follow the training process <span aria-hidden="true">↓</span></a>
   </header>
 
-  <nav class="help-toc" aria-label="On this page">
-    <a href="#what-it-is">What it is</a><a href="#methods">Methods</a>
-    <a href="#top-100">Why top 100</a><a href="#uncertainty">Ranges &amp; calibration</a>
-    <a href="#open-source">Open source</a>
-  </nav>
+  <div class="about-layout">
+    <nav class="about-nav" aria-label="About page sections">
+      <p>On this page</p>
+      <a href="#what-it-is">Introduction</a>
+      <a href="#data">Data</a>
+      <a href="#methods">Modeling</a>
+      <a href="#top-100">What we measured</a>
+      <a href="#experiments">What we tried</a>
+      <a href="#uncertainty">What scores mean</a>
+      <a href="#ibm-z">The IBM Z work</a>
+      <a href="#help-chat">Models &amp; help chat</a>
+      <a href="#limits">Limits &amp; next steps</a>
+      <a href="#open-source">Team &amp; reproducibility</a>
+    </nav>
 
-  <section id="what-it-is" class="help-section">
-    <p class="help-eyebrow">01 / What it is</p><h2>A ranked list, and what it buys the city.</h2>
-    <div class="help-steps">
-      <article class="help-panel"><span class="help-step">1</span><h3>Score every building</h3>
-        <p>When a cold spell approaches, the model scores every ranked residential building in the city.
-          On IBM LinuxONE that takes under a second — 481,356 buildings per second.</p></article>
-      <article class="help-panel"><span class="help-step">2</span><h3>Rank for inspection</h3>
-        <p>Of the first 100 buildings flagged at the start of a spell, about 90 go on to experience a
-          whole-building heat failure during that spell (held-out winters; details below).</p></article>
-      <article class="help-panel"><span class="help-step">3</span><h3>Measured impact</h3>
-        <p>We replayed the real 2025-26 winter — 183,384 complaint-days — under the city's actual capacity.
-          Same inspectors, dispatched by our ranking instead of first-come-first-served: 7.8% more violations
-          confirmed, failing buildings reached in 2.0 days instead of 3.1, cold-household-days cut in half.</p></article>
-    </div>
-  </section>
+    <div class="about-content">
+      <section id="what-it-is" class="help-section about-section">
+        <p class="help-eyebrow">01 / Introduction</p>
+        <h2>Why we built HeatAhead.</h2>
+        <p>New York City law requires landlords to keep apartments at 68°F during the day and 62°F
+          overnight from October 1 to May 31. Every winter, thousands of buildings fail to do so.
+          When the heat goes out, tenants call 311, and the Department of Housing Preservation and
+          Development (HPD) sends an inspector. The city largely works through these complaints in the
+          order they arrive, so by the time an inspector reaches a building, the people inside may
+          already have been cold for days. Since July 2017 alone, New Yorkers have filed more than
+          1.8 million heat complaints.</p>
+        <p>Using several open data sets and machine learning models, we set out to answer one primary
+          question: on the evening before a freezing day, can a building’s complaint, violation and
+          property history, combined with the weather, tell us which buildings are most likely to lose
+          heat in the next few days? In particular, we wanted to know whether a ranked list built this
+          way would put inspectors in front of failing buildings sooner than the approaches the city
+          can use today, such as answering complaints in the order they arrive or looking at last
+          winter’s complaint counts.</p>
+        <p>We expected a building’s own recent complaint history to be the strongest signal, because a
+          heating system that has failed recently is likely to fail again. We also expected that how a
+          building responds to cold weather, its size and age, the record of its owner’s other buildings
+          and the condition of its boiler would each add information. This page explains the data we
+          used, how we prepared it, and the methods we used to test those expectations. The website
+          itself presents the results: each building’s estimated risk, the citywide map and the
+          inspection priority list.</p>
+        <aside class="about-note">
+          <h3>How to read a prediction</h3>
+          <p>A high estimate is a reason to check a building early. It is not proof that the building’s
+            heat is broken or that its owner has broken the law.</p>
+        </aside>
+      </section>
 
-  <section id="methods" class="help-section">
-    <p class="help-eyebrow">02 / Methods</p><h2>Public data in, one honest probability out.</h2>
-    <p>The model answers: <em>“a cold spell is starting now — will this building have a whole-building heat
-      failure at some point during the spell?”</em> Every input is public data, dated strictly before the
-      moment of prediction.</p>
-    <div class="help-two">
-      <article class="help-panel"><h3>What it looks at</h3>
-        <p>Heat-complaint history over several trailing windows · past-winter failures and verified violations ·
-          the building itself (age, size, units, boiler records) · the landlord's other buildings ·
-          complaints next door in the last 48 hours · the forecast.</p></article>
-      <article class="help-panel"><h3>How we keep it honest</h3>
-        <p>The model only ever sees the past: features predate the prediction moment, and the entire 2025-26
-          winter stayed untouched until final evaluation. Training rolls forward across six winters, always
-          testing on the next unseen one — it beat the strongest recency baseline in 6 of 6. A nine-test
-          leakage suite runs against the codebase itself.</p></article>
-    </div>
-    <ul class="help-points">
-      <li>Headline precision at the top 100: 69.1% at 48 hours, 86.1% per cold spell, 96.6% at 30 days,
-        99% for the season. Our newest spell-level model reaches 90.1% — evaluated on held-out data it
-        was allowed to see exactly once.</li>
-      <li>Alternatives we built and rejected on evidence: a learning-to-rank model and a graph neural
-        network, both beaten by the simpler model under identical tests.</li>
-    </ul>
-  </section>
+      <section id="data" class="help-section about-section">
+        <p class="help-eyebrow">02 / The data</p>
+        <h2>Where our data comes from and how we prepared it.</h2>
+        <p>The data for this analysis describes New York City’s residential buildings, the heat
+          complaints their tenants filed, the violations that inspectors recorded, the owners and
+          boilers behind each building, and the weather on every day of the heating season. All of it
+          is public and free to access. We downloaded every file on October 16, 2026, and the
+          complaint and violation records run through October 14, 2026.</p>
+        <p>The table below lists each source, the agency that publishes it and what we took from it.
+          Each name links to the original data set.</p>
+        <div class="about-table-wrap" role="region" aria-label="Data sources and their uses" tabindex="0">
+          <table class="about-table">
+            <caption>What goes into the analysis</caption>
+            <thead><tr><th scope="col">Data set and publisher</th><th scope="col">What it contains and how we use it</th></tr></thead>
+            <tbody>
+              <tr><th scope="row"><a href="https://data.cityofnewyork.us/d/ygpa-z7cr" target="_blank" rel="noopener noreferrer">HPD complaints ↗</a><br><span class="help-small">HPD, NYC Open Data</span></th><td>Every heat and hot water complaint filed through 311: 2,219,844 records from July 1, 2017 to October 14, 2026. This is the source of our outcome and of most of our strongest inputs.</td></tr>
+              <tr><th scope="row"><a href="https://data.cityofnewyork.us/d/wvxf-dwi5" target="_blank" rel="noopener noreferrer">HPD violations ↗</a><br><span class="help-small">HPD, NYC Open Data</span></th><td>Violations that an inspector confirmed in person: 223,430 heat violations (orders 666, 966 and 674) and hot water violations (orders 670 and 970). We use them as history and as an independent check on our outcome.</td></tr>
+              <tr><th scope="row"><a href="https://www.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page" target="_blank" rel="noopener noreferrer">PLUTO properties ↗</a><br><span class="help-small">Department of City Planning</span></th><td>Version 26v2 of the city’s property file, limited to the 172,485 tax lots with three or more residential units. It gives each building’s units, floors, floor area, year built, alterations, community district and location.</td></tr>
+              <tr><th scope="row"><a href="https://data.cityofnewyork.us/d/feu5-w2e2" target="_blank" rel="noopener noreferrer">HPD owner registrations ↗</a><br><span class="help-small">HPD, NYC Open Data</span></th><td>The registered owner and managing agent of each building. We matched 136,589 owners, which lets us count how many buildings an owner holds and how their other buildings performed last winter.</td></tr>
+              <tr><th scope="row"><a href="https://data.cityofnewyork.us/d/52dp-yji6" target="_blank" rel="noopener noreferrer">DOB boiler inspections ↗</a> &amp; <a href="https://data.cityofnewyork.us/d/f4rp-2kvy" target="_blank" rel="noopener noreferrer">DEP boiler permits ↗</a><br><span class="help-small">Departments of Buildings and Environmental Protection</span></th><td>892,914 boiler inspection reports, which record defects, and 91,370 boiler permits, which record the fuel each boiler burns.</td></tr>
+              <tr><th scope="row"><a href="https://www.ncei.noaa.gov/cdo-web/datasets/GHCND/stations/GHCND:USW00094728/detail" target="_blank" rel="noopener noreferrer">NOAA Central Park ↗</a> &amp; <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo ↗</a><br><span class="help-small">NOAA and Open-Meteo</span></th><td>Daily minimum and maximum temperature, snow and wind for every day since January 1, 2017 (3,572 days, with none missing), plus the seven day forecast we use to detect an approaching cold spell.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>How the sources fit together</h3>
+        <p>Because these records come from four city agencies and one federal agency, they do not share a
+          single identifier. Complaints, violations and PLUTO identify a property by its BBL, the ten
+          digit borough, block and lot number of the tax lot. Boiler records identify a building by its
+          BIN, the Department of Buildings’ building number, and owner registrations use HPD’s own
+          building ID. We joined each source only on the identifier it was published with, and then
+          summarized everything at the level of the BBL. We also stored every identifier as a whole
+          number before joining, because some files store the BBL as a decimal number, and a decimal
+          BBL silently fails to match its whole number twin.</p>
+        <h3>Cleaning the complaint records</h3>
+        <p>The complaint file required the most preparation. Its 2,219,844 rows describe 2,196,887
+          distinct complaints, because one complaint can list several problems, each on its own row. We
+          kept the two problem types that describe a heating failure, “NO HEAT” and “NO HEAT AND NO HOT
+          WATER,” which left 1,853,073 rows. We then removed 6,650 rows that had no BBL and could not be
+          placed on a property, and kept only complaints at lots in our building table, which left
+          1,703,315 rows describing 1,694,922 distinct complaints at 62,451 lots. Finally, we counted each
+          complaint once per building per day, so that a complaint repeated across rows never counts
+          twice. The result is 1,148,420 building days with at least one heat complaint.</p>
+        <p>For the violation records, we kept only the five heat and hot water order numbers and removed
+          23,607 records dated before 2010, which include inspection dates as early as 1968 that are
+          either entry errors or too old to describe a building today. For the boiler records, we count
+          only reports dated before the winter being studied, so that a later inspection can never
+          inform an earlier prediction. The weather record needed no repair.</p>
+        <p>These steps mean our study covers buildings with three or more apartments that have some heat
+          complaint or violation history. A building enters a ranking only if it has at least one heat
+          complaint or violation on record, because a building with no history gives a model nothing to
+          learn from, and no method we tested could find the failures in those buildings. The winter
+          outlook, which estimates each building’s chance of losing heat at least once this winter,
+          covers {{ '{:,}'.format(about_snapshot.get('ranked', 63727)) }} buildings. The cold-day ranking, which
+          estimates the chance of a heat failure within 48 hours of a freezing day, covers
+          {{ '{:,}'.format(about_snapshot.get('cold_ranked', 67125)) }} buildings. The cold-day ranking is slightly
+          larger because it also counts buildings whose only record is a hot water violation, while the
+          winter outlook counts heat violations only. One more detail matters for reading the results: a
+          BBL describes a tax lot rather than a single building, so a large complex with several
+          buildings on one lot appears in our data as a single record.</p>
+        <h3>The outcome we predict</h3>
+        <p>Public records do not say when a boiler stops working, so we had to define a heat failure from
+          what is recorded. We say a building has a <strong>heat failure</strong> when it receives two or
+          more distinct heat complaints across two consecutive days. We require two complaints rather
+          than one because a single complaint often describes one cold apartment or a call that leads
+          nowhere. We checked this choice against inspectors’ records: a single isolated complaint was
+          followed by a confirmed heat violation within seven days 4.78% of the time, while a cluster of
+          two or more was followed by one 8.93% of the time, 1.87 times as often. Confirmed violations are
+          rare even for real failures because inspectors cannot reach every complaint in time, so we
+          train on the complaint based outcome and keep the confirmed violation, within seven days, as a
+          separate check.</p>
+        <h3>Privacy and ethics</h3>
+        <p>The complaint and violation files include apartment numbers. Our modeling pipeline never
+          loads that column, and our separate complaint analysis replaced every apartment number with a
+          secure one way code before building any table, so no apartment number appears in any table,
+          model input or page on this site. Every estimate describes a whole building.
+          We also recognize that complaints depend on people choosing to report a problem, and that
+          some communities report less often than others. A building with a quiet record is not
+          necessarily a building without problems, and we discuss what that means for the results in
+          the limitations section below.</p>
+      </section>
 
-  <section id="top-100" class="help-section">
-    <p class="help-eyebrow">03 / Why “top 100”?</p><h2>Why we grade the top of a list, not “accuracy.”</h2>
-    <div class="help-two">
-      <article class="help-panel"><h3>Accuracy rewards doing nothing</h3>
-        <p>About 1–2% of buildings fail in a given spell. A model that predicts “no failure” for every
-          building in New York scores over 98% accuracy while being completely useless. With rare events,
-          accuracy is the wrong yardstick — so we don't report it, and you shouldn't trust anyone who does.</p></article>
-      <article class="help-panel"><h3>Precision at depth is the real question</h3>
-        <p>The city has limited inspectors. “90 at the top 100” means: of the first 100 buildings our list
-          says to visit, about 90 genuinely lose heat during the spell — the hit rate of roughly the first
-          day of inspections. And we never show one cutoff alone: every evaluation reports the top 100, 500,
-          1,000 and 2,500, so no single flattering number can carry the story. The ranking holds up beyond
-          the top too: the top 1% of our list captures 26% of all heat failures in a spell, and the top 10%
-          captures 75% — against 1% and 10% for random inspection.</p></article>
-    </div>
-    <aside class="help-callout"><h3>Two different promises, both graded</h3>
-      <p>The ranked list is graded by precision at depth (who to visit first). The percentages shown on
-        building pages are graded by calibration — checked bin by bin, so “60%” means failure really happens
-        about 60% of the time in that group. One model, two measured guarantees. That discipline has teeth:
-        we rejected a model that <em>won</em> at the top 100 because it lost at the depths where the city
-        actually inspects.</p>
-    </aside>
-  </section>
+      <section id="methods" class="help-section about-section">
+        <p class="help-eyebrow">03 / Modeling</p>
+        <h2>How we built and trained the models.</h2>
+        <p>Our modeling uses supervised machine learning: we show a model many past examples of buildings
+          together with what happened next, and it learns which patterns came before a heat failure. This
+          section explains how we turned the cleaned records into model inputs, how we built the
+          training data, which methods we used and why, and how we tested them.</p>
+        <h3>Turning records into model inputs</h3>
+        <p>Each training example is one building on one heating season day, described by 36 inputs
+          calculated from the records above. The inputs fall into seven families. <strong>Previous
+          winters</strong> count the building’s complaints and violations over the last one and two
+          seasons, flag buildings with five or more complaints in each of the last two seasons, and count
+          last season’s whole building complaints, which usually mean the boiler itself failed rather than
+          one apartment. <strong>Recent activity</strong> counts the building’s complaints in the previous
+          2, 7, 14 and 30 days and measures how many days have passed since its last complaint and last
+          violation. <strong>Cold response</strong> measures, over the previous two winters, the share of
+          frigid days (below 20°F), freezing days (20°F to below 32°F) and cold days (32°F to below 45°F)
+          on which the building had a complaint. This separates a building with constant problems from
+          one that mainly struggles when the temperature drops. <strong>Property</strong> inputs come from
+          PLUTO, and <strong>owner and boiler</strong> inputs describe the owner’s portfolio and the
+          boiler’s recorded defects and fuel. <strong>Nearby reports</strong> count complaints at other
+          buildings on the same tax block in the previous two days, because buildings that share an owner
+          or a heating plant tend to fail together. Finally, <strong>weather and calendar</strong> inputs
+          describe the day’s temperature, snow and wind and how far into the cold season the day falls.</p>
+        <div class="about-table-wrap" role="region" aria-label="The 36 daily-model features" tabindex="0">
+          <table class="about-table about-features">
+            <caption>The 36 daily-model inputs, grouped by what they describe</caption>
+            <thead><tr><th scope="col">Input family</th><th scope="col">Inputs</th><th scope="col">What we calculate</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Previous winters</th><td>6</td><td>One and two season complaints and violations, a chronic complaint flag and last season’s whole building complaints.</td></tr>
+              <tr><th scope="row">Recent activity</th><td>7</td><td>Complaints in the last 2, 7, 14 and 30 days, days since the last complaint and violation, and whole building complaints in the last 14 days.</td></tr>
+              <tr><th scope="row">Cold response</th><td>3</td><td>Complaint rates on frigid, freezing and cold days over the prior two winters.</td></tr>
+              <tr><th scope="row">Property</th><td>6</td><td>Units, year built, alteration flag, floors, floor area and community district.</td></tr>
+              <tr><th scope="row">Owner and boiler</th><td>4</td><td>Owner portfolio size, complaints at the owner’s other buildings, boiler defects and oil fuel.</td></tr>
+              <tr><th scope="row">Nearby reports</th><td>1</td><td>Complaints at other buildings on the same tax block over the previous two days.</td></tr>
+              <tr><th scope="row">Weather and calendar</th><td>9</td><td>Minimum and maximum temperature, the previous day’s minimum, the three day rolling minimum, the change from the previous day, snow, wind, weekday and days into the cold season.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>The time rule</h3>
+        <p>A model can look far better than it really is if its inputs accidentally contain information
+          from the future. To prevent this, every input for a building on a given day uses only records
+          dated before that day. Season level history uses only earlier seasons, recent activity windows
+          end on the evening before, and fields that are only known after the fact, such as a complaint’s
+          final status or closing date, are never used. We wrote automated tests that fail if any of these
+          rules is broken.</p>
+        <h3>Building the training data</h3>
+        <p>Using every building on every day would produce tens of millions of examples, nearly all of them
+          days without a failure. Instead, we kept every heat failure from the 2018 to 2019 winter through
+          the 2024 to 2025 winter and added twice as many randomly chosen days without one. After removing
+          buildings with no prior history, the training set contains 622,362 building days. Because this
+          sample contains far more failures than real life does, the model’s raw scores overstate the
+          true chance of a failure, which is why every probability we show passes through a separate
+          calibration step, described below.</p>
+        <h3>The machine learning methods we use</h3>
+        <p>Our main models are <strong>gradient boosted decision trees</strong>. A decision tree sorts
+          buildings into groups by asking a series of yes or no questions about their inputs, such as
+          whether a building had more than three complaints in the last 14 days. Gradient boosting builds
+          hundreds of small trees one after another, with each new tree correcting the errors left by the
+          trees before it. We chose this family because it is the most consistently accurate method for
+          tables of counts, dates and measurements like ours, it handles missing values and very
+          different scales without extra preparation, and it lets us explain which inputs a model relies
+          on.</p>
+        <p>The original model averages two implementations of the same idea, <strong>XGBoost</strong> and
+          scikit-learn’s <strong>HistGradientBoosting</strong>, each built from 400 trees with a maximum
+          depth of 6 and a learning rate of 0.08. Averaging two models smooths out the quirks of either
+          one. Its scores then pass through <strong>isotonic regression</strong>, a calibration method that
+          learns how raw scores map to the share of buildings that actually failed, using every eligible
+          building rather than the sampled training data. Calibration changes the numbers we display but
+          never the order of the ranking.</p>
+        <p>We built two more models for the two other questions the site answers. The <strong>winter
+          outlook</strong> uses one example per building per season, with 21 inputs measured on October 1
+          and the outcome “lost heat at least once that winter.” It is a HistGradientBoosting model trained
+          on 305,413 building seasons, with its own isotonic calibration. The <strong>cold spell
+          model</strong> is trained directly on the task inspectors face: on the evening before a cold
+          spell, which buildings will fail during it? We chose its settings with a twelve trial search
+          scored only on the 2024 to 2025 winter, then trained it five times with different random seeds
+          and averaged the five, which removes most of the variation between individual training runs.</p>
+        <p>We also tested methods that work differently, to make sure the gradient boosted trees were not
+          simply the first idea we tried. These include a model trained to rank buildings directly, a
+          graph neural network that learns from links between buildings that share an owner or a block,
+          a survival model that predicts when a building will first fail, a model trained on confirmed
+          violations instead of complaints, and a statistical method called conformal risk control that
+          sets alert thresholds with a guaranteed maximum miss rate. Finally, we used backward feature
+          elimination, which removes the least useful input one at a time across three model types, to
+          learn which inputs actually carry the signal. The development record below lists what each of
+          these changed.</p>
+        <h3>How we test the models</h3>
+        <p>We split the data by time, never at random, so that a model is always tested on a winter it
+          has never seen. Models learn from the 2018 to 2019 through 2023 to 2024 winters, the 2024 to
+          2025 winter is used to choose between versions and settings, and the 2025 to 2026 winter is held
+          out and scored once at the end. On each test day, the model ranks every eligible building in the
+          city, and we measure <strong>precision at k</strong>: of the k buildings ranked highest, the share
+          that actually had a heat failure. We use this measure because an inspection team can only visit
+          a limited number of buildings, so what matters is whether the top of the list is right. We
+          compare every model with simple rules the city could use without any model, such as ranking by
+          complaints in the last 14 days. To check that the results were not one lucky winter, we repeated
+          the test six times, each time training only on earlier winters and testing on the next one, and
+          we measured uncertainty by resampling whole days and whole cold spells rather than individual
+          buildings.</p>
+        <ol class="about-timeline" aria-label="Training, validation and test split">
+          <li><strong>Winters 2018 to 2024</strong><span>Train candidate models.</span></li>
+          <li><strong>Winter 2024 to 2025</strong><span>Choose between versions and settings, then refit.</span></li>
+          <li><strong>Winter 2025 to 2026</strong><span>Test once on the held out winter.</span></li>
+        </ol>
+        <details class="about-details">
+          <summary>Which model supplies each part of the website?</summary>
+          <div class="about-model-grid">
+            <article><span class="about-model-id">M1 / Evaluation</span><h3>The original daily ensemble</h3>
+              <p>Supplies the fixed submission benchmarks. Its training stops before the 2025 to 2026 winter.</p></article>
+            <article><span class="about-model-id">M2 + M3 / Cold-day queue</span><h3>Deployment refit and calibration</h3>
+              <p>The same recipe refit with the latest completed winter included, with its scores passed
+                through the daily calibrator. Because it has seen the test winter, it is never used to
+                report test performance.</p></article>
+            <article><span class="about-model-id">M4 / Winter outlook</span><h3>The season level model</h3>
+              <p>HistGradientBoosting with 21 start of season inputs, trained on 305,413 building seasons.
+                Its calibrated output supplies the winter estimate and the map colors.</p></article>
+            <article><span class="about-model-id">M13 / Cold spells</span><h3>The tuned five seed spell model</h3>
+              <p>Supplies the cold spell benchmark and the dispatch simulation. It is reported separately
+                from the M2 and M4 files behind the public website.</p></article>
+          </div>
+        </details>
+      </section>
 
-  <section id="uncertainty" class="help-section">
-    <p class="help-eyebrow">04 / Ranges &amp; calibration</p><h2>Uncertainty we measured and chose to show.</h2>
-    <div class="help-two">
-      <article class="help-panel"><h3>Why ranges</h3>
-        <p>A single number can be lucky. Every headline carries a bootstrap confidence interval — the
-          evaluation data is resampled thousands of times, including in blocks of consecutive days, because
-          days inside one cold snap rise and fall together. The model's edge over the best baseline survives
-          at p ≈ 0.00001 on daily rankings, and it won all 8 of 8 held-out cold spells.</p></article>
-      <article class="help-panel"><h3>Why capped and banded</h3>
-        <p>Every probability on this site is calibrated, then capped at 99% (nothing is certain) and shown
-          as a band above 20% — because “61.3%” implies a precision no forecast honestly has. The calibration
-          table is one click away on every building page.</p></article>
-    </div>
-  </section>
+      <section id="top-100" class="help-section about-section">
+        <p class="help-eyebrow">04 / Evaluation</p>
+        <h2>How useful is the top of the list?</h2>
+        <p>An inspection team can only visit so many buildings. We measure <strong>precision at k</strong>:
+          among the first k buildings in the ranking, how many later meet the complaint-cluster label?
+          This is more useful for prioritization than a single “accuracy” number for every building.</p>
+        <div class="about-results">
+          <article class="about-result">
+            <p class="about-result-label">Original model · top 100 per spell</p>
+            <strong class="about-number">86.1%</strong>
+            <p>About 86 of the first 100 buildings met the complaint-cluster label during a spell,
+              averaged across eight test spells.</p>
+            <p class="about-result-foot">Approx. 95% bootstrap range: 81–92%.*</p>
+          </article>
+          <article class="about-result">
+            <p class="about-result-label">Checks across earlier winters</p>
+            <strong class="about-number">6 of 6</strong>
+            <p>The model beat the 14-day complaint-count rule in all six forward-moving winter tests.</p>
+            <p class="about-result-foot">Past performance; future winters can differ.</p>
+          </article>
+        </div>
+        <div class="about-table-wrap" role="region" aria-label="Original model versus recent complaints" tabindex="0">
+          <table class="about-table about-numbers about-scoreboard">
+            <caption>Spell precision: original model, later spell model and a simple baseline</caption>
+            <thead><tr><th scope="col">First buildings in list</th><th scope="col">M1 original</th><th scope="col">M13 later spell model</th><th scope="col">14-day complaints</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">100</th><td>86.1%</td><td>90.1%</td><td>77.1%</td></tr>
+              <tr><th scope="row">500</th><td>64.6%</td><td>65.4%</td><td>59.9%</td></tr>
+              <tr><th scope="row">1,000</th><td>51.4%</td><td>51.4%</td><td>47.8%</td></tr>
+              <tr><th scope="row">2,500</th><td>34.8%</td><td>35.2%</td><td>31.9%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="help-small about-source-note">*The range comes from the saved follow-up statistical
+          analysis, which resamples whole cold spells. Its rerun varies slightly from the original
+          model run; the original submission figure above stays fixed. Eight spells are a small sample.</p>
+        <details class="about-details">
+          <summary>How the four prediction windows differ</summary>
+          <div>
+            <div class="about-table-wrap" role="region" aria-label="Original model prediction windows" tabindex="0">
+              <table class="about-table about-log">
+                <caption>Fixed M1 submission benchmarks · precision at the top 100</caption>
+                <thead><tr><th scope="col">Evaluation</th><th scope="col">Result</th><th scope="col">What we watch for</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row">Daily / 48 hours</th><td>69.1%</td><td>Complaint clusters across day d and d+1, averaged over 71 freezing days.</td></tr>
+                  <tr><th scope="row">Cold spell</th><td>86.1%</td><td>A cluster during the spell plus one grace day, averaged over eight spells.</td></tr>
+                  <tr><th scope="row">Daily / 30 days</th><td>96.6%</td><td>An outcome within 30 days of a daily ranking.</td></tr>
+                  <tr><th scope="row">First-spell watchlist</th><td>99%</td><td>Rank once at the first spell; follow the top 100 through the rest of winter.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>A daily freezing day has minimum temperature below 32°F. A test cold spell has at least
+              two consecutive days with <em>mean</em> temperature below 32°F. We rank once on the spell’s
+              eve, then observe its outcome window.</p>
+            <p>The 30-day result is an outcome-follow-up window, not a 30-day weather forecast. The
+              99% watchlist result is not the separate M4 season model’s calibration. These tests
+              cannot be read as one universal accuracy percentage.</p>
+            <p>For the daily 48-hour estimate, the approximate 95% interval widens to 66–71% when
+              consecutive cold-day blocks are resampled together. The saved inference run varies
+              slightly from the frozen point result, as noted above.</p>
+          </div>
+        </details>
+        <details class="about-details">
+          <summary>Six-winter backtest and statistical checks</summary>
+          <div>
+            <div class="about-table-wrap" role="region" aria-label="Six winter backtests" tabindex="0">
+              <table class="about-table about-numbers">
+                <caption>Each fold tests the next winter’s 10 coldest days · daily precision at 100</caption>
+                <thead><tr><th scope="col">Test winter</th><th scope="col">Model</th><th scope="col">14-day baseline</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row">2020–21</th><td>55.8%</td><td>54.0%</td></tr>
+                  <tr><th scope="row">2021–22</th><td>65.0%</td><td>62.9%</td></tr>
+                  <tr><th scope="row">2022–23</th><td>66.5%</td><td>60.4%</td></tr>
+                  <tr><th scope="row">2023–24</th><td>69.1%</td><td>64.4%</td></tr>
+                  <tr><th scope="row">2024–25</th><td>74.4%</td><td>68.5%</td></tr>
+                  <tr><th scope="row">2025–26</th><td>72.8%</td><td>70.3%</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>These are separate forward-moving tests, not the 71-day headline evaluation. Each model
+              sees only winters before its test winter, with the same settings used across folds.</p>
+            <p>For uncertainty, the saved analysis uses 2,000 bootstrap resamples of whole days or spells.
+              A second check resamples 16 blocks of consecutive cold days together, because days in one
+              cold snap are related. We do not treat thousands of buildings in the same spell as
+              thousands of independent weather events.</p>
+            <p>The follow-up daily run beats the 14-day baseline on 67 of 71 days at the top 100, with
+              one tie and three losses. A paired sign-flip test using 100,000 draws gives p ≈ 0.00001.
+              On the eight spell comparisons, the original model beats the baseline in all eight
+              (exact one-sided p = 1/256). These describe this test set, not certainty about future winters.</p>
+          </div>
+        </details>
+        <details class="about-details">
+          <summary>How much of the whole problem does the final ranking find?</summary>
+          <div>
+            <p>Precision measures how many picks were right. Recall and cumulative gain ask how many
+              of <em>all</em> the complaint-cluster outcomes the ranking finds.</p>
+            <ul class="about-plain-steps">
+              <li>For M13, the top 1% of the ranked list captures 25.7% of spell outcomes on average.</li>
+              <li>The top 10% captures 75.3%. Random selection would capture about 10%.</li>
+              <li>At 2,500 buildings, mean recall is 54.3% across the eight spells.</li>
+              <li>Mean precision-recall AUC is 0.434, compared with a mean outcome rate of 3.1%.
+                AUC summarizes the ranking over many possible list lengths.</li>
+            </ul>
+            <p>These are M13 research results over the eligible population. They are not calibration
+              results for every building, and they do not measure outcomes in properties outside the ranking.</p>
+          </div>
+        </details>
+        <details class="about-details">
+          <summary>What our inspection simulation suggests</summary>
+          <div>
+            <p>We replayed 183,384 building-day complaint cases from 2025–26, comparing first-come-first-served
+              dispatch with a model-prioritized queue. At an assumed capacity of 700 inspections a day
+              and a 14-day case expiry, the simulation estimated <strong>7.8% more confirmed violations</strong>
+              and a mean wait of <strong>2.03 days instead of 3.12</strong> for complaint-cluster cases.</p>
+            <p>These are simulated results, not an observed city deployment or proof that outages were
+              prevented. Prioritizing also left some lower-ranked cases unvisited: 5,546 complaint-cluster
+              cases expired in that scenario. That trade-off matters alongside the average improvement.</p>
+          </div>
+        </details>
+      </section>
 
-  <section id="open-source" class="help-section">
-    <p class="help-eyebrow">05 / Open source</p><h2>The code is open. The data stays safe.</h2>
-    <div class="help-two">
-      <article class="help-panel"><h3>Published</h3>
-        <p>The feature pipeline, model training, the evaluation protocol, the statistical test suite,
-          portable JSON model files, and this website. Source available on request while the team
-          finalizes the license.</p></article>
-      <article class="help-panel"><h3>Deliberately not published</h3>
-        <p>Raw complaint extracts (get them from NYC Open Data directly), anything apartment-level,
-          and operational secrets. The underlying data is public: NYC 311, HPD violations, PLUTO and
-          weather archives.</p></article>
+      <section id="experiments" class="help-section about-section">
+        <p class="help-eyebrow">05 / Development record</p>
+        <h2>What improved the model, and what did not.</h2>
+        <p>We kept the original submission results fixed and gave later models their own names.
+          A more complicated method had to improve the ranking at useful list lengths, not just
+          produce an impressive score at one cutoff.</p>
+        <details class="about-details">
+          <summary>The five feature rounds that led to the original model</summary>
+          <div>
+            <div class="about-table-wrap" role="region" aria-label="Model development history" tabindex="0">
+              <table class="about-table about-log">
+                <caption>Recorded development runs · daily precision at 100, 48-hour outcome</caption>
+                <thead><tr><th scope="col">Change</th><th scope="col">Result</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row">14-day complaint rule</th><td>61.7% · the baseline to beat</td></tr>
+                  <tr><th scope="row">Initial planned features</th><td>65.7%</td></tr>
+                  <tr><th scope="row">Cold response, recency &amp; history eligibility</th><td>67.8%</td></tr>
+                  <tr><th scope="row">Building-wide reports</th><td>67.7% · 96.3% at the separate 30-day horizon</td></tr>
+                  <tr><th scope="row">Portfolio, boiler &amp; ensemble work</th><td>68.7%</td></tr>
+                  <tr><th scope="row">Short-term velocity, neighbors &amp; season clock</th><td>69.1% · fixed original submission figure</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>These are development runs, not independent estimates of each feature’s causal effect.
+              Small changes can be training noise. In a separate feature-addition study, we also found
+              boiler defect counts that included later records and tested replacements dated
+              before each season; performance changed by only about 0.15 percentage points.</p>
+          </div>
+        </details>
+        <details class="about-details">
+          <summary>Alternative models, results and decisions</summary>
+          <div>
+            <div class="about-table-wrap" role="region" aria-label="Alternative model decisions" tabindex="0">
+              <table class="about-table about-log">
+                <caption>Later experiments · results use different targets where stated</caption>
+                <thead><tr><th scope="col">Experiment</th><th scope="col">Finding &amp; decision</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row">M7 · learning to rank</th><td>87.9% spell precision at 100, but 33.7% at 2,500 versus M1’s 34.8%. Not adopted.</td></tr>
+                  <tr><th scope="row">M8 · confirmed violations</th><td>30.2% at 100 versus a 16.5% baseline on the separate seven-day violation target. Kept as an enforcement experiment.</td></tr>
+                  <tr><th scope="row">M9 · GraphSAGE</th><td>Two-layer graph network over owner/block connections, trained on LinuxONE. 84.9% spell precision at 100. Not adopted.</td></tr>
+                  <tr><th scope="row">M11 → M13 · spell training</th><td>Train directly on the spell outcome, tune settings, average five seeds. M13 reaches 90.1% at 100; reported separately.</td></tr>
+                  <tr><th scope="row">M12 · tuned daily model</th><td>20 validation-winter trials; 89.2% spell precision at 100. Retained as a later daily configuration.</td></tr>
+                  <tr><th scope="row">M10 / M10b · failure timing</th><td>Strong timing order, but absolute dates and probabilities missed the calibration bar. Not shipped.</td></tr>
+                  <tr><th scope="row">M14 · complaint categories</th><td>89.0% versus 89.0% for an identically trained control. The extract has categories, not narrative text. Not adopted.</td></tr>
+                  <tr><th scope="row">Season watchlist trends</th><td>Year-over-year trend inputs did not meaningfully improve M4. Not adopted.</td></tr>
+                  <tr><th scope="row">T8 · alert thresholds</th><td>On the test winter, broad/strict thresholds missed 7.4% / 21.1% of daily outcomes. This is a separate alert-coverage experiment, not inspection precision.</td></tr>
+                  <tr><th scope="row">Feature removal study</th><td>Still in progress in the supplied October 18 report. Validation findings are not presented as final test results.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
+        <aside class="about-note"><h3>The clearest lesson</h3>
+          <p>Recent and past complaints carry much of the ranking signal. The largest later gain came
+            from matching the training target to the operational question: a problem during the whole
+            cold spell, rather than only a daily 48-hour window.</p></aside>
+        <details class="about-details">
+          <summary>How the alert thresholds were tested</summary>
+          <div>
+            <p>The threshold experiment fixes a model trained on 2018–19 through 2022–23, then uses
+              102 freezing days across the next two winters to choose broad and strict alert levels.
+              It checks those levels on the 71 freezing days of 2025–26.</p>
+            <p>The broad level missed 7.4% of daily complaint-cluster outcomes, but would alert about
+              13,107 buildings per cold day on average. The strict level missed 21.1% and would alert
+              about 5,220. Coverage comes with a larger notification volume.</p>
+            <p>These results do not guarantee the same miss rate in a different future winter.
+              The email worker uses the tested threshold file when it is present; otherwise it has
+              a documented fallback. An alert threshold and a top-50 inspection queue serve different purposes.</p>
+          </div>
+        </details>
+      </section>
+
+      <section id="uncertainty" class="help-section about-section">
+        <p class="help-eyebrow">06 / Reading the estimates</p>
+        <h2>A good ranking and a useful percentage are different tests.</h2>
+        <p>The top-100 results describe the quality of a list. A building’s percentage needs another
+          check: <strong>calibration</strong>. We group similar predictions and compare them with the
+          share of buildings that actually had complaint clusters. A group estimated near 60% should
+          have an observed rate near 60%.</p>
+        <div class="about-pair">
+          <article class="about-note"><h3>Winter risk</h3>
+            <p>Estimates whether a building will have at least one complaint cluster over the season,
+              using information available at its start. This is the estimate used to color the risk map.</p></article>
+          <article class="about-note"><h3>Cold-day risk</h3>
+            <p>Estimates the shorter 48-hour outcome around freezing weather, with recent complaints
+              and weather included. It answers a different question, so its percentage can differ.</p></article>
+        </div>
+        <p>For season risk, we fit the calibration adjustment on half the 2025–26 building records
+          and checked it on the other half. Daily calibration uses a sample from the full ranking
+          population, because sampling training examples changes the apparent complaint rate.
+          Calibration checks are separate from the ranking tests.</p>
+        {% if calibration_bins %}
+        <details class="about-details">
+          <summary>See the calibration table used by this website</summary>
+          <div>
+            <p>The daily calibrator uses 142,000 score/outcome pairs: 2,000 buildings sampled on each
+              of the 71 test days. Those 2025–26 outcomes help fit the calibration adjustment, so the
+              ranking holdout and the calibration protocol have different roles. A raw training score
+              is not a calibrated probability.</p>
+            <p>This table comes from the same published data as the building page’s reliability table.
+              It is not a copied table from an older model report. The observed share counts the
+              complaint-cluster outcome, not a confirmed violation.</p>
+            <div class="about-table-wrap" id="about-reliability" role="region" aria-label="Published season-risk calibration" tabindex="0">
+              <table class="about-table about-numbers">
+                <caption>Published season-risk calibration{% if about_snapshot.get('built_at') %} · data build {{ about_snapshot.built_at[:10] }}{% endif %}</caption>
+                <thead><tr><th scope="col">Risk group</th><th scope="col">Buildings</th><th scope="col">Mean prediction</th><th scope="col">Observed share</th></tr></thead>
+                <tbody>{% for row in calibration_bins %}<tr><th scope="row">{{ row.label }}</th>
+                  <td>{{ '{:,}'.format(row.buildings) }}</td><td>{{ '%.1f'|format(row.predicted) }}%</td>
+                  <td>{{ '%.1f'|format(row.observed) }}%</td></tr>{% endfor %}</tbody>
+              </table>
+            </div>
+            <p>Group averages can differ by several percentage points. Calibration is a measured
+              check, not proof that any one building’s outcome is known.</p>
+          </div>
+        </details>
+        {% endif %}
+        <aside class="about-note">
+          <h3>Why we show bands</h3>
+          <p>Displayed building probabilities are capped at 99% and shown as approximate bands from
+            20% upward. These bands keep the display from suggesting too much precision. They are
+            <strong>not</strong> a measured confidence interval for an individual building.</p>
+        </aside>
+      </section>
+
+      <section id="ibm-z" class="help-section about-section">
+        <p class="help-eyebrow">07 / Engineering</p>
+        <h2>What we ran on IBM Z.</h2>
+        <p>The data pipeline, model training, alternative-model experiments and inspection simulation
+          ran on the team’s IBM LinuxONE environment. We also benchmarked IBM Snap ML on the same
+          s390x machine to measure how quickly a model could score buildings.</p>
+        <div class="about-benchmark">
+          <p class="about-result-label">Snap ML batch-scoring benchmark · 3-core guest</p>
+          <p><strong>481,356</strong> <span>building predictions per second</span></p>
+          <p class="help-small">A separate benchmark model, not a website load-time measurement.
+            This result uses Snap ML’s CPU tree engine; it does not demonstrate Telum accelerator offload.</p>
+        </div>
+        <details class="about-details">
+          <summary>Benchmark comparison, hardware checks and publication steps</summary>
+          <div>
+            <div class="about-table-wrap" role="region" aria-label="CPU scoring benchmarks" tabindex="0">
+              <table class="about-table about-numbers">
+                <caption>Measured on the same 3-core s390x guest</caption>
+                <thead><tr><th scope="col">Engine</th><th scope="col">Building scores / second</th><th scope="col">p99 single-row latency</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row">XGBoost</th><td>358,629</td><td>0.71 ms</td></tr>
+                  <tr><th scope="row">Snap ML benchmark twin</th><td>481,356</td><td>0.51 ms</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Snap ML’s benchmark twin was trained natively with 200 rounds and depth 6. Missing
+              values were imputed to −1 for that engine. This tests serving speed; it is not a new
+              accuracy result for the XGBoost deployment model.</p>
+            <p>The team also benchmarked hardware-assisted compression on the 361 MB complaint extract:
+              2,077 MB/s versus 33 MB/s with that acceleration disabled. The AES-256 file benchmark
+              measured 728 MB/s versus 106 MB/s without the relevant CPU instructions. These are
+              separate hardware measurements, not evidence of tree-model accelerator offload.</p>
+            <p>After evaluation, we refit the deployment model, export calibrated building scores,
+              and run the asset builder to produce the small public files the site reads. Model
+              exchange uses portable JSON rather than moving Python pickles between laptop and mainframe.</p>
+            <ol class="about-plain-steps">
+              <li>Prepare labels and features: <code>01_build_panel.py</code>.</li>
+              <li>Fit and evaluate: <code>02_train.py</code>, <code>03_evaluate.py</code>,
+                <code>05_backtest.py</code> and <code>07_spell_eval.py</code>.</li>
+              <li>Generate deployment and winter scores: <code>06_final_scores.py</code>
+                and <code>09_season_risk.py</code>.</li>
+              <li>Package the website’s public data: <code>web/build_assets.py</code>.</li>
+            </ol>
+          </div>
+        </details>
+        <p>Heavy processing stays on LinuxONE. The public Vercel site serves precomputed building
+          estimates and maps, while account and monitoring features connect to backend services.
+          The replay lets us demonstrate how incoming complaints can update a building’s priority.</p>
+      </section>
+
+      <section id="help-chat" class="help-section about-section">
+        <p class="help-eyebrow">08 / The help assistant</p>
+        <h2>How the models and the chat fit together.</h2>
+        <p>The prediction training above uses structured records and boosted trees. The help assistant
+          uses a different process. Our complaint extract contains categories and flags, not narrative
+          text; we did not fine-tune a language model on complaint stories.</p>
+        <ol class="about-process about-chat-process">
+          <li><h3>Match common wording locally</h3><p>The browser searches our
+            {{ guide_bootstrap['items']|length }} written help topics using keywords, related words and
+            typo handling. This works without a language-model connection.</p></li>
+          <li><h3>Use an existing LLM for an unfamiliar question, if configured</h3>
+            <p>The optional server connection asks a pretrained model to classify the question into a
+              known topic. It receives the current question and, when relevant, the previous topic ID;
+              it does not receive the whole chat or account records.</p></li>
+          <li><h3>Offer choices when the meaning is unclear</h3><p>The assistant can show several
+            “Did you mean…” options. A provider suggestion is offered for the visitor to choose,
+            rather than being presented as a new factual answer.</p></li>
+          <li><h3>Show the written answer and its page links</h3><p>The selected topic loads an answer
+            from the help library. Building risk still comes from the prediction pipeline; the LLM
+            does not generate a building score or perform account actions.</p></li>
+        </ol>
+        <details class="about-details">
+          <summary>The LLM response contract and fallback</summary>
+          <div>
+            <p>The prompt asks for a topic identifier, not a free-form answer. Its JSON schema permits
+              only known topic IDs or “unknown.” For example:</p>
+            <pre class="about-code"><code>{ "topic": "inspector" }</code></pre>
+            <p>Building IDs are removed before an optional provider call, and common private-input
+              patterns are rejected. If the provider is unavailable or returns an invalid topic, the
+              chat falls back to the local help library. The site does not store the conversation.</p>
+          </div>
+        </details>
+      </section>
+
+      <section id="limits" class="help-section about-section">
+        <p class="help-eyebrow">09 / Limits &amp; next steps</p>
+        <h2>What this work cannot tell us yet.</h2>
+        <p>In addition to explaining our methods, it is important to discuss the limits of our data and
+          of our analysis. The first and largest limit is that our outcome is built from complaints. A
+          complaint depends on a tenant choosing to call 311, and some buildings and communities report
+          problems less often than others. A quiet record therefore does not establish that a building is
+          safe, and a model trained on complaints can only learn the failures that people reported. We
+          use confirmed violations as a second check, but those are limited by how many inspectors are
+          available.</p>
+        <p>Our coverage is also incomplete. We study buildings with three or more apartments, and we rank
+          only buildings with some complaint or violation history, so a building that is missing from
+          the map or not individually ranked should not be read as having zero risk. Some property facts
+          are current snapshots rather than historical records: ownership comes from today’s
+          registrations, so our tests on past winters inherit today’s owners. Because a BBL describes a
+          tax lot, a large complex can appear as one record and rank highly partly because its many
+          units generate many complaints.</p>
+        <p>There are limits to the analysis as well. Our tests use the weather that actually occurred as
+          a stand in for a forecast. We measured archived 24 to 48 hour forecasts at about two degrees
+          Fahrenheit of error, so live performance should be close, but it is not identical. Our final
+          test covers a single held out winter with eight cold spells, which is a small sample, and a
+          citywide result can hide differences between boroughs, building types and neighborhoods. We
+          also built a model that estimates when a building will first fail, but its estimates were not
+          reliable enough to show on this site.</p>
+        <p>Our next steps are to test the models on another winter, to audit how well they work across
+          communities, and to try the tool with the people who would use it. Those checks matter before
+          anyone uses these rankings to allocate public resources.</p>
+      </section>
+
+      <section id="open-source" class="help-section about-section">
+        <p class="help-eyebrow">10 / The team &amp; the record</p>
+        <h2>Built by NYU Tingineers.</h2>
+        <p>We built HeatAhead during the IBM Z Datathon in October 2026. The work spans data cleaning,
+          weather and building analysis, model training, evaluation, backend services and the website.</p>
+        <p>This page draws on the team’s October 18 complete model report, checked against the
+          training code and published website data. That report also covers the feature removal and
+          tuning experiments, which finished on October 18.</p>
+        <p>Our project record includes the feature pipeline, training scripts, model comparisons,
+          statistical checks and deployment instructions. Model artifacts use portable JSON for exchange
+          between machines. Raw extracts, credentials and resident-level records are excluded from the
+          website package. Source is available on request while the team finalizes the license.</p>
+        <p>Questions about the method, a possible mistake, or working together?
+          Email <a href="mailto:heataheadnyc@gmail.com">heataheadnyc@gmail.com</a>.</p>
+        <p class="help-small">HeatAhead is an independent datathon project, not an NYC311 or HPD service.
+          Method notes updated October 18, 2026.</p>
+      </section>
     </div>
-    <p class="help-small">Built with Python, XGBoost, scikit-learn, Snap ML, Flask and deck.gl — running on
-      IBM LinuxONE (s390x) and Vercel. HeatAhead is an independent project, not NYC311 or an HPD service.</p>
-  </section>
+  </div>
 </div>
 {% endblock %}

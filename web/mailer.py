@@ -40,6 +40,11 @@ def make_msg(to, subject, body):
     return msg
 
 
+def configured():
+    """True when messages really leave this machine; without SMTP_HOST they are only logged."""
+    return bool(os.environ.get("SMTP_HOST"))
+
+
 def send(msg, dry=False):
     """Send (SMTP env) or log the full message. Returns True on success."""
     if dry:
@@ -62,6 +67,20 @@ def send(msg, dry=False):
         return False
 
 
+def sign_in_email(email, link):
+    """T14 passwordless sign-in: the link is signed, one-use and 15 minutes."""
+    body = "\n".join([
+        "Click this link to sign in to HeatAhead:",
+        "",
+        link,
+        "",
+        "The link works once and expires in 15 minutes.",
+        "If you did not request it, you can ignore this email - nothing happens",
+        "without the link, and no password exists on your account.",
+    ])
+    return make_msg(email, "Your HeatAhead sign-in link", body)
+
+
 def band(p):
     """Display rule: exact below 20%, a band at 20% and up, never above 99%."""
     p = min(p, 0.99)
@@ -71,8 +90,9 @@ def band(p):
             f"(roughly {min(99, round(p * 20) * 5)}%)")
 
 
-def welcome_email(email, role, bbl=None, p_season=None):
-    lines = [f"You're signed up for HeatAhead alerts as a {role}.", ""]
+def welcome_email(email, role=None, bbl=None, p_season=None):
+    """`role` is accepted for older callers and ignored: there is one account type (T14)."""
+    lines = ["You're signed up for HeatAhead heat-risk alerts.", ""]
     if bbl and p_season is not None:
         pct = band(p_season)
         lines += [f"Your building (BBL {bbl}) has a {pct} modeled chance of at "

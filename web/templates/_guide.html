@@ -5,15 +5,50 @@
 <section id="hg-dialog" class="hg-dialog" role="dialog" aria-modal="false" aria-labelledby="hg-title" hidden>
   <header class="hg-header"><div><h2 id="hg-title">Ask HeatAhead</h2><p id="hg-mode">Help with the site</p></div>
     <button id="hg-close" class="hg-icon-button" type="button" aria-label="Close site guide">×</button></header>
-  <p class="hg-intro">Ask a question or choose one below.</p>
-  <div id="hg-log" class="hg-log" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversation with the HeatAhead guide"></div>
+  <div class="hg-tabs" role="tablist" aria-label="Help options">
+    <button type="button" role="tab" id="hg-tab-chat" aria-controls="hg-chat" aria-selected="true">Ask a question</button>
+    <button type="button" role="tab" id="hg-tab-browse" aria-controls="hg-browser" aria-selected="false" tabindex="-1">Browse questions</button>
+    <button type="button" role="tab" id="hg-tab-guide" aria-controls="hg-guide" aria-selected="false" tabindex="-1">How to use</button>
+  </div>
+  <div id="hg-chat" class="hg-chat" role="tabpanel" aria-labelledby="hg-tab-chat">
+    <p id="hg-intro" class="hg-intro">Not sure how to word it? Try a few words. We'll suggest close matches.</p>
+    <div id="hg-log" class="hg-log" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversation with the HeatAhead guide"></div>
+    <form id="hg-form" class="hg-form">
+      <label for="hg-input">What do you need help with?</label>
+      <div class="hg-input-row"><input id="hg-input" type="text" maxlength="400" autocomplete="off" placeholder="How can I check my building?">
+        <button id="hg-send" type="submit" aria-label="Ask your question">Ask</button></div>
+    </form>
+    <p id="hg-privacy" class="hg-privacy">Please leave out passwords, email addresses, phone numbers and apartment numbers.</p>
+  </div>
+  <div id="hg-browser" class="hg-browser" role="tabpanel" aria-labelledby="hg-tab-browse" hidden>
+    <div class="hg-search-tools">
+      <label for="hg-search">Find a help question</label>
+      <input id="hg-search" type="search" maxlength="120" autocomplete="off" placeholder="Try ‘map’, ‘emails’ or ‘sign in’">
+      <label for="hg-category">Topic</label>
+      <select id="hg-category"><option value="all">All topics</option>
+        {% for category in guide_bootstrap['items'] | map(attribute='category') | unique %}<option value="{{ category }}">{{ category }}</option>{% endfor %}
+      </select>
+      <p id="hg-count" class="hg-count" role="status" aria-live="polite"></p>
+    </div>
+    <div class="hg-question-list">
+      <p id="hg-empty" hidden>No close matches. Try fewer words or choose All topics.</p>
+      {% for category in guide_bootstrap['items'] | map(attribute='category') | unique %}
+      <section data-guide-category="{{ category }}"><h3>{{ category }}</h3>
+        {% for item in guide_bootstrap['items'] if item.category == category %}
+          <button type="button" data-guide-question="{{ item.id }}">{{ item.question }}</button>
+        {% endfor %}
+      </section>
+      {% endfor %}
+    </div>
+  </div>
+  <div id="hg-guide" class="hg-walkthrough hg-help-guide" role="tabpanel" aria-labelledby="hg-tab-guide" tabindex="-1" hidden>{% include "_guide_walkthrough.html" %}</div>
   <p id="hg-status" class="hg-status" role="status" aria-live="polite"></p>
-  <form id="hg-form" class="hg-form">
-    <label for="hg-input">What do you need help with?</label>
-    <div class="hg-input-row"><input id="hg-input" type="text" maxlength="400" autocomplete="off" placeholder="How can I check my building?">
-      <button id="hg-send" type="submit" aria-label="Ask your question">Ask</button></div>
-  </form>
-  <p id="hg-privacy" class="hg-privacy">Please leave out passwords, email addresses, phone numbers and apartment numbers.</p>
-  <div class="hg-footer"><a href="/faq">All FAQs</a><a href="/learn-more">Learn more</a><button id="hg-clear" type="button">Clear chat</button></div>
+  <div class="hg-footer"><button id="hg-clear" type="button">Clear chat</button></div>
 </section>
 <script type="application/json" id="hg-content">{{ guide_bootstrap | tojson }}</script>
+
+<noscript><section class="hg-nojs hg-help-guide"><h2>HeatAhead help</h2>
+  <p>JavaScript is off, so the chat cannot open. You can read the guides and answers below.</p>
+  {% with walk_id_prefix='hg-nojs' %}{% include "_guide_walkthrough.html" %}{% endwith %}
+  {% for item in guide_bootstrap['items'] %}<details class="hg-guide-section" id="help-answer-{{ item.id }}"><summary>{{ item.question }}</summary><p>{{ item.answer }}</p></details>{% endfor %}
+</section></noscript>

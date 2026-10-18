@@ -33,10 +33,35 @@ touches. New model name M10; frozen numbers untouched.
 
 ## Acceptance
 
-- [ ] Hazard rows strictly respect time discipline (asserted like 01)
-- [ ] S(t) calibration within ~5pp per decile at the three horizons
-- [ ] Expected-failure-week for the top-1000: median error ≤ ~2 weeks
-- [ ] Clearly labeled where weather is climatology vs forecast
+- [x] Hazard rows strictly respect time discipline (asserted like 01: no row
+      after first failure, c_last1 == prior-season count; both asserts green)
+- [ ] S(t) calibration within ~5pp per decile at the three horizons —
+      M10 MISSED (top two deciles overconfident by 8–42pp: compounding ~240
+      daily hazards amplifies per-day overestimates; day-level isotonic can't
+      fix the product). **M10b (`model/19_hazard_recal.py`) mostly fixes it:**
+      a second isotonic mapping 1 − S(t) → realized first-failure share, fit
+      on the 2024-25 full-universe curves, brings Jan 1 / Feb 1 within the
+      bar (max |gap| 3.8 / 4.7pp) but Dec 1 decile 9 still misses at +8.0pp —
+      a residual early-season overconfidence the pooled isotonic can't see
+      (it showed in the 2024-25 in-season check too). Honestly reported in
+      the catalog; the holdout is spent, so no further iteration.
+- [ ] Expected-failure-week for the top-1000: median error ≤ ~2 weeks —
+      **MISSED: 11.1 weeks (M10), 10.0 weeks after M10b recalibration**
+      (449 of the top-1000 failed). Timing discrimination is real (C-index
+      0.871 / 0.869 recalibrated) but absolute timing is not shippable.
+- [x] Clearly labeled where weather is climatology vs forecast (observed
+      throughout the backtest, stated in the script output and catalog; no
+      site chart shipped — the stretch goal is dropped with the miss)
+
+**Built + evaluated 2026-10-18 (trained on the LinuxONE guest).** Catalog
+entry M10 has the full calibration table; outputs in `model/out/`
+(`heat_model_hazard.json`, `hazard_eval.csv`, `expected_failure_week.csv`).
+**M10b recalibration added 2026-10-18** (`model/19_hazard_recal.py` →
+`hazard_recal_map.csv`, `hazard_eval_recal.csv`,
+`expected_failure_week_recal.csv`; run on the guest): the 8–42pp overshoot
+collapses to ≤4.7pp at Jan/Feb, Dec 1 top decile still +8.0pp, week error
+10.0w. Neither ships to the site: displayed probabilities must be calibrated
+at every horizon we'd show.
 
 **Effort ~5h (first to drop under pressure). Depends on:** panel machinery.
 **Feeds:** building page, deck's "we also know when" beat.

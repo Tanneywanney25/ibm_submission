@@ -1,186 +1,383 @@
 {% extends "base.html" %}
 {% block head %}
 <style>
-.hero p { max-width:760px; }
-.stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:.8rem; margin:1.2rem 0 1.4rem; }
-.stats .card { margin:0; padding:.9rem 1rem; }
-.stats b { display:block; font-size:1.7rem; color:var(--accent); line-height:1.2; }
-.stats span { font-size:.84rem; color:var(--muted); }
-@media (max-width:760px){ .stats { grid-template-columns:1fr 1fr; } }
-.roles { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin:.4rem 0 .9rem; }
-.roles label { border:1px solid var(--line); border-radius:8px; padding:.55rem .7rem;
-               cursor:pointer; background:var(--well); font-size:.9rem; }
-.roles label:has(input:checked) { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
-.roles input { accent-color:var(--accent); margin-right:.35rem; }
-.roles small { display:block; color:var(--muted); font-size:.78rem; margin-left:1.3rem; }
-form .row { margin:.55rem 0; } form .row input[type=email], form .row input[type=tel],
+/* hero: a bold tinted panel, the claim on the left, the measured result on the right */
+.hero { position:relative; display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr); gap:2.4rem;
+  align-items:center; padding:clamp(1.6rem,4vw,3.2rem); margin:0 0 1.6rem; border:var(--bold);
+  border-radius:28px; overflow:hidden; box-shadow:var(--shadow-card);
+  background:radial-gradient(circle at 1px 1px, rgb(7 42 32 / .09) 1.2px, transparent 0) 0 0/22px 22px, var(--accent-soft); }
+.hero::after { content:""; position:absolute; left:0; right:0; bottom:0; height:9px;
+  background:linear-gradient(90deg, var(--sky), var(--coral) 34%, var(--sun) 68%, var(--mint)); border-top:var(--bold); }
+.hero h1 { font-size:clamp(2.5rem, 6vw, 4.4rem); line-height:1.02; letter-spacing:-.045em; margin:.3rem 0 1rem; }
+.hero h1 .hl { color:var(--accent); position:relative; white-space:nowrap; }
+.hero h1 .hl::after { content:""; position:absolute; left:-.05em; right:-.05em; bottom:.06em; height:.22em;
+  background:var(--sun); z-index:-1; border-radius:4px; }
+.hero h1 .hl { z-index:0; isolation:isolate; }
+.hero .lead { font-size:1.12rem; color:#2c4a40; max-width:58ch; margin:0 0 1.4rem; }
+.hero-search { background:#fff; border:var(--bold); border-radius:18px; padding:.6rem; box-shadow:5px 5px 0 var(--ink); }
+.hero-search .ha-search input { border:0; box-shadow:none; font-size:1rem; min-height:50px;
+  padding-left:2.6rem; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23072a20' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat .85rem center; }
+.hero-search .ha-search button { min-height:50px; }
+.hero-note { font-size:.82rem; color:var(--muted); margin:.6rem .2rem 0; }
+.hero-ctas { display:flex; flex-wrap:wrap; gap:.8rem 1.2rem; align-items:center; margin-top:1.3rem; }
+.hero-ctas a.text { font-weight:700; color:var(--ink); }
+.proof { background:#fff; border:var(--bold); border-radius:22px; padding:1.4rem 1.4rem 1.2rem;
+  box-shadow:var(--shadow-elevated); transform:rotate(1.2deg); transition:transform .25s ease-out; }
+.proof:hover { transform:rotate(0) translateY(-4px); }
+.proof .eyebrow { margin-bottom:.4rem; }
+.proof-big { font-size:4.2rem; font-weight:800; letter-spacing:-.06em; line-height:1; color:var(--accent); }
+.proof-big span { font-size:1.6rem; color:var(--ink); letter-spacing:-.02em; }
+.proof p { margin:.4rem 0 1rem; font-size:.92rem; color:var(--muted); }
+.dots100 { display:grid; grid-template-columns:repeat(20, 1fr); gap:4px; }
+.dots100 i { aspect-ratio:1; border-radius:50%; background:var(--accent); border:1.5px solid var(--accent-dark); }
+.dots100 i.miss { background:#fff; border:1.5px solid #9fbdb0; }
+.proof-key { display:flex; flex-wrap:wrap; gap:.4rem 1rem; font-size:.75rem; color:var(--muted); margin:.7rem 0 0; }
+.proof-key span::before { content:""; display:inline-block; width:.65rem; height:.65rem; border-radius:50%;
+  margin-right:.35rem; vertical-align:-1px; background:var(--accent); }
+.proof-key span.miss::before { background:#fff; border:1.5px solid #9fbdb0; }
+.proof-foot { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-top:1rem; }
+.proof-foot div { background:var(--well); border:2px solid var(--ink); border-radius:12px; padding:.55rem .7rem; font-size:.78rem; color:var(--muted); line-height:1.35; }
+.proof-foot b { display:block; color:var(--ink); font-size:1.05rem; }
+@media (max-width:900px) { .hero { grid-template-columns:1fr; } .proof { transform:none; } }
+@media (max-width:520px) { .hero-search .ha-search { flex-wrap:wrap; } .hero-search .ha-search button { width:100%; } }
+
+.section-title { display:flex; align-items:flex-end; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin:3rem 0 1.2rem; }
+.section-title h2 { font-size:clamp(1.6rem, 3vw, 2.2rem); letter-spacing:-.035em; margin:0; }
+.section-title p { margin:.35rem 0 0; color:var(--muted); max-width:60ch; }
+
+form .row { margin:.65rem 0; } form .row input[type=email], form .row input[type=tel],
 form .row input[type=text] { width:100%; }
-.consent { font-size:.85rem; color:var(--muted); display:flex; gap:.5rem; align-items:flex-start; }
-.consent input { accent-color:var(--accent); margin-top:.25rem; }
+.consent { font-size:.86rem; color:var(--muted); display:flex; gap:.6rem; align-items:flex-start; }
+.consent input { margin-top:.2rem; flex:none; }
 #reg_out .err { color:var(--bad); }
-#landing { display:none; border-color:var(--accent); }
-#landing .big { margin:.2rem 0; }
-.steps { display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; }
-.steps .card { margin:0; } .steps b { color:var(--accent); }
-@media (max-width:760px){ .steps { grid-template-columns:1fr; } }
-.btnlink { display:inline-block; background:var(--accent); color:var(--on-accent); font-weight:600;
-           text-decoration:none; padding:.5rem .9rem; border-radius:7px; margin:.3rem .4rem .3rem 0; }
-.btnlink.ghost { background:transparent; color:var(--ink); border:1px solid var(--line); }
-.google-button { display:inline-flex; align-items:center; justify-content:center; gap:.7rem; background:#fff; color:#1f1f1f; border:1px solid #747775; padding:.7rem 1rem; font-weight:500; border-radius:7px; min-height:44px; }
+.google-button { display:inline-flex; align-items:center; justify-content:center; gap:.75rem; width:100%;
+  background:#fff; color:#1f1f1f; border:var(--bold); padding:.75rem 1rem; font-weight:700; font-size:.98rem;
+  border-radius:var(--radius-sm); min-height:52px; transition:transform .18s, box-shadow .18s; }
+.google-button:hover:not(:disabled) { transform:translate(-3px,-3px); box-shadow:5px 5px 0 var(--ink); }
 .google-button img { width:20px; height:20px; }
-.remember { display:flex; align-items:center; gap:.5rem; color:var(--muted); font-size:.83rem; margin:1rem 0; }
+/* a sign-in method that is not configured yet is unavailable, not "loading" */
+.google-button:disabled, .email-signin button:disabled { cursor:not-allowed; }
+.signin-or { display:flex; align-items:center; gap:.8rem; color:var(--muted); font-size:.78rem; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; margin:1.1rem 0; }
+.signin-or::before, .signin-or::after { content:""; flex:1; border-top:2px dashed var(--line); }
+.email-signin { display:flex; gap:.6rem; flex-wrap:wrap; }
+.email-signin input { flex:1; min-width:200px; }
+.remember { display:flex; align-items:center; gap:.55rem; color:var(--muted); font-size:.86rem; margin:0 0 1rem; }
 .account-email { overflow-wrap:anywhere; }
-.saved-row { border-top:1px solid var(--line); padding:.9rem 0; }
-.saved-row:first-child { border-top:0; }
+.saved-row { border-top:2px solid var(--line); padding:.95rem 0; }
+.saved-row:first-child { border-top:0; padding-top:.2rem; }
 .saved-row p { margin:.2rem 0; }
-.remove-building { background:transparent; border:1px solid var(--line); color:var(--muted); font-size:.8rem; padding:.35rem .6rem; }
-.saved-actions { display:flex; gap:.7rem; align-items:center; flex-wrap:wrap; margin-top:.5rem; }
+.remove-building { background:#fff; border:2px solid var(--ink); color:var(--ink); font-size:.78rem; font-weight:700;
+  padding:.35rem .7rem; border-radius:999px; }
+.remove-building:hover { background:var(--coral-soft); }
+.saved-actions { display:flex; gap:.8rem; align-items:center; flex-wrap:wrap; margin-top:.5rem; }
+.saved-actions a { font-weight:700; }
+.acct-head { display:flex; align-items:center; gap:.8rem; margin-bottom:.4rem; }
+.acct-head .badge { width:46px; height:46px; flex:none; border-radius:14px; border:var(--bold); display:grid; place-items:center; background:var(--sun); }
+.acct-head h2 { margin:0; }
+.fine { font-size:.8rem; color:var(--muted); }
+.role-list { display:grid; gap:.7rem; margin:.4rem 0 1rem; }
+.role-list div { display:grid; grid-template-columns:7.2rem 1fr; gap:.8rem; align-items:start; font-size:.9rem; color:var(--muted); }
+.role-list b { display:inline-block; text-align:center; color:var(--ink); border:2px solid var(--ink); border-radius:999px; padding:.12rem .6rem; font-size:.8rem; }
+.role-list div:nth-child(1) b { background:var(--accent-soft); } .role-list div:nth-child(2) b { background:var(--sun-soft); }
+.role-list div:nth-child(3) b { background:var(--sky-soft); } .role-list div:nth-child(4) b { background:var(--coral-soft); }
+.callout-num { background:var(--well); border:2px solid var(--ink); border-radius:14px; padding:.8rem 1rem; margin:0; }
+.callout-num b.accent { font-weight:800; }
+
+.steps { display:grid; grid-template-columns:repeat(3, 1fr); gap:1.2rem; }
+.steps .card { margin:0; }
+.steps .num { display:grid; place-items:center; width:48px; height:48px; border:var(--bold); border-radius:14px;
+  font-weight:800; font-size:1.25rem; margin-bottom:.9rem; box-shadow:3px 3px 0 var(--ink); }
+.steps .card:nth-child(1) .num { background:var(--sky); } .steps .card:nth-child(2) .num { background:var(--sun); }
+.steps .card:nth-child(3) .num { background:var(--mint); }
+.steps h3 { margin:0 0 .4rem; font-size:1.2rem; }
+.steps p { margin:0; color:var(--muted); }
+@media (max-width:820px) { .steps { grid-template-columns:1fr; } }
+
+.band { display:flex; align-items:center; justify-content:space-between; gap:1.2rem 2rem; flex-wrap:wrap;
+  margin:3rem 0 0; padding:1.8rem 2rem; background:var(--ink); color:#e3f2eb; border-radius:24px;
+  border:var(--bold); box-shadow:6px 6px 0 var(--accent); }
+.band h2 { color:#fff; margin:0 0 .3rem; font-size:1.55rem; }
+.band p { margin:0; color:#b6d3c7; max-width:62ch; }
+.band .btn { flex:none; }
+.field-hint { font-size:.8rem; margin-top:.35rem; color:var(--muted); min-height:1rem; }
+.field-hint.warn { color:var(--bad); font-weight:600; }
+input[aria-invalid=true] { border-color:var(--bad); }
+.profile-section { border-top:2px dashed var(--line); margin-top:1.2rem; padding-top:1rem; }
+.profile-section h3 { margin:.1rem 0 .5rem; }
+.dash-head { display:flex; justify-content:space-between; align-items:center; gap:.6rem; }
+.dash-head h2 { margin:0; }
+.dash-head a { font-size:.85rem; font-weight:700; }
+.panel { border:2px solid var(--ink); border-radius:16px; padding:1rem 1.1rem; margin-top:1rem; }
+.panel h3 { margin:.1rem 0 .5rem; }
+#panel-buildings { background:var(--accent-soft); } #panel-audit { background:var(--sun-soft); }
+#panel-queue { background:var(--sky-soft); } #panel-stats { background:var(--coral-soft); }
+.panel .btnlink { min-height:40px; font-size:.78rem; }
+.panel-picks { display:grid; grid-template-columns:1fr 1fr; gap:.55rem; margin:.6rem 0; }
+.panel-picks label { font-size:.9rem; font-weight:700; border:2px solid #9fbdb0; border-radius:14px;
+  padding:.6rem .75rem; background:#fff; transition:border-color .15s, background-color .15s, box-shadow .15s; }
+.panel-picks label:hover { border-color:var(--ink); }
+.panel-picks label:has(input:checked) { border-color:var(--ink); background:var(--accent-soft); box-shadow:3px 3px 0 var(--ink); }
+.panel-picks input { margin-right:.45rem; vertical-align:-2px; }
+#portfolio table { width:100%; font-size:.86rem; background:#fff; border-radius:10px; }
+@media (max-width:760px){ .panel-picks { grid-template-columns:1fr; } }
 </style>
 {% endblock %}
 {% block body %}
-<div class="hero">
-  <h1>Know before the cold hits.</h1>
-  <p class="muted">New Yorkers filed 300,000+ no-heat complaints last winter.
-  HeatAhead reads the weather forecast and ranks every residential building by its
-  chance of losing heat <em>before</em> the cold snap arrives, so inspectors can knock
-  before tenants freeze. Every number below was measured on the 2025-26 winter, which
-  the model never saw in training.</p>
-  <p><a href="/learn-more">Learn how HeatAhead works →</a> · <a href="/faq">Find an answer</a></p>
-</div>
-
-<div class="card" style="border-color:var(--accent); max-width:760px">
-  <h2 style="margin-top:0">Look up any building</h2>
-  <form data-ha-search class="ha-search" role="search" aria-label="Find a building by address">
-    <input type="search" placeholder="Type a street address — e.g. 330 E 139 St, Bronx"
-           aria-label="Search a building by street address" style="min-width:0">
-    <button type="submit">Check it</button>
-  </form>
-  <div class="ha-search-status" role="status" aria-live="polite"></div>
-  <p class="muted" style="font-size:.8rem; margin:0">Same risk, history and owner record the
-  map shows — no map needed. Building only: never type an apartment number.</p>
-</div>
-
-<div class="skyline" id="heroSky" style="height:190px; margin:.4rem 0 1.6rem"></div>
+<section class="hero">
+  <div>
+    <p class="eyebrow pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 2v20M4.9 6l14.2 12M19.1 6 4.9 18"/></svg>Winter 2026-27 · all five boroughs</p>
+    <h1>Know before <span class="hl">the cold</span> hits.</h1>
+    <p class="lead">New Yorkers filed 300,000+ no-heat complaints last winter.
+    HeatAhead reads the weather forecast and ranks every residential building by its
+    chance of losing heat <em>before</em> the cold snap arrives, so inspectors can knock
+    before tenants freeze.</p>
+    <div class="hero-search">
+      <form data-ha-search class="ha-search" role="search" aria-label="Find a building by address">
+        <input type="search" placeholder="Type a street address, e.g. 330 E 139 St, Bronx"
+               aria-label="Search a building by street address" style="min-width:0">
+        <button type="submit">Check it</button>
+      </form>
+    </div>
+    <div class="ha-search-status" role="status" aria-live="polite"></div>
+    <p class="hero-note">Same risk, history and owner record the map shows. Building only: never type an apartment number.</p>
+    <div class="hero-ctas">
+      <a class="btn ghost" href="/map">Explore the risk map</a>
+      <a class="text" href="/learn-more">How HeatAhead works →</a>
+      <a class="text" href="/?help=1" data-open-guide data-guide-browse>Find an answer →</a>
+    </div>
+  </div>
+  <aside class="proof" aria-label="86 of the top 100 flagged buildings lost heat during the cold spell">
+    <p class="eyebrow">Held-out 2025-26 winter</p>
+    <div class="proof-big">86<span> of 100</span></div>
+    <p>top-ranked buildings lost heat during the cold spell they were flagged for. The model never saw this winter in training.</p>
+    <div class="dots100" id="dots100" aria-hidden="true"></div>
+    <div class="proof-key" aria-hidden="true"><span>lost heat during the spell</span><span class="miss">did not</span></div>
+    <div class="proof-foot">
+      <div><b>99 of 100</b>lost heat at some point that winter</div>
+      <div><b>6 of 6</b>past winters beat the 14-day recency rule</div>
+    </div>
+  </aside>
+</section>
 <script>
-skyline(document.getElementById('heroSky'),
-  [[3,7,2],[2,5,0],[4,10,3],[3,6,1],[5,12,4],[2,4,0],[4,8,1],[3,9,2],
-   [2,6,0],[5,11,3],[3,5,1],[4,7,1],[2,8,0],[3,10,2],[4,6,1]], 8, 4, 6);
+document.getElementById('dots100').innerHTML =
+  Array.from({length:100}, (_, i) => i < 86 ? '<i></i>' : '<i class="miss"></i>').join('');
 </script>
 
-<div class="stats">
-  <div class="card"><b>86 of 100</b><span>top-ranked buildings lost heat during the cold spell they were flagged for</span></div>
-  <div class="card"><b>69.1%</b><span>of the top 100 failed within the exact 48 hours (best simple rule: 61.7%)</span></div>
-  <div class="card"><b>6 of 6</b><span>past winters where the model beat the 14-day recency baseline</span></div>
-  <div class="card"><b>481,356/s</b><span>buildings scored per second with Snap ML on an IBM z17 LinuxONE guest</span></div>
+<div class="stat-grid">
+  <div class="stat sun"><b>69.1%</b><span>of the top 100 failed within the exact 48 hours (best simple rule: 61.7%)</span></div>
+  <div class="stat sky"><b>96.6%</b><span>of the top 100 lost heat within 30 days of being flagged</span></div>
+  <div class="stat green"><b>6 of 6</b><span>past winters where the model beat the 14-day recency baseline</span></div>
+  <div class="stat coral"><b>481,356/s</b><span>buildings scored per second with Snap ML on an IBM z17 LinuxONE guest</span></div>
 </div>
 
+<div class="section-title">
+  <div><p class="eyebrow">Your account</p>
+    <h2>Save a building. Get one email per cold spell.</h2>
+    <p>One account for everyone: choose the dashboard panels you want. Browsing never needs an account.</p></div>
+</div>
 <div class="grid2">
   <div class="card" id="account">
     {% if account_user %}
-    <h2>Your account</h2>
-    <p class="muted account-email">Signed in with Google as <b>{{ account_user.email }}</b>.</p>
-    <h3>Register a building</h3>
-    <form id="reg" onsubmit="return register(event)" novalidate>
-      <div class="roles" id="roles">
-        <label><input type="radio" name="role" value="tenant" checked>Tenant
-          <small>your building's winter risk and cold-snap alerts</small></label>
-        <label><input type="radio" name="role" value="landlord">Landlord
-          <small>your buildings, your portfolio, inspection nudges</small></label>
-        <label><input type="radio" name="role" value="government">Government
-          <small>the ranked inspection queue and CSV export</small></label>
-        <label><input type="radio" name="role" value="viewer">Viewer
-          <small>the citywide risk map, no building alerts</small></label>
+    <div class="acct-head"><span class="badge" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#072a20" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg></span><h2 id="profile">Your profile</h2></div>
+    <p class="muted account-email">Signed in
+    {{- ' with Google' if not account_user.sub.startswith('email:') else ' with an email link' }} as
+    <b>{{ account_user.email }}</b>.</p>
+
+    <form id="panel_prefs" class="profile-section" novalidate>
+      <h3>What your dashboard shows</h3>
+      <p class="muted" style="font-size:.85rem; margin:.2rem 0">One account for everyone —
+      turn on the panels you want. Changes save as you click.</p>
+      <div class="panel-picks">
+        <label><input type="checkbox" data-panel="buildings">My buildings &amp; alerts</label>
+        <label><input type="checkbox" data-panel="audit">Landlord self-audit tools</label>
+        <label><input type="checkbox" data-panel="queue">Live monitoring</label>
+        <label><input type="checkbox" data-panel="stats">City-wide stats</label>
       </div>
-      <div class="row"><input id="email" type="email" value="{{ account_user.email }}" aria-label="Google account email" readonly></div>
-      <div class="row"><input id="phone" type="tel" placeholder="phone (optional)" autocomplete="tel"></div>
-      <div class="row" id="addr_row"><input id="address" type="text"
+      <p id="panels_status" class="muted" role="status" aria-live="polite"
+         style="font-size:.83rem; min-height:1rem; margin:0"></p>
+    </form>
+
+    <form id="reg" class="profile-section" onsubmit="return register(event)" novalidate>
+      <h3>Save a building</h3>
+      <div class="row"><input id="address" type="text" data-ha-suggest
         placeholder="building street address, e.g. 330 E 139 St, Bronx (or a 10-digit BBL)"
-        autocomplete="street-address">
-        <div class="muted" style="font-size:.8rem; margin-top:.3rem">Building only: leave
-        out your apartment number. We never store or show one.</div></div>
-      <div class="row consent" id="consent_row"><input type="checkbox" id="consent" checked>
+        autocomplete="street-address" aria-describedby="address_hint"
+        aria-label="Building street address or 10-digit BBL">
+        <div class="field-hint" id="address_hint">Building only: leave out your apartment
+        number. We never store or show one.</div></div>
+      <div class="row"><input id="phone" type="tel" placeholder="phone (optional)"
+        autocomplete="tel" aria-describedby="phone_hint" aria-label="Phone (optional)">
+        <div class="field-hint" id="phone_hint"></div></div>
+      <div class="row consent"><input type="checkbox" id="consent" checked>
         <label for="consent">Email me when a forecast cold snap puts this building at risk:
         one email per cold spell, unsubscribe any time.</label></div>
       <div class="row"><button id="submit">Save to my account</button></div>
+      <div id="reg_out" class="muted" role="status" aria-live="polite"></div>
     </form>
-    <div id="reg_out" class="muted"></div>
     <p class="muted" style="font-size:.8rem; margin-bottom:0">Saved buildings return when you
-    sign in again. You can stop alerts from your account or any alert email.</p>
+    sign in again. Stop alerts for one building from your dashboard, or
+    <a href="/unsubscribe">stop all alerts</a>.</p>
     {% else %}
-    <h2>Welcome to HeatAhead</h2>
-    <p class="muted">Sign in with Google to save your building, manage heat alerts, and
-    pick up where you left off.</p>
+    <div class="acct-head"><span class="badge" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#072a20" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><h2>Welcome to HeatAhead</h2></div>
+    <p class="muted">Sign in to save your building, manage heat alerts, and
+    pick up where you left off — with Google, or with just your email.</p>
     <form action="/api/auth/google" method="get">
       <input type="hidden" name="remember" value="0">
       <label class="remember"><input type="checkbox" name="remember" value="1" checked>
         Keep me signed in for 30 days on this device</label>
-      <button class="google-button" type="submit" {% if not google_ready %}disabled{% endif %}>
+      <button class="google-button" type="submit" {% if not google_ready %}disabled
+        title="Google sign-in is not available yet"{% endif %}>
         <img src="/static/google-g.png" alt="" width="20" height="20">Continue with Google
       </button>
     </form>
-    {% if not google_ready %}<p class="muted" role="status">Google sign-in is being set up.
-    You can explore the map and check a building while we finish.</p>{% endif %}
-    <p class="muted" style="font-size:.8rem">New here? Your first Google sign-in creates
-    your account. Returning? Use the same button. HeatAhead never receives your Google password.</p>
+    {% if not google_ready %}<p class="muted" role="status">Google sign-in is not available
+    yet{% if email_ready %} — use the email link below instead{% endif %}. You can explore
+    the map and check a building without an account.</p>{% endif %}
+    <div class="signin-or" aria-hidden="true">or</div>
+    <form class="email-signin" id="email_signin_form" novalidate>
+      <input id="email_signin" type="email" placeholder="you@example.com"
+             autocomplete="email" aria-label="Email address for a sign-in link"
+             {% if not email_ready %}disabled{% endif %}>
+      <button type="submit" {% if not email_ready %}disabled
+        title="Email sign-in is not available yet"{% endif %}>Email me a sign-in link</button>
+    </form>
+    <p id="email_signin_status" class="muted" role="status" aria-live="polite"
+       style="font-size:.85rem; min-height:1.1rem">{% if not email_ready %}Email sign-in is
+       being set up. You can explore the map and check a building while we finish.{% endif %}</p>
+    <p class="muted" style="font-size:.8rem">New here? Your first sign-in creates your
+    account; the same button signs you back in. There are no passwords: HeatAhead never
+    receives your Google password, and an email sign-in link works once for 15 minutes.</p>
     <a class="btnlink ghost" href="/map">Explore the risk map</a>
     {% endif %}
   </div>
 
   <div>
     {% if account_user %}
-    <div class="card" id="saved-account">
-      <h2>Your saved buildings</h2>
-      <div id="saved-buildings" class="muted" role="status">Loading your account…</div>
-      <p id="saved-status" class="muted" style="font-size:.83rem"></p>
+    <div class="card" id="dashboard">
+      <div class="dash-head">
+        <h2>Your dashboard</h2>
+        <a href="#profile" style="font-size:.85rem">Choose panels</a>
+      </div>
+      <p id="panels_empty" class="muted" hidden>No panels are on. Turn some on in
+      <a href="#profile">your profile</a>.</p>
+      <div class="panel" id="panel-buildings" hidden>
+        <h3>Your saved buildings</h3>
+        <div id="saved-buildings" class="muted" role="status">Loading your account…</div>
+        <p id="saved-status" class="muted" style="font-size:.83rem"></p>
+      </div>
+      <div class="panel" id="panel-audit" hidden>
+        <h3>Landlord tools</h3>
+        <div id="portfolio" class="muted" role="status">Loading your portfolio…</div>
+        <p class="muted" style="font-size:.8rem; margin-bottom:0">Buildings registered to you plus
+        the rest of each registered owner's portfolio, riskiest first. Run the self-audit before
+        the first cold spell.</p>
+      </div>
+      <div class="panel" id="panel-queue" hidden><h3>Live monitoring</h3><p class="muted">Review published complaints or explore the historical model replay.</p><a class="btnlink" href="/monitor">Open live monitor</a></div>
+      <div class="panel" id="panel-stats" hidden>
+        <h3>City-wide picture</h3>
+        <p class="muted" style="font-size:.9rem"><b class="accent">{{ '{:,}'.format(site_meta.ranked) }}</b>
+        buildings ranked for this winter{% if site_meta.median_text %} · median winter risk
+        <b>{{ site_meta.median_text }}</b>{% endif %}.</p>
+        <a class="btnlink" href="/map">Open the risk map</a>
+        <a class="btnlink ghost" href="/building">Look up a building</a>
+      </div>
     </div>
     {% endif %}
-    <div class="card" id="landing"></div>
     <div class="card" id="whatyouget">
-      <h2>What each role gets</h2>
-      <table>
-        <tr><td><b>Tenant</b></td><td class="muted">your building's chance of losing heat this
-          winter, its complaint and violation history, and one alert per forecast cold spell</td></tr>
-        <tr><td><b>Landlord</b></td><td class="muted">every building you register plus the rest of
-          the registered owner's portfolio, ranked by risk, with inspection nudges</td></tr>
-        <tr><td><b>Government</b></td><td class="muted">the live inspector queue during a cold snap
-          and a top-500 CSV for routing inspectors</td></tr>
-        <tr><td><b>Viewer</b></td><td class="muted">the public citywide risk map</td></tr>
-      </table>
-      <p style="margin-bottom:0">Of the 100 buildings our model flags before a cold snap,
+      <h2>Dashboard panels</h2>
+      <div class="role-list">
+        <div><b>My buildings</b><span>each saved building's chance of losing heat this winter, its
+          complaint and violation history, and one alert per forecast cold spell</span></div>
+        <div><b>Landlord tools</b><span>every building you register plus the rest of the registered
+          owner's portfolio, ranked by risk, with pre-winter self-audit drafts</span></div>
+        <div><b>Inspection</b><span>the live inspector queue during a cold snap and a top-500 CSV
+          for routing inspectors</span></div>
+        <div><b>City stats</b><span>the public citywide risk map and the headline numbers</span></div>
+      </div>
+      <p class="callout-num">Of the 100 buildings our model flags before a cold snap,
       <b class="accent">86 lose heat during that snap</b> and
       <b class="accent">99 lose heat that winter</b>.</p>
     </div>
   </div>
 </div>
 
-<h2 style="margin-top:1.4rem">How it works</h2>
-<div class="steps">
-  <div class="card"><b>1. Detect.</b> <span class="muted">An hourly job on the LinuxONE
-    instance reads the Open-Meteo 7-day forecast and looks for two or more freezing days in a row.</span></div>
-  <div class="card"><b>2. Decide.</b> <span class="muted">The model re-scores every building under
-    the forecast temperatures (the whole city in about a third of a second on the s390x guest) and
-    ranks them for inspection.</span></div>
-  <div class="card"><b>3. Respond.</b> <span class="muted">Registered tenants and landlords over the
-    calibrated threshold get one email for that spell; inspectors get the ranked queue.</span></div>
+<div class="section-title">
+  <div><p class="eyebrow">How it works</p><h2>Forecast in. Ranked list out.</h2></div>
+  <a class="btn ghost sm" href="/learn-more">How to use HeatAhead</a>
 </div>
+<div class="steps">
+  <div class="card lift"><div class="num">1</div><h3>Detect</h3><p>An hourly job on the LinuxONE
+    instance reads the Open-Meteo 7-day forecast and looks for two or more freezing days in a row.</p></div>
+  <div class="card lift"><div class="num">2</div><h3>Decide</h3><p>The model re-scores every building under
+    the forecast temperatures (the whole city in about a third of a second on the s390x guest) and
+    ranks them for inspection.</p></div>
+  <div class="card lift"><div class="num">3</div><h3>Respond</h3><p>People who saved a building over the
+    calibrated threshold get one email for that spell; inspectors get the ranked queue.</p></div>
+</div>
+
+<section class="card newsletter-card" id="newsletter" aria-labelledby="newsletter-title">
+  <h2 id="newsletter-title">Get HeatAhead updates</h2>
+  <p>Hear about new features and what we're working on. These are project updates, separate from your building's heat alerts.</p>
+  <form id="newsletter-form" action="/api/newsletter/subscribe" method="post">
+    <div class="newsletter-fields">
+      <label for="newsletter-name"><span>Name <span class="muted">(optional)</span></span>
+        <input id="newsletter-name" name="name" autocomplete="name" maxlength="80"></label>
+      <label for="newsletter-email">Email address
+        <input id="newsletter-email" name="email" type="email" autocomplete="email" maxlength="254" required></label>
+      <button type="submit">Subscribe</button>
+    </div>
+    <input type="hidden" name="consent" value="yes">
+    <div hidden aria-hidden="true"><label>Leave this empty<input name="website" tabindex="-1" autocomplete="off"></label></div>
+    <p class="newsletter-note">By choosing Subscribe, you're asking for project-update emails. We'll send a confirmation link before you join. Unsubscribe any time. <a href="/privacy#updates">How we use your email</a></p>
+    <p class="newsletter-status" id="newsletter-status" role="status" aria-live="polite"></p>
+  </form>
+</section>
+
+<section class="band" aria-labelledby="band-title">
+  <div><h2 id="band-title">No heat right now?</h2>
+    <p>Don't wait for a score or an alert. Tell your landlord, then report it to NYC311 with your
+    name and apartment number so HPD can inspect.</p></div>
+  <a class="btn sun" href="https://portal.311.nyc.gov/article/?kanumber=KA-01036" target="_blank" rel="noopener noreferrer">Report to NYC311 ↗</a>
+</section>
 
 <script>
 const $ = id => document.getElementById(id);
 const signedInAccount = {{ account_user | tojson }};
 const accountCSRF = {{ account_csrf | tojson }};
-const roleOf = () => document.querySelector('input[name=role]:checked').value;
-let roleTouched = false;
+// T14: the dashboard is a set of panels. A stored choice (account first, this
+// device as the LITE fallback) wins; otherwise registrations pick the defaults.
+const PANEL_ORDER = {{ panel_order | tojson }};
+const ROLE_PANELS = {{ role_panels | tojson }};
+let accountRegistrations = [];
+let panelsCustomized = false;
 let accountLoadVersion = 0;
-function syncRole(){
-  if (!$('reg')) return;
-  const needs = ['tenant', 'landlord'].includes(roleOf());
-  $('addr_row').style.display = needs ? '' : 'none';
-  $('consent_row').style.display = needs ? '' : 'none';
+
+// Instant inline validation: the same rules the server applies, said while typing.
+const EMAIL_OK = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const UNIT_TYPED = /(#\s*\w|\b(apt|apartment|unit)\b)/i;
+const ADDRESS_NOTE = 'Building only: leave out your apartment number. We never store or show one.';
+function hint(input, hintEl, message, isProblem){
+  input.setAttribute('aria-invalid', isProblem ? 'true' : 'false');
+  hintEl.textContent = message;
+  hintEl.classList.toggle('warn', !!isProblem);
 }
-document.querySelectorAll('input[name=role]').forEach(r => r.addEventListener('change', () => {
-  roleTouched = true; syncRole();
-}));
-syncRole();
+function checkAddress(){
+  const v = $('address').value.trim();
+  if (/^\d+$/.test(v) && !/^[1-5]\d{9}$/.test(v))
+    return hint($('address'), $('address_hint'), 'A BBL is 10 digits starting with the borough (1–5).', true), false;
+  if (UNIT_TYPED.test(v))
+    return hint($('address'), $('address_hint'), 'Leave out the apartment number — HeatAhead works at the building level and drops it.', false), true;
+  hint($('address'), $('address_hint'), ADDRESS_NOTE, false);
+  return true;
+}
+function checkPhone(){
+  const v = $('phone').value.trim(), digits = v.replace(/\D/g, '').length;
+  const bad = v && (digits < 7 || digits > 15);
+  hint($('phone'), $('phone_hint'), bad ? 'Phone looks wrong — leave it empty or give 7 to 15 digits.' : '', bad);
+  return !bad;
+}
+if ($('address')) { $('address').addEventListener('input', checkAddress); $('phone').addEventListener('input', checkPhone); }
 function fail(message){
   if ($('reg_out')) $('reg_out').textContent = message;
 }
@@ -194,31 +391,37 @@ async function accountResponse(response, fallback){
 async function register(e){
   e.preventDefault();
   if (!signedInAccount) return false;
-  const role = roleOf(), address = $('address').value.trim();
-  const needs = ['tenant', 'landlord'].includes(role);
-  if (needs && !address) return fail('Enter your building’s street address or 10-digit BBL.'), false;
-  if (needs && !$('consent').checked) return fail('Please confirm the alert checkbox, or choose Viewer to browse without alerts.'), false;
-  const body = {role, phone:$('phone').value.trim()};
-  if (needs) { if (/^\d{10}$/.test(address)) body.bbl = address; else body.address = address; }
+  const address = $('address').value.trim();
+  if (!address) return fail('Enter your building’s street address or 10-digit BBL.'), $('address').focus(), false;
+  if (!checkAddress()) return $('address').focus(), false;
+  if (!checkPhone()) return $('phone').focus(), false;
+  if (!$('consent').checked) return fail('Please confirm the alert checkbox: saving a building turns on its cold-snap alerts. You can browse the map and building pages without saving.'), false;
+  const body = {phone:$('phone').value.trim()};
+  const picked = $('address').dataset.bbl;
+  if (picked) body.bbl = picked;
+  else if (/^\d{10}$/.test(address)) body.bbl = address; else body.address = address;
   $('submit').disabled = true;
   $('reg_out').textContent = 'Saving to your account…';
   try {
     const response = await fetch('/api/register', {method:'POST', credentials:'same-origin',
       headers:{'Content-Type':'application/json', 'X-CSRF-Token':accountCSRF}, body:JSON.stringify(body)});
     const result = await accountResponse(response, 'Your registration could not be saved. Please try again.');
-    $('reg_out').textContent = result.already_registered ? 'Your registration is up to date.' : 'Saved to your account.';
-    await loadAccount(false);
-    if (role === 'government' || role === 'viewer') {
-      $('landing').style.display = 'block';
-      $('landing').innerHTML = role === 'government'
-        ? '<h2>Inspector view</h2><p class="muted">Explore the public inspection queue and ranked buildings.</p><a class="btnlink" href="/monitor">Open live monitor</a><a class="btnlink ghost" href="/api/queue.csv?k=500">Download top-500 CSV</a>'
-        : '<h2>Your viewer account is ready</h2><p class="muted">Explore the citywide risk map. No building alerts are enabled.</p><a class="btnlink" href="/map">Open the map</a>';
+    $('reg_out').textContent = result.already_registered ? 'That building was already saved — it is up to date.' : 'Saved to your account.';
+    $('address').value = ''; delete $('address').dataset.bbl; checkAddress();
+    if (!panelsCustomized) {
+      // keep what the user is looking at (plus their buildings) rather than letting the
+      // stored building row re-derive a narrower legacy default
+      document.querySelectorAll('#panel_prefs [data-panel]').forEach(c => {
+        c.checked = c.dataset.panel === 'buildings' || !$('panel-' + c.dataset.panel).hidden;
+      });
+      await savePanels();
     }
+    await loadAccount();
   } catch (error) { fail(error.message || 'Could not reach the account service. Please try again.'); }
   finally { $('submit').disabled = false; }
   return false;
 }
-async function loadAccount(restoreRole=true){
+async function loadAccount(){
   if (!signedInAccount || !$('saved-buildings')) return;
   const version = ++accountLoadVersion;
   const target = $('saved-buildings');
@@ -227,34 +430,54 @@ async function loadAccount(restoreRole=true){
     const result = await accountResponse(response, 'Your saved buildings could not be loaded. Please try again.');
     if (version !== accountLoadVersion) return;
     const registrations = result.registrations || [];
-    if (restoreRole && !roleTouched && !$('address').value && registrations.length) {
-      const role = registrations[0].role;
-      const input = document.querySelector('input[name=role][value="' + (['tenant','landlord','government','viewer'].includes(role) ? role : 'tenant') + '"]');
-      if (input) { input.checked = true; syncRole(); }
-    }
+    accountRegistrations = registrations;
+    if (!panelsCustomized) applyPanels(defaultPanels());
     const rows = (result.buildings || []).filter(b => b.registered && /^[1-5]\d{9}$/.test(String(b.bbl)));
     if (!rows.length) {
-      target.textContent = registrations.length ? 'Your account is saved. Add a building to enable building alerts.' : 'No buildings saved yet. Register one using the form.';
+      target.innerHTML = 'No buildings saved yet. <a href="#reg">Save one in your profile</a> to get its cold-snap alerts.';
     } else {
       target.innerHTML = rows.map(b => {
-        const role = (registrations.find(r => String(r.bbl) === String(b.bbl)) || {}).role;
-        const landlord = role === 'landlord';
-        const link = '/building?bbl=' + encodeURIComponent(b.bbl) + (landlord ? '&as=landlord' : '');
+        const link = '/building?bbl=' + encodeURIComponent(b.bbl);
+        const history = b.ranked === false ? '' :
+          '<p class="muted" style="font-size:.83rem">Last season: ' + (b.c_last1 || 0) +
+          ' heat complaint(s), ' + (b.v_last1 || 0) + ' violation(s)' +
+          (b.rank ? ' · rank ' + Number(b.rank).toLocaleString() : '') + '</p>';
         return '<div class="saved-row"><b>BBL ' + esc(b.bbl) + '</b>' +
-          '<p>' + (b.ranked === false ? 'Not individually ranked' : 'Winter risk: ' + esc(fmtRisk(b.p_season))) + '</p>' +
+          '<p>' + (b.ranked === false ? 'Not individually ranked' : 'Winter risk: ' + esc(fmtRisk(b.p_season))) + '</p>' + history +
           '<div class="saved-actions"><a href="' + link + '">Open building record</a>' +
-          (landlord && b.ranked !== false ? '<a href="' + link + '#draft">Draft a self-audit</a>' : '') +
           '<button type="button" class="remove-building" data-remove-bbl="' + b.bbl + '">Stop alerts &amp; remove</button></div></div>';
       }).join('');
       target.querySelectorAll('[data-remove-bbl]').forEach(button => button.addEventListener('click', () => removeBuilding(button)));
     }
-    $('saved-status').textContent = 'These registrations are linked to your signed-in Google account.';
+    renderPortfolio(result.buildings || []);
+    $('saved-status').textContent = 'These registrations are linked to your signed-in account.';
   } catch (error) {
     if (version !== accountLoadVersion) return;
     target.textContent = error.message || 'Your saved buildings could not be loaded. Please try again.';
+    if ($('portfolio')) $('portfolio').textContent = 'Your portfolio could not be loaded right now.';
+    if (!panelsCustomized) applyPanels(defaultPanels());
     $('saved-status').innerHTML = '<button type="button" id="retry-account">Try again</button>';
-    $('retry-account').addEventListener('click', () => loadAccount(false));
+    $('retry-account').addEventListener('click', () => loadAccount());
   }
+}
+function renderPortfolio(buildings){
+  const target = $('portfolio');
+  if (!target) return;
+  const all = buildings.filter(b => /^[1-5]\d{9}$/.test(String(b.bbl)));
+  if (!all.length) {
+    target.innerHTML = 'No buildings yet. <a href="#reg">Save one</a> to see it and the rest of its registered owner’s portfolio here.';
+    return;
+  }
+  target.innerHTML = '<table><tr><th>Building</th><th>Winter risk</th><th>Last season</th><th></th></tr>' +
+    all.slice(0, 20).map(b => {
+      const link = '/building?bbl=' + encodeURIComponent(b.bbl) + '&as=landlord';
+      return '<tr><td><a href="' + link + '">BBL ' + esc(b.bbl) + '</a>' +
+        (b.registered ? '' : ' <span class="muted">(portfolio)</span>') + '</td>' +
+        '<td>' + (b.ranked === false ? '<span class="muted">not ranked</span>' : esc(fmtRisk(b.p_season))) + '</td>' +
+        '<td class="muted">' + (b.c_last1 || 0) + ' compl. · ' + (b.v_last1 || 0) + ' viol.</td>' +
+        '<td>' + (b.ranked === false ? '' : '<a href="' + link + '#draft">Self-audit</a>') + '</td></tr>';
+    }).join('') + '</table>' +
+    (all.length > 20 ? '<p class="muted" style="font-size:.8rem">Showing the 20 riskiest of ' + all.length + '.</p>' : '');
 }
 async function removeBuilding(button){
   button.disabled = true;
@@ -263,9 +486,100 @@ async function removeBuilding(button){
       headers:{'Content-Type':'application/json','X-CSRF-Token':accountCSRF},
       body:JSON.stringify({bbl:button.dataset.removeBbl})});
     await accountResponse(response, 'Your alerts could not be updated. Please try again.');
-    await loadAccount(false);
+    await loadAccount();
   } catch (error) { $('saved-status').textContent = error.message; button.disabled = false; }
 }
-if (signedInAccount) loadAccount();
+
+// T14 dashboard panels: stored choice first (account, then this device), else
+// defaults from the account's registration roles via ROLE_PANELS.
+function defaultPanels(){
+  const on = new Set();
+  accountRegistrations.forEach(r => (ROLE_PANELS[r.role] || []).forEach(p => on.add(p)));
+  if (!on.size) { on.add('buildings'); on.add('stats'); }
+  return PANEL_ORDER.filter(p => on.has(p));
+}
+function applyPanels(list){
+  PANEL_ORDER.forEach(p => { const el = $('panel-' + p); if (el) el.hidden = !list.includes(p); });
+  document.querySelectorAll('#panel_prefs [data-panel]').forEach(c => { c.checked = list.includes(c.dataset.panel); });
+  if ($('panels_empty')) $('panels_empty').hidden = list.length > 0;
+}
+function devicePanels(){
+  try {
+    const v = window.HeatAheadPrivacy?.readPanels();
+    return Array.isArray(v) ? v.filter(p => PANEL_ORDER.includes(p)) : null;
+  } catch { return null; }
+}
+async function loadPanels(){
+  if (!signedInAccount || !$('dashboard')) return;
+  let stored = null, fromAccount = false;
+  try {
+    const r = await fetch('/api/account/panels', {credentials:'same-origin', cache:'no-store'});
+    if (r.ok) { stored = (await r.json()).panels; fromAccount = Array.isArray(stored); }
+  } catch {}
+  if (!fromAccount) stored = devicePanels();
+  panelsCustomized = Array.isArray(stored);
+  applyPanels(panelsCustomized ? stored.filter(p => PANEL_ORDER.includes(p)) : defaultPanels());
+  if (panelsCustomized && !fromAccount) $('panels_status').textContent = 'Using the panel choice saved on this device.';
+}
+let panelSaveVersion = 0;
+async function savePanels(){
+  const chosen = PANEL_ORDER.filter(p => {
+    const c = document.querySelector('#panel_prefs [data-panel="' + p + '"]');
+    return c && c.checked;
+  });
+  const version = ++panelSaveVersion, status = $('panels_status');
+  panelsCustomized = true;
+  applyPanels(chosen);
+  status.textContent = 'Saving…';
+  let message;
+  try {
+    const r = await fetch('/api/account/panels', {method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json', 'X-CSRF-Token':accountCSRF},
+      body:JSON.stringify({panels: chosen})});
+    if (!r.ok) throw new Error();
+    message = 'Saved to your account.';
+  } catch {
+    message = window.HeatAheadPrivacy?.savePanels(chosen)
+      ? 'Saved on this device — your account service is unreachable right now.'
+      : 'Changed for this visit. We couldn’t save it to your account. Please try again later.';
+  }
+  if (version === panelSaveVersion) status.textContent = message;
+}
+if ($('panel_prefs')) {
+  $('panel_prefs').addEventListener('change', savePanels);
+  $('panel_prefs').addEventListener('submit', e => e.preventDefault());
+}
+if (signedInAccount) { loadPanels(); loadAccount(); }
+
+// T14: passwordless email sign-in - request a one-use 15-minute link
+const emailForm = $('email_signin_form');
+const EMAIL_HINT = 'That doesn’t look like an email address yet.';
+if (emailForm) $('email_signin').addEventListener('input', () => {
+  const input = $('email_signin'), status = $('email_signin_status'), v = input.value.trim();
+  const bad = v.length > 0 && !EMAIL_OK.test(v);
+  input.setAttribute('aria-invalid', bad ? 'true' : 'false');
+  if (bad) status.textContent = EMAIL_HINT;
+  else if (status.textContent === EMAIL_HINT) status.textContent = '';
+});
+if (emailForm) emailForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = $('email_signin').value.trim();
+  const status = $('email_signin_status');
+  if (!email) { status.textContent = 'Type your email address first.'; $('email_signin').focus(); return; }
+  if (!EMAIL_OK.test(email)) { status.textContent = EMAIL_HINT; $('email_signin').focus(); return; }
+  const remember = document.querySelector('#account input[name=remember][value="1"]');
+  const button = emailForm.querySelector('button');
+  button.disabled = true;
+  status.textContent = 'Sending your sign-in link…';
+  try {
+    const r = await fetch('/api/auth/email', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email, remember: remember && remember.checked ? 1 : 0})});
+    const j = await r.json();
+    status.textContent = r.ok ? (j.message || 'Check your inbox for the sign-in link.')
+                              : (j.error || 'The sign-in email could not be sent. Please try again.');
+  } catch { status.textContent = 'Could not reach the server — please try again.'; }
+  button.disabled = false;
+});
 </script>
 {% endblock %}

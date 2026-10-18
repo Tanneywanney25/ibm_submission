@@ -4,96 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}HeatAhead{% endblock %}</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231a1e24'/%3E%3Crect x='8' y='6' width='16' height='22' rx='1.5' fill='%23272c34'/%3E%3Crect x='11' y='9' width='4' height='4' fill='%23101317'/%3E%3Crect x='17' y='9' width='4' height='4' fill='%23ffc46b'/%3E%3Crect x='11' y='15' width='4' height='4' fill='%23101317'/%3E%3Crect x='17' y='15' width='4' height='4' fill='%23101317'/%3E%3Crect x='11' y='21' width='4' height='4' fill='%23ffc46b'/%3E%3Crect x='17' y='21' width='4' height='4' fill='%23101317'/%3E%3C/svg%3E">
-<style>
-/* docs/design-language.md — building materials: night, masonry, mortar,
-   limestone, concrete; weathered brick is the one accent, a lit window
-   (--window) is reserved for heat itself. */
-:root { --bg:#101317; --panel:#1a1e24; --ink:#e9e6e0; --muted:#9aa0a8;
-        --accent:#b65c3f; --ok:#4f9e7a; --warn:#c9973f; --bad:#c25450; --line:#272c34;
-        --window:#ffc46b; --well:#0d1015; --on-accent:#15120e; }
-* { box-sizing:border-box; }
-body { margin:0; background:var(--bg); color:var(--ink);
-       font:15px/1.5 "Segoe UI", system-ui, sans-serif; }
-nav { display:flex; gap:1.2rem; align-items:center; padding:.8rem 1.4rem;
-      background:var(--panel); border-bottom:1px solid var(--line);
-      position:sticky; top:0; z-index:10; flex-wrap:wrap; }
-nav .brand { font-weight:700; color:var(--accent); font-size:1.1rem; text-decoration:none; }
-nav a { color:var(--muted); text-decoration:none; }
-nav a:hover, nav a.active { color:var(--ink); }
-nav a.active { border-bottom:2px solid var(--accent); padding-bottom:2px; }
-.account-nav { margin-left:auto; display:flex; gap:.7rem; align-items:center; font-size:.82rem; }
-.account-nav form { margin:0; }
-.account-nav button { background:transparent; color:var(--ink); border:1px solid var(--line); padding:.35rem .6rem; font-size:.8rem; }
-.account-nav span { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-main { max-width:1100px; margin:0 auto; padding:1.5rem 1.2rem; }
-footer { max-width:1100px; margin:0 auto; padding:0 1.2rem 2rem; color:var(--muted);
-         font-size:.82rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:center; }
-.card { background:var(--panel); border:1px solid var(--line);
-        border-radius:10px; padding:1.2rem 1.4rem; margin-bottom:1rem; }
-h1 { font-size:1.6rem; margin:.2rem 0 .6rem; } h2 { font-size:1.15rem; }
-a { color:var(--accent); }
-.muted { color:var(--muted); } .accent { color:var(--accent); }
-.big { font-size:2.6rem; font-weight:700; }
-input, select, button { font:inherit; border-radius:7px; border:1px solid var(--line);
-  background:var(--well); color:var(--ink); padding:.55rem .8rem; }
-input:focus, select:focus { outline:2px solid var(--accent); outline-offset:-1px; }
-button { background:var(--accent); color:var(--on-accent); border:none; font-weight:600;
-         cursor:pointer; } button:hover { filter:brightness(1.1); }
-button:disabled { opacity:.6; cursor:wait; }
-table { width:100%; border-collapse:collapse; font-size:.92rem; }
-th, td { text-align:left; padding:.4rem .6rem; border-bottom:1px solid var(--line); }
-th { color:var(--muted); font-weight:600; }
-.chips { display:flex; flex-wrap:wrap; gap:.5rem; margin:.6rem 0; }
-.chip { background:var(--well); border:1px solid var(--line); border-radius:999px;
-        padding:.25rem .8rem; font-size:.85rem; }
-.dot { display:inline-block; width:.55rem; height:.55rem; border-radius:50%;
-       background:var(--muted); margin-right:.35rem; vertical-align:middle; }
-.dot.ok { background:var(--ok); } .dot.bad { background:var(--bad); } .dot.warn { background:var(--warn); }
-.bars { display:flex; gap:4px; align-items:flex-end; height:70px; margin:.4rem 0; }
-.bars div { background:var(--accent); width:34px; border-radius:3px 3px 0 0;
-            position:relative; min-height:2px; }
-.bars span { position:absolute; bottom:-20px; left:0; right:0; text-align:center;
-             font-size:.62rem; color:var(--muted); }
-.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
-@media (max-width:760px){ .grid2 { grid-template-columns:1fr; } }
-/* architecture (docs/design-language.md): buildings as shapes, lit windows as heat */
-.bwin { position:relative; background:var(--panel); border:1px solid var(--line);
-        flex:none; }
-.bwin i { position:absolute; background:var(--bg); }
-.bwin i.lit { background:var(--window);
-              box-shadow:0 0 10px 2px rgba(255,196,107,.45); }
-.skyline { display:flex; align-items:flex-end; gap:10px; overflow:hidden;
-           pointer-events:none; }
-.skybars { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
-.skybars .col { display:flex; flex-direction:column; align-items:center; gap:5px;
-                font-size:.68rem; color:var(--muted); }
-.skybars .col b { font-size:.72rem; color:var(--ink); }
-.skybars .cur .bwin { border-color:var(--accent); }
-.skybars .cur b { color:var(--window); }
-.skyfoot { display:flex; align-items:flex-end; gap:4px; height:104px;
-           overflow:hidden; margin-top:2.2rem; pointer-events:none; }
-/* T17: address search with autocomplete (web/static/search.js) */
-.ha-search { display:flex; gap:.5rem; align-items:center; }
-.ha-search-box { position:relative; flex:1; min-width:0; }
-.ha-search-box input { width:100%; }
-.ha-search-list { position:absolute; top:calc(100% + 5px); left:0; right:0; z-index:40;
-  margin:0; padding:.3rem; list-style:none; background:var(--panel);
-  border:1px solid var(--line); border-radius:8px; box-shadow:0 12px 30px #000a;
-  max-height:300px; overflow-y:auto; text-align:left; }
-.ha-search-list[hidden] { display:none; }
-.ha-search-list li { padding:.5rem .65rem; border-radius:6px; cursor:pointer;
-  font-size:.88rem; color:var(--ink); }
-.ha-search-list li b { font-weight:600; }
-.ha-search-list li small { color:var(--muted); font-size:.78rem; }
-.ha-search-list li.active { background:var(--well); outline:2px solid var(--accent);
-  outline-offset:-2px; }
-.ha-search-status { font-size:.78rem; color:var(--muted); min-height:1.1rem; margin-top:.35rem; }
-nav .ha-search { margin-left:auto; flex:1 1 170px; max-width:330px; }
-nav .ha-search input { padding:.42rem .65rem; font-size:.84rem; }
-nav .account-nav { margin-left:0; }
-@media (max-width:760px){ nav .ha-search { flex-basis:100%; max-width:none; order:9; } }
-</style>
+<meta name="theme-color" content="#0b7a51">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1.5' y='1.5' width='29' height='29' rx='8' fill='%230b7a51' stroke='%23072a20' stroke-width='3'/%3E%3Cpath d='M9 22.5V14l7-5.5 7 5.5v8.5' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linejoin='round'/%3E%3Cpath d='M13.5 20.5c0-1.5 2.5-2 2.5-4 0 2 2.5 2.5 2.5 4a2.5 2.5 0 0 1-5 0Z' fill='%23ffd98f'/%3E%3C/svg%3E">
+<link rel="preload" href="{{ url_for('static', filename='fonts/bricolage-grotesque-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+{% if not (page == 'map' and 'embed' in request.args) %}
+<link rel="stylesheet" href="{{ url_for('static', filename='privacy.css') }}">
+<script src="{{ url_for('static', filename='privacy.js') }}"></script>
+{% endif %}
+<script defer src="{{ url_for('static', filename='newsletter.js') }}"></script>
 <script>
 // Display rules (docs/webapp-spec.md): calibrated numbers only, never above 99%,
 // exact below 20%, bands at 20% and up.
@@ -109,33 +28,10 @@ function fmtRisk(p){
 function riskHTML(p){
   const t = fmtRisk(p), i = t.indexOf(' (');
   return i < 0 ? esc(t) : esc(t.slice(0, i)) +
-    '<div style="font-size:1rem; font-weight:600">' + esc(t.slice(i + 2, -1)) + '</div>';
+    '<div style="font-size:1rem; font-weight:700; letter-spacing:0">' + esc(t.slice(i + 2, -1)) + '</div>';
 }
 function esc(s){
   return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-// A building as HTML: a window-cell grid; litIdx is a Set of lit cell indexes.
-function bldg(cols, rows, cell, gap, pad, litIdx, title){
-  const w = pad*2 + cols*cell + (cols-1)*gap, h = pad*2 + rows*cell + (rows-1)*gap;
-  let s = `<div class="bwin" style="width:${w}px;height:${h}px"` +
-          (title ? ` title="${esc(title)}"` : '') + ` aria-hidden="true">`;
-  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-    const i = r*cols + c;
-    s += `<i class="${litIdx && litIdx.has(i) ? 'lit' : ''}" style="left:${pad + c*(cell+gap)}px;` +
-         `top:${pad + r*(cell+gap)}px;width:${cell}px;height:${cell}px"></i>`;
-  }
-  return s + '</div>';
-}
-// Deterministic spread of n lit windows across total cells.
-function litSet(n, total, seed){
-  const s = new Set();
-  for (let j = 0; j < n && s.size < total; j++) s.add(((j*7 + (seed||3)*13) * 3) % total);
-  return s;
-}
-// A skyline strip: specs = [[cols, rows, litCount], ...].
-function skyline(el, specs, cell, gap, pad){
-  el.innerHTML = specs.map(([c, r, lit], k) =>
-    bldg(c, r, cell, gap, pad, litSet(lit, c*r, k))).join('');
 }
 </script>
 {% block head %}{% endblock %}
@@ -144,49 +40,68 @@ function skyline(el, specs, cell, gap, pad){
 <script defer src="{{ url_for('static', filename='search.js') }}"></script>
 </head>
 <body>
-<nav aria-label="Main navigation">
-  <a class="brand" href="/">HeatAhead</a>
-  <a href="/" class="{{ 'active' if page == 'signup' }}">{{ 'My account' if account_user else 'Sign in' }}</a>
-  <a href="/building" class="{{ 'active' if page == 'building' }}">Check a building</a>
-  <a href="/map" class="{{ 'active' if page == 'map' }}">Risk map</a>
-  <a href="/monitor" class="{{ 'active' if page == 'monitor' }}">Live monitor</a>
-  <a href="/learn-more" class="{{ 'active' if page == 'learn' }}">Learn more</a>
-  <a href="/faq" class="{{ 'active' if page == 'faq' }}">FAQs</a>
-  <a href="/about" class="{{ 'active' if page == 'about' }}">About</a>
-  <form data-ha-search class="ha-search" role="search" aria-label="Find a building by address">
-    <input type="search" placeholder="Search an address…" aria-label="Search a building by street address">
-  </form>
-  {% if account_user %}
-  <div class="account-nav">
-    <span title="{{ account_user.email }}">{{ account_user.name or account_user.email }}</span>
-    <form action="/api/auth/logout" method="post">
-      <input type="hidden" name="csrf_token" value="{{ account_csrf }}">
-      <button type="submit">Sign out</button>
+{% macro brand_mark() -%}
+<span class="brand-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4.5 19.5V10L12 4l7.5 6v9.5" stroke="#fff" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/><path d="M9.6 17c0-1.7 2.4-2.3 2.4-4.6 0 2.3 2.4 2.9 2.4 4.6a2.4 2.4 0 0 1-4.8 0Z" fill="#ffd98f"/></svg></span>
+{%- endmacro %}
+<header class="site-header">
+  <div class="bar">
+    <a class="brand" href="/" aria-label="HeatAhead home">{{ brand_mark() }}<span>Heat<b>Ahead</b></span></a>
+    <nav class="site-links" aria-label="Main navigation">
+      <a href="/building" class="{{ 'active' if page == 'building' }}">Check a building</a>
+      <a href="/map" class="{{ 'active' if page == 'map' }}">Risk map</a>
+      <a href="/monitor" class="{{ 'active' if page == 'monitor' }}">Live monitor</a>
+      <a href="/learn-more" class="{{ 'active' if page == 'learn' }}">Learn more</a>
+      <a href="/about" class="{{ 'active' if page == 'about' }}">About</a>
+    </nav>
+    <form data-ha-search class="ha-search" role="search" aria-label="Find a building by address">
+      <input type="search" placeholder="Search an address…" aria-label="Search a building by street address">
     </form>
+    <div class="account-nav">
+      {% if account_user %}
+      <span title="{{ account_user.email }}">{{ account_user.name or account_user.email }}</span>
+      <form action="/api/auth/logout" method="post">
+        <input type="hidden" name="csrf_token" value="{{ account_csrf }}">
+        <button type="submit" class="btn ghost sm">Sign out</button>
+      </form>
+      {% else %}
+      <a class="btn sm" href="/#account">Sign in</a>
+      {% endif %}
+    </div>
   </div>
-  {% endif %}
-</nav>
+</header>
 <main>{% block body %}{% endblock %}</main>
-<div class="skyfoot" id="skyfoot" aria-hidden="true"></div>
-<script>
-(() => {
-  const f = document.getElementById('skyfoot'); if (!f) return;
-  const hs = [5,3,7,4,8,3,5,6,4,9,3,6,5,7,4,8,5,3,6,4,7,5,4,6,3,5,4,6,3,5];
-  f.innerHTML = hs.map((h, k) =>
-    `<div style="position:relative;flex:1;height:${h*11}px;` +
-    `background:var(--${k % 4 ? 'panel' : 'line'})">` +
-    ((k === 6 || k === 17 || k === 26)
-      ? `<i style="position:absolute;left:38%;top:10px;width:7px;height:7px;` +
-        `background:var(--window);box-shadow:0 0 9px 2px rgba(255,196,107,.45)"></i>`
-      : '') + `</div>`).join('');
-})();
-</script>
-<footer>
-  <span><span class="dot" id="hdot"></span><span id="hstatus">checking the LinuxONE backend…</span></span>
-  <span>Building-level data only · probabilities calibrated on the held-out 2025-26 winter</span>
-  <span>Browse freely · Google sign-in for saved buildings</span>
-  <span><a href="/learn-more">How it works</a> · <a href="/faq">Help &amp; FAQs</a></span>
+<footer class="site-footer">
+  <div class="inner">
+    <div class="about">
+      <a class="brand" href="/">{{ brand_mark() }}<span>Heat<b>Ahead</b></span></a>
+      <p>Predicts which New York City buildings are likely to lose heat before a cold snap,
+        so inspectors, tenants and owners can act early. Built by NYU Tingineers at the IBM Z Datathon.</p>
+      <p>Questions or feedback? <a href="mailto:heataheadnyc@gmail.com">heataheadnyc@gmail.com</a></p>
+    </div>
+    <div>
+      <h4>Explore</h4>
+      <ul><li><a href="/building">Check a building</a></li><li><a href="/map">Risk map</a></li>
+        <li><a href="/monitor">Live monitor</a></li><li><a href="/#newsletter">Project updates</a></li>
+        {% if not account_user %}<li><a href="/#account">Sign in</a></li>{% endif %}</ul>
+    </div>
+    <div>
+      <h4>Help</h4>
+      <ul><li><a href="/learn-more">Learn more</a></li>
+        <li><a href="/?help=1" data-open-guide data-guide-browse>Ask HeatAhead</a></li>
+        <li><a href="/about">About &amp; methods</a></li>
+        <li><a href="/contact">Contact us</a></li>
+        <li><a href="/privacy">Privacy &amp; cookies</a></li>
+        <li><button type="button" class="privacy-footer-button" data-open-privacy hidden>Cookie settings</button></li>
+        <li><a href="https://portal.311.nyc.gov/article/?kanumber=KA-01036" target="_blank" rel="noopener noreferrer">Report no heat to 311 ↗</a></li></ul>
+    </div>
+  </div>
+  <div class="base">
+    <span class="status"><span class="dot" id="hdot"></span><span id="hstatus">checking the LinuxONE backend…</span></span>
+    <span>Building-level data only · probabilities calibrated on the held-out 2025-26 winter</span>
+    <span>Browse freely · sign in for saved buildings</span>
+  </div>
 </footer>
+{% if not (page == 'map' and 'embed' in request.args) %}{% include "_privacy.html" %}{% endif %}
 {% include "_guide.html" %}
 <script>
 (async () => {

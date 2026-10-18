@@ -75,6 +75,7 @@ class AccountTests(unittest.TestCase):
         self.mail_patch = patch("mailer.send", return_value=True)
         self.mail_patch.start()
         self.addCleanup(self.mail_patch.stop)
+        auth._EMAIL_SENDS.clear()
 
     def get(self, path, client=None, **kw):
         return (client or self.client).get(path, base_url=ORIGIN, **kw)
@@ -220,6 +221,85 @@ class AccountTests(unittest.TestCase):
         self.assertEqual(removed.json["removed"], 0)
         self.assertEqual(self.get("/api/my_buildings").json["total"], 1)
 
+    def test_one_account_type_saves_buildings_without_a_role(self):
+        self.actor()
+        page = self.get("/")
+        self.assertIn(b"Your profile", page.data)
+        self.assertNotIn(b'name="role"', page.data)
+        missing = self.post("/api/register", dict(phone=""))
+        self.assertEqual(missing.status_code, 400)
+        with patch("mailer.welcome_email", return_value=object()) as welcome:
+            saved = self.post("/api/register", dict(bbl="3000410007"))
+            self.assertEqual(saved.status_code, 200)
+            self.assertFalse(saved.json["already_registered"])
+            again = self.post("/api/register", dict(bbl="3000410007"))
+            self.assertTrue(again.json["already_registered"])
+        self.assertEqual(welcome.call_count, 1, "welcome email once per new building, never on a repeat")
+        self.assertEqual(welcome.call_args.args[0], "person@example.test")
+        self.assertEqual(welcome.call_args.kwargs["bbl"], 3000410007)
+        registrations = self.get("/api/my_buildings").json["registrations"]
+        self.assertEqual(registrations, [dict(role="tenant", bbl=3000410007)])
+        legacy = self.post("/api/register", dict(role="landlord", bbl="3000410007"))
+        self.assertEqual(legacy.status_code, 200, "older clients that still send a role keep working")
+
+    def test_welcome_email_text_has_no_role(self):
+        import mailer
+        with patch.object(mailer, "make_msg", side_effect=lambda to, subject, body: body):
+            body = mailer.welcome_email("person@example.test", bbl=3000410007, p_season=0.42)
+        self.assertNotIn(" as a ", body)
+        self.assertIn("unsubscribe", body.lower())
+
+    def test_panels_validate_round_trip_and_stay_per_account(self):
+        self.assertEqual(self.get("/api/account/panels").status_code, 401)
+        self.actor()
+        self.assertEqual(self.post("/api/account/panels", dict(panels=["queue"]),
+                                   csrf="wrong").status_code, 403)
+        for bad in [dict(panels=["nope"]), dict(panels="queue"), dict(panels=["queue", "queue"]),
+                    dict(), [1]]:
+            self.assertEqual(self.post("/api/account/panels", bad).status_code, 400, bad)
+        self.assertIsNone(self.get("/api/account/panels").json["panels"])
+        saved = self.post("/api/account/panels", dict(panels=["stats", "buildings"]))
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(saved.json["panels"], ["buildings", "stats"])  # fixed display order
+        self.assertEqual(self.get("/api/account/panels").json["panels"], ["buildings", "stats"])
+        self.assertEqual(self.post("/api/account/panels", dict(panels=[])).json["panels"], [])
+        another = self.module.app.test_client()
+        self.actor(another, email="another@example.test", sub="google-user-2")
+        self.assertIsNone(self.get("/api/account/panels", client=another).json["panels"])
+        page = self.get("/")
+        for marker in [b"Your dashboard", b"panel-buildings", b"panel-audit",
+                       b"panel-queue", b"panel-stats"]:
+            self.assertIn(marker, page.data)
+
+    def test_panels_forward_to_backend_and_fail_closed_on_vercel(self):
+        backend = self.module.app.test_client()
+        website = application(Path(self.directory.name) / "ephemeral.db",
+                              forward="https://backend.test", vercel=True)
+        client = website.app.test_client()
+        self.actor(client)
+
+        def transport(method, url, **kwargs):
+            parts = urlsplit(url)
+            result = backend.open(parts.path + ("?" + parts.query if parts.query else ""),
+                                  method=method, base_url="https://backend.test",
+                                  data=kwargs.get("data"), headers=kwargs.get("headers"))
+            response = requests.Response()
+            response.status_code = result.status_code
+            response._content = result.data
+            response.headers.update(result.headers)
+            return response
+
+        with patch.object(website.requests, "request", side_effect=transport):
+            saved = self.post("/api/account/panels", dict(panels=["audit", "buildings"]), client=client)
+            self.assertEqual(saved.status_code, 200)
+            self.assertEqual(self.get("/api/account/panels", client=client).json["panels"],
+                             ["buildings", "audit"])
+        with patch.object(website.requests, "request", side_effect=requests.Timeout):
+            self.assertEqual(self.get("/api/account/panels", client=client).status_code, 503)
+            self.assertEqual(self.post("/api/account/panels", dict(panels=["stats"]),
+                                       client=client).status_code, 503)
+        self.assertFalse(website.DB.exists(), "Vercel must not keep panel choices in /tmp")
+
     def test_registered_building_returns_after_restart_and_logout(self):
         self.actor()
         result = self.post("/api/register", dict(role="tenant", bbl="3000410007"))
@@ -274,6 +354,126 @@ class AccountTests(unittest.TestCase):
             self.assertEqual(self.get(path, client=client).status_code, 200)
         self.assertEqual(self.get("/api/auth/google", client=client).status_code, 503)
         self.assertEqual(self.get("/api/my_buildings", client=client).status_code, 503)
+
+    def request_email_link(self, client=None, email="link@example.test", remember=1):
+        """POST /api/auth/email and return (response, same-origin link path or None)."""
+        captured = {}
+
+        def record(to, link):
+            captured.update(to=to, link=link)
+            return object()
+
+        with patch("mailer.sign_in_email", side_effect=record):
+            response = self.post("/api/auth/email", dict(email=email, remember=remember),
+                                 client=client)
+        link = captured.get("link")
+        if link:
+            self.assertTrue(link.startswith(ORIGIN + "/api/auth/email/callback?token="))
+            self.assertEqual(captured["to"], email)
+            link = link[len(ORIGIN):]
+        return response, link
+
+    def test_email_link_signs_in_once_and_registers(self):
+        self.assertEqual(self.post("/api/auth/email", dict(email="not-an-email")).status_code, 400)
+        response, link = self.request_email_link()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json["ok"])
+        signed_in = self.get(link)
+        self.assertEqual(signed_in.status_code, 302)
+        self.assertEqual(signed_in.location, "/")
+        with self.client.session_transaction(base_url=ORIGIN) as session:
+            self.assertEqual(session["auth_user"]["email"], "link@example.test")
+            self.assertTrue(session["auth_user"]["sub"].startswith("email:"))
+            self.assertGreater(session["auth_expires"], time.time() + 29 * 86400)
+            csrf = session["auth_csrf"]
+        state = self.get("/api/auth/session")
+        self.assertEqual(state.json["user"]["email"], "link@example.test")
+        self.assertTrue(state.json["email_ready"])
+        replay = self.get(link)
+        self.assertEqual(replay.status_code, 400)
+        self.assertIn(b"already used", replay.data)
+        saved = self.post("/api/register", dict(role="tenant", bbl="3000410007"), csrf=csrf)
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(self.get("/api/my_buildings").json["total"], 1)
+        tampered = self.get(link[:-4] + "zzzz")
+        self.assertEqual(tampered.status_code, 400)
+        self.assertIn(b"expired or is not valid", tampered.data)
+
+    def test_email_link_short_session_and_rate_limit(self):
+        response, link = self.request_email_link(remember=0)
+        self.assertEqual(response.status_code, 200)
+        signed_in = self.get(link)
+        self.assertEqual(signed_in.status_code, 302)
+        self.assertNotIn("Expires=", signed_in.headers["Set-Cookie"])
+        with self.client.session_transaction(base_url=ORIGIN) as session:
+            self.assertLess(session["auth_expires"], time.time() + 13 * 3600)
+        for _ in range(2):
+            self.assertEqual(self.request_email_link()[0].status_code, 200)
+        self.assertEqual(self.request_email_link()[0].status_code, 429)
+
+    def test_email_link_unconfigured_fails_closed(self):
+        missing = application(self.db, secret="", google=False)
+        client = missing.app.test_client()
+        self.assertEqual(self.post("/api/auth/email", dict(email="a@example.test"),
+                                   client=client).status_code, 503)
+        self.assertEqual(self.get("/api/auth/email/callback?token=x", client=client).status_code, 503)
+        lone = application(self.db, vercel=True)
+        client = lone.app.test_client()
+        self.assertEqual(self.post("/api/auth/email", dict(email="a@example.test"),
+                                   client=client).status_code, 503)
+        page = self.get("/", client=client)
+        self.assertIn(b"Email sign-in is", page.data)
+
+    def test_email_link_needs_smtp_on_the_instance(self):
+        self.module.HOST = "linuxone"
+        with patch.dict(os.environ, {"SMTP_HOST": ""}):
+            self.assertFalse(self.get("/api/auth/session").json["email_ready"])
+            self.assertEqual(self.post("/api/auth/email", dict(email="a@example.test")).status_code, 503)
+            self.assertFalse(self.get("/api/health").json["email_sign_in"])
+        with patch.dict(os.environ, {"SMTP_HOST": "smtp.example.test"}):
+            self.assertTrue(self.get("/api/auth/session").json["email_ready"])
+            self.assertEqual(self.request_email_link()[0].status_code, 200)
+
+    def test_email_link_forwards_send_and_consume_to_backend(self):
+        backend = self.module.app.test_client()
+        website = application(Path(self.directory.name) / "ephemeral.db",
+                              forward="https://backend.test", vercel=True)
+        client = website.app.test_client()
+
+        def transport(method, url, **kwargs):
+            parts = urlsplit(url)
+            result = backend.open(parts.path + ("?" + parts.query if parts.query else ""),
+                                  method=method, base_url="https://backend.test",
+                                  data=kwargs.get("data"), headers=kwargs.get("headers"))
+            response = requests.Response()
+            response.status_code = result.status_code
+            response._content = result.data
+            response.headers.update(result.headers)
+            return response
+
+        captured = {}
+
+        def record(to, link):
+            captured.update(to=to, link=link)
+            return object()
+
+        with patch.object(website.requests, "request", side_effect=transport), \
+             patch("mailer.sign_in_email", side_effect=record), \
+             patch("mailer.SITE_URL", ORIGIN):
+            response = self.post("/api/auth/email", dict(email="far@example.test"), client=client)
+            self.assertEqual(response.status_code, 200)
+            link = captured["link"][len(ORIGIN):]
+            with patch.object(website.requests, "request", side_effect=requests.Timeout):
+                closed = self.get(link, client=client)
+            self.assertEqual(closed.status_code, 503)
+            signed_in = self.get(link, client=client)
+            self.assertEqual(signed_in.status_code, 302)
+            with client.session_transaction(base_url=ORIGIN) as session:
+                self.assertEqual(session["auth_user"]["email"], "far@example.test")
+            replay = self.get(link, client=client)
+            self.assertEqual(replay.status_code, 400)
+            self.assertIn(b"already used", replay.data)
+        self.assertFalse(website.DB.exists(), "the website side must stay stateless")
 
     def test_forwarded_requests_are_bound_signed_and_one_use(self):
         self.actor()

@@ -36,6 +36,7 @@ import assistant_proxy  # HeatAhead research assistant
 import mailer  # noqa: E402
 import account_auth  # noqa: E402
 import site_guide  # noqa: E402
+import newsletter  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "model/out"
@@ -45,13 +46,30 @@ ON_VERCEL = bool(os.environ.get("VERCEL"))
 DB = Path("/tmp/heatahead.db") if ON_VERCEL else Path(__file__).resolve().parent / "heatahead.db"
 MODE = (os.environ.get("APP_MODE") or
         ("full" if (OUT / "season_risk_2026.csv").exists() else "lite")).lower()
-REALTIME_URL = os.environ.get("REALTIME_URL", "http://127.0.0.1:5000").rstrip("/")
-COMPLAINT_URL = os.environ.get("COMPLAINT_URL", "http://127.0.0.1:5001").rstrip("/")
+# The two monitor feeds are read-only public data. Vercel preview deploys do not get the
+# Production-only env vars, so on Vercel they default to the production collectors
+# (docs/VERCEL.md section 4) instead of a localhost that does not exist there.
+REALTIME_URL = os.environ.get("REALTIME_URL") or (
+    "http://148.100.77.112:8080/api/live" if ON_VERCEL else "http://127.0.0.1:5000")
+REALTIME_URL = REALTIME_URL.rstrip("/")
+COMPLAINT_URL = os.environ.get("COMPLAINT_URL") or (
+    "http://148.100.78.43:8080/api/current" if ON_VERCEL else "http://127.0.0.1:5001")
+COMPLAINT_URL = COMPLAINT_URL.rstrip("/")
 FORWARD_URL = os.environ.get("REGISTER_FORWARD_URL", "").rstrip("/") if MODE == "lite" else ""
 ARCH = platform.machine().lower()
 HOST = "vercel" if ON_VERCEL else ("linuxone" if ARCH == "s390x" else "local")
 GEOSEARCH = "https://geosearch.planninglabs.nyc/v2/search"
 ROLES = ("tenant", "landlord", "government", "viewer")
+# T14: one account type. Saving a building no longer asks for a role; the `role`
+# column stays because alerts.py and the instance's users table key on it, and
+# every new building row is stored as BUILDING_ROLE (building alerts). Older
+# clients may still send a role from ROLES. Panels, not roles, shape the
+# dashboard: a legacy role only picks the default set (the migration map below)
+# until the user toggles panels, stored per account (/api/account/panels).
+BUILDING_ROLE = "tenant"
+PANELS = ("buildings", "audit", "queue", "stats")
+ROLE_PANELS = dict(tenant=("buildings",), landlord=("buildings", "audit"),
+                   government=("buildings", "queue"), viewer=("stats",))
 SHARDS = 128
 # one building record; build_assets.py writes these as positional lists in public/data/b/.
 # New fields go at the end: a shard built before them still reads (missing ones are None).
@@ -206,6 +224,7 @@ def queue_csv(k):
     return "\n".join(f.read_text().splitlines()[:k + 1]) + "\n"
 
 
+
 # ------------------------------------------------------------------ database
 def db():
     if "db" not in g:
@@ -219,6 +238,9 @@ def db():
             sent TEXT DEFAULT CURRENT_TIMESTAMP)""")
         g.db.execute("""CREATE TABLE IF NOT EXISTS account_request_nonces (
             nonce TEXT PRIMARY KEY, expires INTEGER NOT NULL)""")
+        g.db.execute("""CREATE TABLE IF NOT EXISTS panels (
+            email TEXT PRIMARY KEY, panels TEXT NOT NULL,
+            updated TEXT DEFAULT CURRENT_TIMESTAMP)""")
     return g.db
 
 
@@ -235,7 +257,7 @@ def forward(method, path, **kw):
         body = (json.dumps(kw.pop("json"), separators=(",", ":"), ensure_ascii=False).encode()
                 if "json" in kw else b"")
         target, headers, nonce = account_auth.signed_forward(
-            method, path, account_auth.user(), body, kw.pop("params", None))
+            method, path, kw.pop("actor", None) or account_auth.user(), body, kw.pop("params", None))
         if body:
             headers["Content-Type"] = "application/json"
         r = requests.request(method, f"{FORWARD_URL}{target}", data=body or None,
@@ -248,14 +270,69 @@ def forward(method, path, **kw):
         return None
 
 
-def consume_account_nonce(nonce):
+def consume_account_nonce(nonce, ttl=90):
     con = db()
     now = int(time.time())
     con.execute("DELETE FROM account_request_nonces WHERE expires < ?", (now,))
     cur = con.execute("INSERT OR IGNORE INTO account_request_nonces(nonce, expires) VALUES (?, ?)",
-                      (nonce, now + 90))
+                      (nonce, now + ttl))
     con.commit()
     return cur.rowcount == 1
+
+
+# ------------------------------------------------------- email sign-in (T14)
+# The website signs a one-use 15-minute link; only the durable backend sends
+# the email (instance SMTP) and consumes the link's nonce. No passwords exist.
+def send_sign_in_link(email, link):
+    if FORWARD_URL:
+        sent = forward("POST", "/api/account/email_link", json=dict(link=link),
+                       actor=account_auth.email_identity(email))
+        return sent is not None and sent[1] == 200
+    if ON_VERCEL:
+        return False
+    msg = mailer.sign_in_email(email, link)
+    threading.Thread(target=mailer.send, args=(msg,), daemon=True).start()
+    return True
+
+
+_EMAIL_PROBE = dict(at=0.0, ready=False)
+
+
+def sign_in_email_ready():
+    """Offer email sign-in only where a link can actually reach an inbox.
+
+    The instance needs SMTP (without it mailer only logs, and nobody would get the
+    link); a laptop run counts its log as the inbox. Vercel asks the instance's
+    /api/health, cached two minutes, so pages do not each pay a round trip."""
+    if FORWARD_URL:
+        now = time.time()
+        if now - _EMAIL_PROBE["at"] > 120:
+            try:
+                r = requests.request("GET", f"{FORWARD_URL}/api/health", timeout=2)
+                ready = r.json().get("email_sign_in") is True
+            except (requests.RequestException, ValueError, AttributeError):
+                ready = False
+            _EMAIL_PROBE.update(at=now, ready=ready)
+        return _EMAIL_PROBE["ready"]
+    if ON_VERCEL:
+        return False
+    return mailer.configured() or HOST == "local"
+
+
+def consume_sign_in_nonce(nonce, email):
+    """True = fresh, False = already used, None = backend unavailable (fail closed)."""
+    if FORWARD_URL:
+        sent = forward("POST", "/api/account/email_consume", json=dict(nonce=nonce),
+                       actor=account_auth.email_identity(email))
+        if sent is None or sent[1] != 200:
+            return None
+        try:
+            return bool(json.loads(sent[0]).get("fresh"))
+        except (ValueError, TypeError, AttributeError):
+            return None
+    if ON_VERCEL:
+        return None
+    return consume_account_nonce("email-link:" + nonce, ttl=account_auth.EMAIL_LINK_MAX_AGE)
 
 
 # ------------------------------------------------------------------ helpers
@@ -412,7 +489,11 @@ def clean_bbl(v):
 # ------------------------------------------------------------------ pages
 @app.get("/")
 def index():
-    return render_template("index.html", roles=ROLES, page="signup")
+    return render_template("index.html", page="signup",
+                           panel_order=PANELS, role_panels=ROLE_PANELS,
+                           site_meta=dict(ranked=META["ranked"],
+                                          median_text=fmt_risk(CITYWIDE_SEASON_MEDIAN)
+                                          if CITYWIDE_SEASON_MEDIAN else None))
 
 
 @app.get("/map")
@@ -432,6 +513,11 @@ def monitor_page():
     return render_template("monitor.html", page="monitor")
 
 
+@app.get("/inspection-queue")
+def inspection_queue_page():
+    return redirect("/monitor", code=302)
+
+
 @app.get("/data/<path:name>")
 def data_file(name):
     """public/data/ for local runs; on Vercel the CDN serves these before any rewrite."""
@@ -445,6 +531,9 @@ def api_health():
                built_at=META.get("built_at"),
                account_protocol=1 if len(app.secret_key or "") >= 32 else None,
                google_sign_in=account_auth.configured(),
+               email_sign_in=account_auth.email_configured(),
+               newsletter_protocol=1,
+               newsletter_delivery_ready=newsletter.delivery_ready(),
                registrations_to="linuxone" if FORWARD_URL else
                ("unavailable (configure REGISTER_FORWARD_URL)" if ON_VERCEL else f"sqlite on {HOST}"))
     if MODE == "full" or not FORWARD_URL:
@@ -454,6 +543,11 @@ def api_health():
             out["linuxone"] = requests.get(f"{FORWARD_URL}/api/health", timeout=3).json()
         except (requests.RequestException, ValueError):
             out["linuxone"] = dict(offline=True)
+        backend = out["linuxone"] if isinstance(out["linuxone"], dict) else {}
+        out["newsletter_delivery_ready"] = bool(
+            len(app.secret_key or "") >= 32 and
+            backend.get("newsletter_protocol") == 1 and
+            backend.get("newsletter_delivery_ready"))
     return jsonify(out)
 
 
@@ -488,7 +582,7 @@ def api_register():
     b = request.get_json(silent=True) or {}
     if not isinstance(b, dict):
         return jsonify(error="registration must be a JSON object"), 400
-    role = str(b.get("role", "")).strip().lower()
+    role = str(b.get("role") or BUILDING_ROLE).strip().lower()
     email = account_auth.user()["email"]
     supplied_email = str(b.get("email") or email).strip().lower()
     if supplied_email != email:
@@ -509,8 +603,7 @@ def api_register():
         if bbl is None:
             return jsonify(error="a BBL is 10 digits starting with the borough (1-5)"), 400
     if needs_building and bbl is None and not address:
-        return jsonify(error=f"a {role} sign-up needs the building's street address "
-                             "(or its 10-digit BBL)"), 400
+        return jsonify(error="Enter the building's street address (or its 10-digit BBL)."), 400
     if not needs_building:
         address = None           # government and viewer accounts are not tied to a building
 
@@ -562,7 +655,7 @@ def api_register():
     # welcome email (web/mailer.py: SMTP env on the instance, logged without it).
     # Only where sign-ups are durable: a Vercel function must not outlive its request.
     if not existed and not ON_VERCEL:
-        msg = mailer.welcome_email(email, role, bbl, resp.get("p_season"))
+        msg = mailer.welcome_email(email, bbl=bbl, p_season=resp.get("p_season"))
         threading.Thread(target=mailer.send, args=(msg,), daemon=True).start()
     return jsonify(resp)
 
@@ -609,11 +702,13 @@ def api_current(endpoint):
 def unsubscribe():
     actor = account_auth.user()
     if not actor:
-        return redirect("/api/auth/google?" + requests.compat.urlencode({"next": request.full_path.rstrip("?")}))
+        if account_auth.configured():
+            return redirect("/api/auth/google?" + requests.compat.urlencode({"next": request.full_path.rstrip("?")}))
+        return redirect("/")     # sign in (Google or email link) from the home page first
     email = (request.args.get("email") or actor["email"]).strip().lower()
     if email != actor["email"]:
         return render_template("auth_message.html", title="Unsubscribe",
-                               message="Sign in with the Google account that received this alert."), 403
+                               message="Sign in with the account that received this alert."), 403
     raw = request.args.get("bbl")
     bbl = clean_bbl(raw) if raw else None
     if raw and bbl is None:
@@ -647,6 +742,36 @@ def api_remove_registration():
     if request.form:
         return redirect("/")
     return jsonify(ok=True, removed=cur.rowcount)
+
+
+@app.post("/api/account/email_link")
+def api_account_email_link():
+    """Instance side of email sign-in: mail the website's signed link. Only the
+    signed website-to-backend protocol may call this, never a browser session."""
+    if not getattr(g, "account_proxy_nonce", None):
+        return jsonify(error="This endpoint accepts only signed website requests."), 403
+    b = request.get_json(silent=True) or {}
+    link = str(b.get("link") or "")
+    if len(link) > 2000 or not link.startswith(mailer.SITE_URL + "/api/auth/email/callback?"):
+        return jsonify(error="invalid sign-in link"), 400
+    if not sign_in_email_ready():
+        return jsonify(error="this backend cannot send email (no SMTP)"), 503
+    msg = mailer.sign_in_email(account_auth.user()["email"], link)
+    threading.Thread(target=mailer.send, args=(msg,), daemon=True).start()
+    return jsonify(ok=True)
+
+
+@app.post("/api/account/email_consume")
+def api_account_email_consume():
+    """Instance side of email sign-in: one-use consumption of a link's nonce."""
+    if not getattr(g, "account_proxy_nonce", None):
+        return jsonify(error="This endpoint accepts only signed website requests."), 403
+    b = request.get_json(silent=True) or {}
+    nonce = b.get("nonce")
+    if not isinstance(nonce, str) or not 20 <= len(nonce) <= 100:
+        return jsonify(error="invalid nonce"), 400
+    return jsonify(ok=True, fresh=consume_account_nonce(
+        "email-link:" + nonce, ttl=account_auth.EMAIL_LINK_MAX_AGE))
 
 
 @app.get("/api/my_buildings")
@@ -684,6 +809,50 @@ def api_my_buildings():
             out.append(dict(bbl=int(b), registered=b in own, ranked=False))
     out.sort(key=lambda x: (not x["registered"], -(x.get("p_season") or 0), x["bbl"]))
     return jsonify(buildings=out[:200], total=len(out), registrations=registrations)
+
+
+@app.get("/api/account/panels")
+def api_panels_get():
+    """The signed-in account's dashboard panel set, or null when never customized
+    (the page then derives defaults from the account's registration roles)."""
+    email = account_auth.user()["email"]
+    if FORWARD_URL:
+        sent = forward("GET", "/api/account/panels")
+        if sent is not None:
+            return sent
+        return jsonify(error="Your dashboard settings could not be loaded. Please try again shortly.",
+                       code="account_service_unavailable"), 503
+    if ON_VERCEL:
+        return jsonify(error="Account storage is temporarily unavailable."), 503
+    row = db().execute("SELECT panels FROM panels WHERE email=?", (email,)).fetchone()
+    return jsonify(panels=json.loads(row[0]) if row else None)
+
+
+@app.post("/api/account/panels")
+def api_panels_set():
+    b = request.get_json(silent=True)
+    if not isinstance(b, dict):
+        return jsonify(error="panel update must be a JSON object"), 400
+    raw = b.get("panels")
+    if (not isinstance(raw, list) or len(raw) != len(set(map(str, raw))) or
+            any(p not in PANELS for p in raw)):
+        return jsonify(error=f"panels must be distinct names from: {', '.join(PANELS)}"), 400
+    chosen = [p for p in PANELS if p in raw]       # stored in the fixed display order
+    email = account_auth.user()["email"]
+    if FORWARD_URL:
+        sent = forward("POST", "/api/account/panels", json=dict(panels=chosen))
+        if sent is not None:
+            return sent
+        return jsonify(error="Your dashboard settings could not be saved right now. Please try again shortly.",
+                       code="account_service_unavailable"), 503
+    if ON_VERCEL:
+        return jsonify(error="Account storage is temporarily unavailable."), 503
+    con = db()
+    con.execute("INSERT INTO panels(email, panels) VALUES (?, ?) ON CONFLICT(email) "
+                "DO UPDATE SET panels=excluded.panels, updated=CURRENT_TIMESTAMP",
+                (email, json.dumps(chosen)))
+    con.commit()
+    return jsonify(ok=True, panels=chosen)
 
 
 @app.get("/api/queue.csv")
@@ -800,8 +969,13 @@ def api_draft_message(bbl):
     return jsonify(draft_message(p, role, address))
 
 
-account_auth.init_app(app, consume_account_nonce)
-site_guide.init_app(app)
+# Register first so its no-referrer response header runs after account headers.
+newsletter.init_app(app, database=lambda: db(), forward_url=lambda: FORWARD_URL,
+                    on_vercel=lambda: ON_VERCEL)
+account_auth.init_app(app, consume_account_nonce, email_backend=dict(
+    ready=sign_in_email_ready,
+    send_link=send_sign_in_link, consume=consume_sign_in_nonce))
+site_guide.init_app(app, about_data=lambda: dict(reliability=RELIABILITY, snapshot=META))
 
 
 if __name__ == "__main__":

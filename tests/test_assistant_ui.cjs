@@ -11,6 +11,10 @@ class Element{
  addEventListener(k,fn){this.listeners[k]=fn;}
  focus(){}
 }
+Object.defineProperty(Element.prototype,'textContent',{
+ get(){return (this._text||'')+this.children.map(c=>c.textContent).join('');},
+ set(value){this._text=String(value);}
+});
 const ids=new Map(['ask-form','ask-question','ask-submit','ask-health','ask-status','ask-result','ask-answer','ask-execution','ask-freshness','ask-charts','ask-tables','ask-sources','ask-facts','ask-facts-panel'].map(id=>[id,new Element('div')]));
 const doc={getElementById:id=>ids.get(id),createElement:t=>new Element(t),createElementNS:(_,t)=>new Element(t),querySelectorAll:()=>[]};
 let offline=false;
@@ -39,7 +43,7 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../web/static/assistant.
  assert.ok(texts(ids.get('ask-charts')).some(t=>t.includes('backtest coverage 60%')));
  assert.ok(texts(ids.get('ask-facts')).some(t=>t.includes('the range is 0–30 (predicted value = 12)')));
  assert.ok(!texts(ids.get('ask-facts')).some(t=>t.includes('Daily ranges are not')));
- assert.ok(ids.get('ask-facts').children.every(li=>li.children.length===0));
+ assert.ok(ids.get('ask-facts').children.some(li=>li.children.some(c=>c.tagName==='strong')));
  assert.ok(!texts(ids.get('ask-charts')).some(t=>t==='ask-range-labels'));
  offline=true;
  await ids.get('ask-form').listeners.submit({preventDefault(){}});

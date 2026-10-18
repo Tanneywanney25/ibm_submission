@@ -1,0 +1,27 @@
+<aside id="privacy-banner" class="privacy-banner" aria-labelledby="privacy-banner-title" hidden>
+  <h2 id="privacy-banner-title">Cookies &amp; your choices</h2>
+  <p>Essential cookies keep sign-in working. Optional browser storage can remember your dashboard choices on this device.
+    HeatAhead doesn't use analytics or advertising cookies. <a href="/privacy#cookies">Read more</a></p>
+  <div class="privacy-actions">
+    <button type="button" data-privacy-accept>Accept all</button>
+    <button type="button" data-privacy-reject>Reject optional</button>
+    <button type="button" data-open-privacy>Settings</button>
+  </div>
+</aside>
+<div id="privacy-overlay" class="privacy-overlay" hidden>
+  <section id="privacy-dialog" class="privacy-dialog" role="dialog" aria-modal="true" aria-labelledby="privacy-title" aria-describedby="privacy-description">
+    <div class="privacy-title"><h2 id="privacy-title">Cookie settings</h2>
+      <button type="button" class="privacy-close" id="privacy-close" aria-label="Close cookie settings">×</button></div>
+    <p id="privacy-description">You can change your choices here at any time.</p>
+    <label class="privacy-option"><input type="checkbox" checked disabled>Essential — always on
+      <span>Sign-in, security and remembering this cookie choice. These do not track you for advertising.</span></label>
+    <label class="privacy-option" for="privacy-preferences"><input type="checkbox" id="privacy-preferences">Remember dashboard choices on this device
+      <span>Optional browser storage for your panel layout. Settings you save to your account still work when this is off.</span></label>
+    <p><b>Analytics and advertising:</b> not used by HeatAhead.</p>
+    <p>Maps and photos use external providers when you view them. These settings control HeatAhead's optional browser storage.
+      <a href="/privacy#external-services">About external services</a></p>
+    <div class="privacy-actions"><button type="button" id="privacy-save">Save my choices</button>
+      <button type="button" data-privacy-reject>Reject optional</button></div>
+  </section>
+</div>
+<p id="privacy-status" class="privacy-sr-only" role="status" aria-live="polite"></p>

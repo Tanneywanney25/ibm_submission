@@ -166,6 +166,173 @@ All metrics are on the held-out 2025-26 winter unless marked otherwise.
 - **Role:** the tuned successor to M1's day-level config for anything built
   after the freeze; M1/M2 remain the cited submission models.
 
+## M10 — The time-to-failure hazard model (T10; timing axis — calibration miss honestly reported)
+
+- **Predicts:** the daily hazard of a building's FIRST failed48 of the season;
+  survival curve S(t) = Π(1 − h) over the season, "P(first failure by Jan 20)",
+  expected failure week. A new axis (WHEN, not just IF) no prior art touches.
+- **Type:** discrete-time hazard = XGBoost (M1's config) on 1.94M weighted
+  at-risk building-day rows (every building alive until its first failure;
+  alive days strided ×7 and Horvitz-Thompson re-weighted, never-failers
+  sampled at 20%; 46,423 first-failure events; base hazard 0.00088/day).
+  Trained 2018-19 → 2023-24, hazard isotonic-calibrated on 2024-25
+  (out-of-sample), tested ONCE on 2025-26. Survival products consume only
+  each building's at-risk path (hazards after a realized failure are never
+  used). Weather observed throughout — a backtest; the live product must
+  label climatology beyond the 7-day forecast.
+- **Files:** `model/18_hazard.py` → `heat_model_hazard.json` (M10),
+  `hazard_calibration.csv` (raw-hazard/outcome pairs),
+  `hazard_eval.csv`, `expected_failure_week.csv` (59,656 buildings:
+  p_fail_season, expected/median failure week).
+- **Discrimination (good):** time-dependent **C-index 0.871** on first-failure
+  timing (450,808 comparable pairs) — the model genuinely knows WHO fails
+  earlier.
+- **Calibration (the honest miss):** S(t) at the three horizons is within
+  ~4pp for deciles 0–7 but strongly overconfident in the top two deciles:
+
+  | horizon | realized overall | decile 8 pred→real | decile 9 pred→real |
+  |---|---|---|---|
+  | by Dec 1 | 8.3% | 28.1% → 19.6% | 58.2% → 24.8% |
+  | by Jan 1 | 12.2% | 41.2% → 27.3% | 72.6% → 30.9% |
+  | by Feb 1 | 16.6% | 51.0% → 34.4% | 80.7% → 40.3% |
+
+  Mechanism: tiny per-day hazard overestimates for the riskiest buildings
+  compound over ~240 multiplications into a large cumulative overshoot — the
+  day-level isotonic can't see the product. Top-1000 median |expected −
+  realized| failure week: **11.1 weeks** (target was ~2; 402 of the top-1000
+  failed).
+- **Decision: NOT shipped.** Ranking by time-to-failure works (0.871); the
+  absolute curve does not meet our display bar (probabilities shown to users
+  must be calibrated), so no site surface uses M10. The identified fix — a
+  second, horizon-level recalibration of 1 − S(t) on the 2024-25 curves
+  (M10b) — is below. Frozen numbers untouched.
+- **M10b — horizon-level recalibration (the fix, built):** a second isotonic
+  g: cumulative predicted risk 1 − S(t) → realized first-failure share, fit
+  on the 2024-25 full-universe at-risk curves (1.91M building-day pairs from
+  34 strided days; the three 2024-25 horizon day-indices held out as an
+  in-season check), applied on top of M10's day-calibrated curve. Monotone in
+  t by construction, so the result is still a CDF and the expected failure
+  week recomputes from its increments. `model/19_hazard_recal.py` →
+  `hazard_recal_map.csv` (the isotonic's knots), `hazard_eval_recal.csv`,
+  `expected_failure_week_recal.csv`; M10's own outputs untouched. Verified
+  ONCE on 2025-26:
+
+  | horizon | realized overall | max \|gap\| any decile | decile 8 pred→real | decile 9 pred→real |
+  |---|---|---|---|---|
+  | by Dec 1 | 8.3% | **8.0pp** | 23.1% → 19.5% | 32.9% → 24.9% |
+  | by Jan 1 | 12.2% | **3.8pp** | 28.8% → 27.0% | 34.8% → 31.0% |
+  | by Feb 1 | 16.6% | **4.7pp** | 32.0% → 34.9% | 35.4% → 40.1% |
+
+  The 8–42pp overshoot collapses to ≤4.7pp at Jan 1 / Feb 1 (within the ~5pp
+  bar); Dec 1 decile 9 still misses at +8.0pp — a residual EARLY-season
+  overconfidence the pooled (t-free) isotonic cannot remove, visible in the
+  2024-25 in-season check too (+7.3pp), so it is a known limitation, not a
+  holdout surprise. C-index 0.869 (vs 0.871 — only isotonic ties moved it).
+  Top-1000 median failure-week error improves 11.1 → **10.0 weeks** (449 of
+  1000 failed): absolute timing is still far from the ~2-week target.
+- **M10b decision: still NOT shipped.** Jan/Feb horizon probabilities now
+  meet the display bar but Dec 1 does not, and the failure week remains
+  unusable; shipping a timing surface that is right in February and wrong in
+  December fails the "calibrated probabilities only" rule. A per-horizon
+  (t-indexed) recalibration would likely fix Dec 1, but the 2025-26 holdout
+  has now been consumed twice for this model family — further iteration
+  would be fitting to the test winter, so M10b is where this line stops for
+  the submission.
+
+## M14 — Complaint categories + per-unit rates (T20; NOT adopted, a wash)
+
+- **Question:** do the complaint records' category fields and per-unit
+  normalization add signal beyond counts and timing? The extract has **no
+  prose** (0 free-text fields), so embeddings were not possible; the
+  categorical fields cover every complaint (`narrative_coverage.csv`).
+- **Features** (`model/narrative.py`, building-level, strictly before the
+  eve; leakage-tested): M14a adds 7 — prior-season hot-water-only complaints
+  (a signal 01 drops entirely), heat+hot-water share, anonymous share,
+  duplicate share, distinct complaining units (counted at load, unit values
+  dropped), and in-season hot-water / distinct-unit counts through the eve.
+  M14c adds 3 per-unit rates (complaints per 100 units last season and last
+  14 days, unit breadth). M14ac adds both.
+- **Protocol:** the M13 substrate (model/13 spell snapshots), M11's config,
+  early-stopped on 2024-25, refit, 3 seeds; selection on validation only;
+  `model/20_narrative.py` → `m14_results.csv`, `m14_per_spell.csv`,
+  `m14_backtest.csv`, `heat_model_m14.json` (M14a, seed 0).
+- **Result (8 held-out spells, mean of 3 seeds):** control 89.0 / 64.8 /
+  51.1 / 34.9 vs **M14a 89.0 / 65.0 / 51.1 / 35.0** (val-chosen); M14c 88.9,
+  M14ac 89.1 @100. Per spell @100: 4 wins, 4 losses. Backtest (train ≤ T−1):
+  M14a ahead in 5 of 6 winters @100 by ≤2.2pp and ≥ control @2500 in all 6
+  by ≤0.5pp — sign-test p ≈ 0.11, inside the seed spread (88.0–89.9).
+- **Decision: not adopted.** The categories mostly restate what
+  `bw_last1`/`bw_prev14` (ENTIRE BUILDING) and the counts already carry. The
+  measured answer to "did you use the complaint text?" — there is none to
+  use, and the categories are a wash. Frozen numbers untouched.
+
+## M16 — Feature elimination across three model types (finished; 8 features match 36; tuned in M17)
+
+- **Question:** which of the 36 features carry signal? Greedy backward
+  elimination on the M11 spell substrate for logistic regression, sklearn
+  HistGradientBoosting and XGBoost: train 2018-2023 (2 seeds for the tree
+  models), drop the feature with the smallest validation permutation
+  importance (shuffled within each spell, mean per-spell AP), repeat to 1.
+  Pre-declared pick: smallest set within 0.005 of the best validation
+  p@100 + p@2500. Chosen and full sets refit on 2018-2024, 3 seeds, test
+  once. `model/28_feature_rfe.py` (started as "M15"; renamed because the
+  watchlist v2 script already uses M15) → `m16_rfe_<family>.csv`,
+  `m16_results.csv`, `m16_per_spell.csv`. All on the LinuxONE guest.
+- **Kept:** all three keep two-season complaints, 14- and 30-day complaints,
+  days since last complaint, floor area; XGBoost adds 2- and 7-day counts and
+  the freezing-day rate (8); HGB adds last-season and 7-day counts, freezing
+  rate and units (9). Weather (all 8, importance exactly 0 within a spell),
+  boiler, landlord, neighbor, violation, whole-building and building-age
+  features were all dropped.
+- **Test (8 held-out spells, 3 seeds):** XGBoost 8 features **90.0 / 65.2 /
+  51.6 / 35.0** vs its full 36 at 89.5 / 64.8 / 51.3 / 34.9 (per spell @100:
+  3 wins, 3 losses, 2 ties; every 8-feature seed ≥ the full mean). HGB 9 ties
+  its full set (89.1 vs 89.3). Logistic regression 5 loses 1.5 @100 (85.9 vs
+  87.4). Untuned, the 8-feature XGBoost sits 0.1 below tuned, 5-seed M13
+  (90.1) @100 and above it @1000.
+- **Decision: not adopted yet.** Removing 28 features cost nothing, which
+  makes a far simpler model available. The fair comparison with M13 needs
+  the same 12-trial spell HPO and 5-seed bag on the 8-feature set, selected
+  on validation and tested once. Frozen numbers untouched. M17 below ran
+  that comparison: a tie.
+
+## M17 — M13's recipe on M16's 8 features (finished; ties M13, NOT adopted)
+
+- **Question:** with M13's exact treatment, does the 8-feature XGBoost set
+  from M16 (`c_last2`, `c_prev7`, `c_prev14`, `c_prev30`, `rate_freezing2`,
+  `days_since_c`, `c_prev2`, `bldgarea`) beat the frozen 36-feature M13?
+- **Protocol:** `model/29_tuned_small.py`, identical to `model/24`: the same
+  12-trial spell HPO (same search space and RNG seed, so the same 12 candidate
+  configs), fit on 2018-2023 spells, early-stopped on and selected by the
+  2024-25 validation spells only (p@100 + p@2500); the winner bagged over 5
+  seeds refit on 2018-2024; one look at the 8 held-out 2025-26 spells. M13's
+  blend step chose w_bag = 1.0 (M13 is the pure bag), so M17 has no blend,
+  which would also have reintroduced the 36-feature M12. M13's per-spell
+  scores are recomputed from the `final_spell_ensemble.json` members on the
+  same spells and reproduce the frozen 90.12 / 65.40 / 51.40 / 35.16 exactly.
+  Run on the LinuxONE training guest (about 2 minutes) →
+  `heat_model_m17_s0..4.json`, `m17_ensemble.json` (config, all 12 trials),
+  `m17_results.csv`, `m17_per_spell.csv`.
+- **HPO:** validation scores of the 12 trials span 1.236 to 1.249, a narrow
+  band. The winner is trial 4 (depth 7, learning rate 0.03, min_child_weight
+  20, subsample 0.68, colsample 0.63, lambda 1, 91 trees; val p@100 90.1,
+  p@2500 34.7). M13 had picked trial 3, the same depth and learning rate.
+- **Test (8 held-out spells, 5-seed bag):**
+
+  | k | M17 (8 features) | M13 (36, frozen) | delta | per spell W / T / L | seed range M17 | seed range M13 |
+  |---|---|---|---|---|---|---|
+  | 100 | 90.00 | 90.12 | -0.12 | 3 / 3 / 2 | 89.9 to 91.0 | 89.8 to 90.8 |
+  | 500 | 65.37 | 65.40 | -0.03 | 3 / 0 / 5 | 65.2 to 65.6 | 65.2 to 65.5 |
+  | 1000 | 51.62 | 51.40 | +0.22 | 5 / 2 / 1 | 51.5 to 51.7 | 51.2 to 51.6 |
+  | 2500 | 35.13 | 35.16 | -0.03 | 4 / 0 / 4 | 35.0 to 35.1 | 35.0 to 35.1 |
+
+- **Decision: a tie, not adopted.** Every mean gap is inside the seed spread
+  and no k shows a consistent per-spell win (the best case, k=1000, is 5 wins
+  to 1 loss on a 0.2-point gap). M13 stays the frozen per-spell scorer. The
+  finding that does stand: 8 features, all from the HPD complaint file plus
+  PLUTO floor area, do exactly the job of 36 once both get the same tuning.
+  Frozen numbers untouched.
+
 ## B1–B3 — The baselines (every eval runs them under the identical protocol)
 
 - **B1 last-season complaints:** rank by prior season's distinct complaints.

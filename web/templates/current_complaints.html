@@ -1,26 +1,35 @@
-<h1>Live complaint monitor</h1>
-<p class="muted">Latest published NYC heat complaints · New York local time</p>
-<div class="card" id="current-banner" role="status">Connecting to the complaint collector…</div>
-<div class="card" style="display:flex;gap:2rem;flex-wrap:wrap">
-  <div><div class="muted">Latest heat complaint received</div><b id="current-source">—</b></div>
-  <div><div class="muted">Collector last checked</div><b id="current-poll">—</b></div>
-  <div><div class="muted">Received in past 24 hours</div><b id="current-day">—</b></div>
-  <div><div class="muted">Received in past 7 days</div><b id="current-week">—</b></div>
+<header class="mon-head">
+  <span class="live-pill">Live</span>
+  <h1>Live complaint monitor</h1>
+  <p>Latest published NYC heat complaints · New York local time</p>
+</header>
+<div class="card mon-banner" id="current-banner" role="status">Connecting to the complaint collector…</div>
+<div class="stat-grid mon-stats">
+  <div class="stat sky"><span>Latest heat complaint received</span><b id="current-source">—</b></div>
+  <div class="stat green"><span>Collector last checked</span><b id="current-poll">—</b></div>
+  <div class="stat sun"><span>Received in past 24 hours</span><b id="current-day">—</b></div>
+  <div class="stat coral"><span>Received in past 7 days</span><b id="current-week">—</b></div>
 </div>
-<p>Residents report problems through <a href="https://portal.311.nyc.gov/article/?kanumber=KA-01036" target="_blank" rel="noopener">NYC311</a>.
+<p class="mon-note">Residents report problems through <a href="https://portal.311.nyc.gov/article/?kanumber=KA-01036" target="_blank" rel="noopener">NYC311</a>.
   This page checks <a href="https://data.cityofnewyork.us/Housing-Development/Housing-Maintenance-Code-Complaint-Problems/ygpa-z7cr" target="_blank" rel="noopener">HPD's public complaint data</a> every five minutes.
   Public data arrives after submission; refreshing this page cannot remove NYC's publication delay.
   A report is not confirmation that an outage is still active.</p>
-<div class="card">
-  <h2>Most recently published heat reports</h2>
+<nav class="mon-jump" aria-label="Complaint monitor sections">
+  <a href="#current-report-list">Recent reports</a>
+  <a href="#current-building-list">Buildings with the most reports</a>
+  <a href="/map">Explore winter risk →</a>
+</nav>
+<div class="card table-card" id="current-report-list">
+  <h2 id="current-reports-heading">Most recently published heat reports</h2>
   <p class="muted">Ordered by complaint received time · past 7 days · up to 100 reports</p>
-  <div style="overflow-x:auto"><table><thead><tr><th>Received (NYC)</th><th>Building BBL</th><th>Reported problem</th></tr></thead>
+  <div class="mon-report-scroll" role="region" aria-labelledby="current-reports-heading" tabindex="0"><table><thead><tr><th>Received (NYC)</th><th>Building BBL</th><th>Reported problem</th></tr></thead>
     <tbody id="current-events"></tbody></table></div>
   <p id="current-empty"></p>
 </div>
-<div class="card">
+<div class="card table-card" id="current-building-list">
   <h2>Buildings with the most reported complaints</h2>
-  <p class="muted">Unique complaints received in the past 7 days. This is observed volume; current model risk is unavailable until features and weather are refreshed.</p>
+  <p class="muted">Unique complaints received in the past 7 days. More reports doesn't mean higher predicted risk.
+    Click a BBL (NYC property ID) to see the building's saved winter estimate and history.</p>
   <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Building BBL</th><th>Complaints (7 days)</th><th>Latest received (NYC)</th></tr></thead>
     <tbody id="current-queue"></tbody></table></div>
   <p id="current-unlocated" class="muted"></p>

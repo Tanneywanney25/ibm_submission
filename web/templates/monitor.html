@@ -1,21 +1,60 @@
 {% extends "base.html" %}
 {% block title %}Live monitor — HeatAhead{% endblock %}
+{% block head %}
+<style>
+.mon-tabs { display:inline-flex; gap:4px; padding:4px; margin:0 0 1.4rem; background:#fff; border:3px solid var(--ink); border-radius:16px; box-shadow:4px 4px 0 var(--ink); flex-wrap:wrap; }
+.mon-tabs a { padding:.5rem 1rem; border-radius:11px; font-weight:700; font-size:.9rem; color:var(--muted); text-decoration:none; }
+.mon-tabs a:hover { color:var(--ink); background:var(--well); }
+.mon-tabs a[aria-current="page"] { background:var(--accent); color:#fff; box-shadow:inset 0 0 0 2px var(--ink); }
+.mon-head { margin-bottom:1.4rem; }
+.mon-head h1 { margin-bottom:.3rem; }
+.mon-head p { margin:0; color:var(--muted); font-size:1.05rem; }
+.live-pill { display:inline-flex; align-items:center; gap:.45rem; font-size:.75rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--ink); background:var(--coral-soft); border:2px solid var(--ink); border-radius:999px; padding:.25rem .75rem; margin-bottom:.8rem; }
+.live-pill::before { content:""; width:8px; height:8px; border-radius:50%; background:#e5484d; animation:livepulse 1.6s ease-in-out infinite; }
+@keyframes livepulse { 50% { opacity:.25; } }
+.mon-banner { background:var(--sun-soft); font-weight:600; padding:1rem 1.3rem; box-shadow:none; }
+.mon-stats { margin-bottom:1.4rem; }
+.mon-stats .stat span { margin-bottom:.35rem; }
+.mon-stats .stat b { margin:0; font-size:1.35rem; letter-spacing:-.02em; overflow-wrap:anywhere; }
+.mon-actions { display:flex; flex-wrap:wrap; gap:.8rem 1.2rem; align-items:center; margin:0 0 1.4rem; }
+.mon-actions a { font-weight:700; }
+.mon-note { background:#fff; border:2px dashed var(--line); border-radius:16px; padding:1rem 1.2rem; color:var(--muted); margin:0 0 1.4rem; line-height:1.65; }
+.mon-note a { font-weight:700; }
+.table-card h2 { margin-bottom:.2rem; }
+.table-card > p.muted { margin-top:0; font-size:.9rem; }
+.mon-jump { display:flex; flex-wrap:wrap; gap:.6rem 1.3rem; margin:0 0 1.4rem; font-size:.9rem; font-weight:700; }
+.mon-report-scroll { max-height:28rem; overflow:auto; }
+.mon-report-scroll:focus-visible { outline:3px solid var(--accent); outline-offset:4px; }
+.mon-report-scroll th { position:sticky; top:0; background:var(--panel); z-index:1; }
+#current-report-list, #current-building-list { scroll-margin-top:120px; }
+@media (max-width:640px) { #current-report-list, #current-building-list { scroll-margin-top:200px; } }
+</style>
+{% endblock %}
 {% block body %}
-<nav class="card"><a href="/monitor">Published complaints</a> · <a href="/monitor?mode=replay">Historical model replay</a></nav>
+<nav class="mon-tabs" aria-label="Monitor views">
+  <a href="/monitor" {% if request.args.get("mode") != "replay" %}aria-current="page"{% endif %}>Published complaints</a>
+  <a href="/monitor?mode=replay" {% if request.args.get("mode") == "replay" %}aria-current="page"{% endif %}>Historical model replay</a>
+</nav>
 {% if request.args.get("mode") == "replay" %}
-<h1>Live monitor <span class="muted" style="font-size:1rem">(replay: Feb 7–9, 2026 cold snap)</span></h1>
-<div class="card" id="banner" style="display:none"></div>
-<div class="card" style="display:flex; gap:2rem; flex-wrap:wrap; align-items:center">
-  <div><div class="muted">replay clock</div><b id="clock">—</b></div>
-  <div><div class="muted">events processed</div><b id="processed">—</b></div>
-  <div><div class="muted">events / sec</div><b id="eps">—</b></div>
-  <div><div class="muted">p99 latency</div><b id="p99">—</b></div>
-  <div><div class="muted">scoring</div><b id="mode">—</b></div>
-  <button onclick="startReplay()">Start replay</button>
-  <a href="/api/queue.csv?k=500" class="muted">download top-500 CSV (gov)</a>
+<header class="mon-head">
+  <span class="live-pill">Replay</span>
+  <h1>Historical model replay</h1>
+  <p>The February 7–9, 2026 cold snap, replayed complaint by complaint and scored by the frozen model on IBM LinuxONE.</p>
+</header>
+<div class="card mon-banner" id="banner" style="display:none"></div>
+<div class="stat-grid mon-stats">
+  <div class="stat sky"><span>replay clock</span><b id="clock">—</b></div>
+  <div class="stat green"><span>events processed</span><b id="processed">—</b></div>
+  <div class="stat sun"><span>events / sec</span><b id="eps">—</b></div>
+  <div class="stat coral"><span>p99 latency</span><b id="p99">—</b></div>
 </div>
-<div class="card">
-  <h2>Inspector queue — top 25 right now</h2>
+<div class="mon-actions">
+  <button onclick="startReplay()">Start replay</button>
+  <span class="muted">scoring: <b id="mode" style="color:var(--ink)">—</b></span>
+  <a href="/api/queue.csv?k=500">Download saved top-500 ranking ↓</a>
+</div>
+<div class="card table-card">
+  <h2>Inspection queue — top 25 in this replay</h2>
   <table id="queue"><tr><th>#</th><th>BBL</th><th>score</th>
     <th>replay complaints</th><th>units</th></tr></table>
 </div>

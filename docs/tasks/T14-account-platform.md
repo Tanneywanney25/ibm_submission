@@ -42,8 +42,56 @@ Two moves that simplify the product:
 
 ## Acceptance
 
-- [ ] No `role` conditionals left in templates; one account type in code.
-- [ ] Profile page toggles panels; choice persists across sessions.
-- [ ] Existing accounts see equivalent dashboards post-migration.
-- [ ] Sign-up still sends the welcome email; unsubscribe still works.
-- [ ] VERCEL.md §6 smoke test green in LITE (no-auth path unbroken).
+- [x] No `role` conditionals left in templates; one account type in code.
+      *(The home page has no role picker and nothing in any template branches
+      on an account role. "Save a building" sends no role; `/api/register`
+      stores `tenant` in the legacy `users.role` column, which `web/alerts.py`
+      and the instance schema key on, and still accepts a legacy role from
+      older clients. The building page's `as=tenant|landlord` picks which
+      draft letter to write, not an account type. Dropping the column itself
+      would be an instance-schema change; nothing needs it now.)*
+- [x] Profile page toggles panels; choice persists across sessions.
+      *("Your profile" on the home page (`/#profile`): panel toggles save as you
+      click, per account via `/api/account/panels`, forwarded to the instance
+      from Vercel like registrations. While the instance is unreachable the
+      choice falls back to this-device storage and the page says so.)*
+- [x] Existing accounts see equivalent dashboards post-migration.
+      *(No data migration needed: an account that never customized gets the
+      panel set derived from its registration roles by the map above. A new
+      account starts on buildings + city-wide stats, and saving its first
+      building keeps that view (it is stored, so the building row's legacy
+      role cannot narrow it).)*
+- [x] Sign-up still sends the welcome email; unsubscribe still works.
+      *(Tests: one welcome email per newly saved building, none on a repeat
+      save, text has no role; unsubscribe needs sign-in, confirms by POST.)*
+- [x] VERCEL.md §6 smoke test green in LITE (no-auth path unbroken).
+
+## Status (October 17, 2026, evening)
+
+The code is complete. Sign-in: Google and passwordless email links on one screen
+with instant inline validation (email format; building address/BBL; phone), and
+first sign-in creates the account. Profile: who you are and how you signed in,
+dashboard panel toggles, a role-free "Save a building" form, and a stop-all-alerts
+link. Dashboard: four panels (my buildings & alerts · landlord self-audit tools ·
+inspection queue · city-wide stats).
+
+**Production setup (October 18, 2026):** the Google side, the instance side and the
+non-secret Vercel values are done (docs/GOOGLE_LOGIN.md, "What is set up now"): a
+separate HeatAhead Google Cloud project with a published consent screen and its own web
+client, the shared `FLASK_SECRET_KEY` in `~/.config/heatahead/accounts.env` loaded by a
+systemd drop-in, and the instance clone pulled to `main` and restarted. Google sign-in is
+live once `FLASK_SECRET_KEY` and `GOOGLE_CLIENT_SECRET` are pasted into Vercel Production
+as Secret variables by a person and the site is redeployed; `/api/health` then reports
+`google_sign_in: true`.
+
+Google sign-in was confirmed live on production on October 18 with a real sign-in.
+
+Email sign-in stays off until the instance has `SMTP_*`: a person runs
+`web/set_smtp.py` over SSH (docs/VERCEL.md section 10), which tests the login, saves the
+settings to the same `accounts.env` and restarts `heatahead-web`. Before this change the instance had no SMTP
+at all, so every "sent" email, including welcome emails, was only written to
+`web/alerts.log`; email sign-in now shows as available only when a link can really be
+delivered.
+
+Styling the auth and profile screens to Opendoor quality belongs to T13 (the reskin);
+T14 used the current theme.

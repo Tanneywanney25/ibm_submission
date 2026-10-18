@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — HeatAhead{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='help-pages.css') }}">{% endblock %}
+{% block body %}
+<div class="help-page"><section class="help-hero">
+  <p class="help-eyebrow">HeatAhead project updates</p><h1>{{ title }}</h1><p class="help-lead">{{ message }}</p>
+  {% if action %}
+  <form method="post" action="/api/newsletter/{{ action }}">
+    <input type="hidden" name="token" value="{{ token }}">
+    <button type="submit">{{ 'Confirm subscription' if action == 'confirm' else 'Stop project updates' }}</button>
+  </form>
+  {% endif %}
+  <div class="help-actions"><a href="/#newsletter">Back to project updates</a><a href="/contact">Contact our team</a></div>
+</section></div>
+{% endblock %}
