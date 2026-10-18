@@ -60,6 +60,9 @@ a:hover { color:var(--accent-dark); }
 .account-nav { display:flex; gap:.6rem; align-items:center; font-size:.85rem; flex:none; }
 .account-nav form { margin:0; }
 .account-nav span { max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+/* the signed-in name links to /account; a display name can be 80 characters long */
+.account-nav > a:not(.btn) { display:inline-block; max-width:170px; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; vertical-align:middle; font-weight:600; }
 @media (min-width:1101px) { .site-links { flex:none; } .site-header .ha-search { min-width:150px; } }
 @media (max-width:1440px) { .account-nav span { display:none; } }
 @media (max-width:1100px) {
