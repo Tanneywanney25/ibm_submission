@@ -34,3 +34,10 @@ data_exploration.ipynb
 # web app local state
 web/heatahead.db
 web/alerts.log
+
+# Finder/archive metadata and accidental upload copies
+.DS_Store
+__MACOSX/
+/READ_FIRST.txt
+/READ_ME_FIRST.txt
+/web 2/
