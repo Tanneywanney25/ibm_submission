@@ -90,6 +90,8 @@ async function api(path,options={}){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
   try{const r=await fetch('/api/assistant/'+path,{...options,signal:controller.signal,cache:'no-store'});const data=await r.json();if(!r.ok)throw new Error(data.error||'Assistant unavailable');return data;}finally{clearTimeout(timer);}
 }
+const askedFromHome=new URLSearchParams(location.search).get('q');
+if(askedFromHome){$('ask-question').value=askedFromHome.slice(0,1500);$('ask-question').focus();}
 document.querySelectorAll('[data-ask]').forEach(b=>b.addEventListener('click',()=>{$('ask-question').value=b.dataset.ask;$('ask-question').focus();}));
 $('ask-form').addEventListener('submit',async event=>{
   event.preventDefault();if(active)return;active=true;submit.disabled=true;$('ask-result').hidden=true;status.className='';status.textContent='Preparing analysis…';

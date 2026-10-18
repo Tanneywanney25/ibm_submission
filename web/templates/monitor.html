@@ -32,7 +32,7 @@
 {% endblock %}
 {% block body %}
 <nav class="mon-tabs" aria-label="Monitor views">
-  <a href="/monitor" {% if request.args.get("mode") != "replay" %}aria-current="page"{% endif %}>Published complaints</a>
+  <a href="/monitor?mode=current" {% if request.args.get("mode") != "replay" %}aria-current="page"{% endif %}>Published complaints</a>
   <a href="/monitor?mode=replay" {% if request.args.get("mode") == "replay" %}aria-current="page"{% endif %}>Historical model replay</a>
 </nav>
 {% if request.args.get("mode") == "replay" %}

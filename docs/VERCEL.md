@@ -465,7 +465,11 @@ emails or NYC complaints are sent by tests, checks, installation, or page pollin
 
 `/monitor` opens the research assistant; the current complaint monitor remains at
 `/monitor?mode=current` and historical replay at `/monitor?mode=replay`. The footer
-links to both. This intentionally extends the monitor contract without changing
+links to both. The header tab for `/monitor` is labelled "Ask the data" (the floating
+"Ask HeatAhead" button is the separate help guide). The home page's "Have a specific
+question?" card sends `/monitor?q=<question>`: the assistant only prefills the box, and
+nothing is sent to the AI provider until the visitor presses Explore question. Links
+meant for the complaint monitor must use `/monitor?mode=current`. This intentionally extends the monitor contract without changing
 collector/replay endpoints, maps, accounts, frozen models or submission metrics.
 
 LinuxONE runs FreeLLMAPI privately on 3001 and `assistant.service` on 5002.

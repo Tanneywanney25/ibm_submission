@@ -49,7 +49,7 @@ function esc(s){
     <nav class="site-links" aria-label="Main navigation">
       <a href="/building" class="{{ 'active' if page == 'building' }}">Check a building</a>
       <a href="/map" class="{{ 'active' if page == 'map' }}">Risk map</a>
-      <a href="/monitor" class="{{ 'active' if page == 'monitor' }}">Live monitor</a>
+      <a href="/monitor" class="{{ 'active' if page == 'monitor' }}">Ask the data</a>
       <a href="/learn-more" class="{{ 'active' if page == 'learn' }}">Learn more</a>
       <a href="/about" class="{{ 'active' if page == 'about' }}">About</a>
     </nav>
@@ -81,7 +81,7 @@ function esc(s){
     <div>
       <h4>Explore</h4>
       <ul><li><a href="/building">Check a building</a></li><li><a href="/map">Risk map</a></li>
-        <li><a href="/monitor">Live monitor</a></li><li><a href="/#newsletter">Project updates</a></li>
+        <li><a href="/monitor">Ask the data</a></li><li><a href="/monitor?mode=current">Live complaints</a></li><li><a href="/#newsletter">Project updates</a></li>
         {% if not account_user %}<li><a href="/signin">Sign in</a></li>{% endif %}</ul>
     </div>
     <div>
