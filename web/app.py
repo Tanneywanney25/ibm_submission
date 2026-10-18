@@ -241,6 +241,13 @@ def db():
         g.db.execute("""CREATE TABLE IF NOT EXISTS panels (
             email TEXT PRIMARY KEY, panels TEXT NOT NULL,
             updated TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        # password accounts: only the website's scrypt hash, never a password;
+        # verified=0 until a Google or email-link sign-in proves the address
+        g.db.execute("""CREATE TABLE IF NOT EXISTS passwords (
+            email TEXT PRIMARY KEY, hash TEXT NOT NULL, verified INTEGER NOT NULL DEFAULT 0,
+            updated TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        g.db.execute("""CREATE TABLE IF NOT EXISTS verified_emails (
+            email TEXT PRIMARY KEY, first_seen TEXT DEFAULT CURRENT_TIMESTAMP)""")
     return g.db
 
 
@@ -282,7 +289,7 @@ def consume_account_nonce(nonce, ttl=90):
 
 # ------------------------------------------------------- email sign-in (T14)
 # The website signs a one-use 15-minute link; only the durable backend sends
-# the email (instance SMTP) and consumes the link's nonce. No passwords exist.
+# the email (instance SMTP) and consumes the link's nonce.
 def send_sign_in_link(email, link):
     if FORWARD_URL:
         sent = forward("POST", "/api/account/email_link", json=dict(link=link),
@@ -333,6 +340,56 @@ def consume_sign_in_nonce(nonce, email):
     if ON_VERCEL:
         return None
     return consume_account_nonce("email-link:" + nonce, ttl=account_auth.EMAIL_LINK_MAX_AGE)
+
+
+# --------------------------------------------- password accounts (sign up / log in)
+# The website hashes; the durable backend stores. "create" refuses an address
+# that already has any account, so sign-up (which sends no email) cannot attach
+# a password to someone else's Google or email-link account.
+PASSWORD_OPS = ("lookup", "create", "set", "verified")
+
+
+def password_store(op, email, pw_hash=None):
+    con = db()
+    if op == "lookup":
+        row = con.execute("SELECT hash FROM passwords WHERE email=?", (email,)).fetchone()
+        return dict(hash=row[0] if row else None)
+    if op == "create":
+        known = any(con.execute(f"SELECT 1 FROM {table} WHERE email=? LIMIT 1", (email,)).fetchone()
+                    for table in ("passwords", "verified_emails", "users", "panels"))
+        if known:
+            return dict(exists=True)
+        con.execute("INSERT INTO passwords(email, hash, verified) VALUES (?, ?, 0)", (email, pw_hash))
+    elif op == "set":
+        con.execute("INSERT INTO passwords(email, hash, verified) VALUES (?, ?, 1) "
+                    "ON CONFLICT(email) DO UPDATE SET hash=excluded.hash, verified=1, "
+                    "updated=CURRENT_TIMESTAMP", (email, pw_hash))
+    elif op == "verified":
+        con.execute("INSERT OR IGNORE INTO verified_emails(email) VALUES (?)", (email,))
+        con.execute("DELETE FROM passwords WHERE email=? AND verified=0", (email,))
+    con.commit()
+    return dict(ok=True)
+
+
+def password_call(op, email, pw_hash=None):
+    """Reply dict, or None when the account store cannot be reached (fail closed)."""
+    if FORWARD_URL:
+        sent = forward("POST", "/api/account/password", json=dict(op=op, hash=pw_hash),
+                       actor=account_auth.email_identity(email))
+        if sent is None or sent[1] != 200:
+            return None
+        try:
+            reply = json.loads(sent[0])
+        except (ValueError, TypeError):
+            return None
+        return reply if isinstance(reply, dict) else None
+    if ON_VERCEL:
+        return None
+    return password_store(op, email, pw_hash)
+
+
+def password_ready():
+    return bool(FORWARD_URL) or not ON_VERCEL
 
 
 # ------------------------------------------------------------------ helpers
@@ -532,6 +589,7 @@ def api_health():
                account_protocol=1 if len(app.secret_key or "") >= 32 else None,
                google_sign_in=account_auth.configured(),
                email_sign_in=account_auth.email_configured(),
+               password_sign_in=account_auth.password_configured(),
                newsletter_protocol=1,
                newsletter_delivery_ready=newsletter.delivery_ready(),
                registrations_to="linuxone" if FORWARD_URL else
@@ -702,9 +760,7 @@ def api_current(endpoint):
 def unsubscribe():
     actor = account_auth.user()
     if not actor:
-        if account_auth.configured():
-            return redirect("/api/auth/google?" + requests.compat.urlencode({"next": request.full_path.rstrip("?")}))
-        return redirect("/")     # sign in (Google or email link) from the home page first
+        return redirect("/signin?" + requests.compat.urlencode({"next": request.full_path.rstrip("?")}))
     email = (request.args.get("email") or actor["email"]).strip().lower()
     if email != actor["email"]:
         return render_template("auth_message.html", title="Unsubscribe",
@@ -772,6 +828,21 @@ def api_account_email_consume():
         return jsonify(error="invalid nonce"), 400
     return jsonify(ok=True, fresh=consume_account_nonce(
         "email-link:" + nonce, ttl=account_auth.EMAIL_LINK_MAX_AGE))
+
+
+@app.post("/api/account/password")
+def api_account_password():
+    """Instance side of password accounts. Only the signed website protocol may call
+    this: the reply can carry a password hash, so no browser session ever can."""
+    if not getattr(g, "account_proxy_nonce", None):
+        return jsonify(error="This endpoint accepts only signed website requests."), 403
+    b = request.get_json(silent=True) or {}
+    op, pw_hash = b.get("op"), b.get("hash")
+    if op not in PASSWORD_OPS:
+        return jsonify(error="invalid op"), 400
+    if op in ("create", "set") and (not isinstance(pw_hash, str) or not 20 <= len(pw_hash) <= 512):
+        return jsonify(error="invalid hash"), 400
+    return jsonify(password_store(op, account_auth.user()["email"], pw_hash))
 
 
 @app.get("/api/my_buildings")
@@ -974,7 +1045,8 @@ newsletter.init_app(app, database=lambda: db(), forward_url=lambda: FORWARD_URL,
                     on_vercel=lambda: ON_VERCEL)
 account_auth.init_app(app, consume_account_nonce, email_backend=dict(
     ready=sign_in_email_ready,
-    send_link=send_sign_in_link, consume=consume_sign_in_nonce))
+    send_link=send_sign_in_link, consume=consume_sign_in_nonce),
+    password_backend=dict(ready=password_ready, call=password_call))
 site_guide.init_app(app, about_data=lambda: dict(reliability=RELIABILITY, snapshot=META))
 
 

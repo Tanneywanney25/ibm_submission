@@ -129,9 +129,14 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/api/auth/email` | POST | `{email, remember}` → sends a signed one-use 15-minute sign-in link (passwordless, T14); 400 invalid email, 429 per-worker budget, 503 unconfigured or backend unreachable | token signed on Vercel with the shared secret; the email is sent by the instance via a signed forward to `/api/account/email_link` |
 | `/api/auth/email/callback` | GET | verifies the link token and consumes its nonce one-use, establishes the same signed session as Google, redirects home | nonce consumed on the instance (`/api/account/email_consume`); 503 fail-closed when it is unreachable |
 | `/api/account/email_link`, `/api/account/email_consume` | POST | instance side of email sign-in: mail the website's link / consume a link nonce; 403 for anything but the signed website-to-backend protocol | FULL mode only (the instance) |
+| `/signin` | GET | the sign-in page: Continue with Google, then Log in / Sign up tabs (`?mode=signup` opens Sign up), optional safe `next`; redirects a signed-in user to `next` | page |
+| `/api/auth/signup` | POST | JSON `{email, password, remember}` (8 to 128 characters) creates a password account and signs in at once; sends no email; 400 invalid or non-JSON, 409 address already has an account, 429 per-worker budget, 503 store unreachable | password hashed on Vercel (werkzeug scrypt); only the hash is forwarded to `/api/account/password` |
+| `/api/auth/login` | POST | JSON `{email, password, remember}`; 401 on any mismatch (unknown address costs the same hash check), 429 after 8 tries per address in 15 minutes | hash fetched from the instance, checked on Vercel |
+| `/api/auth/password` | POST | profile: set or change the password; needs CSRF and a Google or email-link session (403 for a password session) | stored as verified |
+| `/api/account/password` | POST | instance side of password accounts (`op` = lookup, create, set, verified); 403 for anything but the signed website-to-backend protocol | FULL mode only (the instance) |
 | `/api/auth/session` | GET | `{user,google_ready,email_ready,csrf_token}`; user is null when signed out | signed cookie, private/no-store |
 | `/api/auth/logout` | POST | clear session, redirect home; form or `X-CSRF-Token` required | website session |
-| `/api/health` | GET | existing health fields plus `account_protocol`, `google_sign_in`, `email_sign_in`, `newsletter_protocol:1` and `newsletter_delivery_ready` (instance: secret and SMTP settings present; Vercel: shared-secret presence plus new backend readiness, not a mail-delivery test) | adds instance health under `linuxone` (3 s timeout, `{offline:true}` when down) |
+| `/api/health` | GET | existing health fields plus `account_protocol`, `google_sign_in`, `email_sign_in`, `password_sign_in`, `newsletter_protocol:1` and `newsletter_delivery_ready` (instance: secret and SMTP settings present; Vercel: shared-secret presence plus new backend readiness, not a mail-delivery test) | adds instance health under `linuxone` (3 s timeout, `{offline:true}` when down) |
 | `/data/<path>` | GET | the files in `public/data/` | Vercel's CDN serves them before any rewrite; Flask serves them for local runs |
 | `/api/queue.csv?k=` | GET | top-k CSV | `public/data/top500.csv` (k capped at 500 in LITE) |
 | `/api/draft_message/<bbl>?as=&address=` | GET | `{to, recipients, subject, body, framing, note}`: a notice the user copies or opens in their own mail client, never sent. `as=tenant` (default) is a resident's request to the registered owner care of the managing agent; `as=landlord` is the owner's pre-winter self-audit; `address` names the building in the text (units are cut). 400 for another `as`, 404 for an unranked building | computed from the shard |
@@ -278,8 +283,20 @@ All four must return 200 and the building call must mention `"ranked": true`.
 ## 10. Accounts and map interactions
 
 Google sign-in configuration and release checks are in [GOOGLE_LOGIN.md](GOOGLE_LOGIN.md).
-Email sign-in (T14) is passwordless: the site emails a signed link that works once for
-15 minutes; no password is ever stored or accepted. It needs `FLASK_SECRET_KEY` (the same
+Sign-in lives on its own page, `/signin` (the header's Sign in button; the home page shows
+a "Sign up to save your progress" button instead of a sign-in box). It offers Google, and
+Log in / Sign up with an email and password. Sign-up sends no email and signs in at once.
+The password reaches only Vercel, which hashes it (werkzeug scrypt); the instance stores
+the hash in `passwords` and returns it only over the signed protocol, so the password never
+crosses the plain-HTTP hop to the instance. Because sign-up proves nothing about the address,
+sign-up refuses any address that already has an account (password, Google or email-link
+sign-in, saved building or panels), and a later Google or email-link sign-in for an address
+deletes a password that sign-up set on it (`verified_emails` records proven addresses). A
+signed-in Google or email-link user can set a password from the profile; that one counts as
+verified. Forgotten passwords: the Log in tab's "Email me a sign-in link".
+
+Email-link sign-in (T14): the site emails a signed link that works once for
+15 minutes. It needs `FLASK_SECRET_KEY` (the same
 value on Vercel and the instance), `REGISTER_FORWARD_URL`, `SMTP_*` on the instance, and
 the instance's `~/heatahead/site` clone pulled and restarted; until all of those are in
 place the form says it is being set up and `/api/health` reports `email_sign_in: false`.

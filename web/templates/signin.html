@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Sign up' if mode == 'signup' else 'Log in' }} · HeatAhead{% endblock %}
+{% block head %}
+<style>
+.signin-wrap { max-width:480px; margin:2.5rem auto 3rem; }
+.signin-wrap .card { padding:1.6rem; }
+.acct-head { display:flex; align-items:center; gap:.8rem; margin-bottom:.4rem; }
+.acct-head .badge { width:46px; height:46px; flex:none; border-radius:14px; border:var(--bold); display:grid; place-items:center; background:var(--sun); }
+.acct-head h1 { margin:0; font-size:1.6rem; letter-spacing:-.03em; }
+.google-button { display:inline-flex; align-items:center; justify-content:center; gap:.75rem; width:100%;
+  background:#fff; color:#1f1f1f; border:var(--bold); padding:.75rem 1rem; font-weight:700; font-size:.98rem;
+  border-radius:var(--radius-sm); min-height:52px; transition:transform .18s, box-shadow .18s; }
+.google-button:hover:not(:disabled) { transform:translate(-3px,-3px); box-shadow:5px 5px 0 var(--ink); }
+.google-button img { width:20px; height:20px; }
+.google-button:disabled, .auth-form button:disabled { cursor:not-allowed; }
+.remember { display:flex; align-items:center; gap:.55rem; color:var(--muted); font-size:.86rem; margin:0 0 1rem; }
+.signin-or { display:flex; align-items:center; gap:.8rem; color:var(--muted); font-size:.78rem; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; margin:1.2rem 0; }
+.signin-or::before, .signin-or::after { content:""; flex:1; border-top:2px dashed var(--line); }
+.auth-tabs { display:grid; grid-template-columns:1fr 1fr; border:var(--bold); border-radius:999px; padding:4px; margin-bottom:1rem; background:#fff; }
+.auth-tabs button { border:0; border-radius:999px; background:transparent; color:var(--ink); font-weight:700; padding:.55rem; min-height:42px; box-shadow:none; }
+.auth-tabs button[aria-selected="true"] { background:var(--ink); color:#fff; }
+.auth-form { display:grid; gap:.7rem; }
+.auth-form label { font-size:.85rem; font-weight:700; display:grid; gap:.3rem; }
+.auth-form input { width:100%; }
+.signin-wrap [hidden] { display:none !important; }
+.auth-form button[type=submit] { width:100%; min-height:48px; }
+.auth-status { font-size:.86rem; min-height:1.2rem; margin:.2rem 0 0; color:var(--muted); }
+.auth-status.err { color:var(--bad); }
+.auth-alt { font-size:.86rem; margin:.8rem 0 0; }
+.auth-alt button { background:none; border:0; padding:0; color:var(--accent, inherit); text-decoration:underline; font:inherit; font-weight:700; cursor:pointer; box-shadow:none; min-height:0;
+  text-transform:none; letter-spacing:normal; }
+.fine { font-size:.8rem; color:var(--muted); }
+</style>
+{% endblock %}
+{% block body %}
+<div class="signin-wrap">
+  <div class="card">
+    <div class="acct-head"><span class="badge" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#072a20" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><h1>Welcome to HeatAhead</h1></div>
+    <p class="muted">Sign in to save your building, manage heat alerts, and pick up where you
+    left off.</p>
+
+    <form action="/api/auth/google" method="get">
+      <input type="hidden" name="next" value="{{ next }}">
+      <input type="hidden" name="remember" value="0">
+      <label class="remember"><input type="checkbox" id="remember" name="remember" value="1" checked>
+        Keep me signed in for 30 days on this device</label>
+      <button class="google-button" type="submit" {% if not google_ready %}disabled
+        title="Google sign-in is not available yet"{% endif %}>
+        <img src="/static/google-g.png" alt="" width="20" height="20">Continue with Google
+      </button>
+    </form>
+
+    <div class="signin-or" aria-hidden="true">or</div>
+
+    <div class="auth-tabs" role="tablist" aria-label="Log in or sign up">
+      <button type="button" role="tab" id="tab-login" aria-controls="auth_form"
+              aria-selected="{{ 'false' if mode == 'signup' else 'true' }}">Log in</button>
+      <button type="button" role="tab" id="tab-signup" aria-controls="auth_form"
+              aria-selected="{{ 'true' if mode == 'signup' else 'false' }}">Sign up</button>
+    </div>
+
+    <form class="auth-form" id="auth_form" role="tabpanel" novalidate>
+      <label>Email
+        <input id="auth_email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
+      <label>Password
+        <input id="auth_password" type="password" minlength="8" maxlength="128" required
+               autocomplete="{{ 'new-password' if mode == 'signup' else 'current-password' }}"
+               placeholder="At least 8 characters"></label>
+      <label id="confirm_row" {% if mode != 'signup' %}hidden{% endif %}>Confirm password
+        <input id="auth_confirm" type="password" maxlength="128" autocomplete="new-password"></label>
+      <button type="submit" id="auth_submit" {% if not password_ready %}disabled{% endif %}>
+        {{ 'Create account' if mode == 'signup' else 'Log in' }}</button>
+      <p id="auth_status" class="auth-status" role="status" aria-live="polite">{% if not password_ready %}Password sign-in is unavailable right now. Continue with Google instead.{% endif %}</p>
+    </form>
+
+    <p class="auth-alt" id="link_row" {% if mode == 'signup' or not email_ready %}hidden{% endif %}>
+      Forgot your password? <button type="button" id="email_link">Email me a sign-in link</button></p>
+    <p class="fine" id="signup_note" {% if mode != 'signup' %}hidden{% endif %}>Signing up sends no
+      email. You're signed in right away, and the same email works with Google later.</p>
+    <p class="fine">HeatAhead never sees your Google password. A password you choose here is
+      stored only as a one-way hash. <a href="/learn-more#data-and-privacy">Data &amp; privacy</a></p>
+  </div>
+  <p class="fine" style="text-align:center">You can explore the <a href="/map">risk map</a> and
+    <a href="/building">check a building</a> without an account.</p>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const EMAIL_OK = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  const NEXT = {{ next | tojson }};
+  const EMAIL_READY = {{ email_ready | tojson }};
+  let mode = {{ mode | tojson }};
+  const status = (text, bad) => { $('auth_status').textContent = text;
+                                  $('auth_status').classList.toggle('err', !!bad); };
+
+  function setMode(next) {
+    mode = next;
+    const signup = mode === 'signup';
+    $('tab-login').setAttribute('aria-selected', String(!signup));
+    $('tab-signup').setAttribute('aria-selected', String(signup));
+    $('confirm_row').hidden = !signup;
+    $('signup_note').hidden = !signup;
+    $('link_row').hidden = signup || !EMAIL_READY;
+    $('auth_submit').textContent = signup ? 'Create account' : 'Log in';
+    $('auth_password').autocomplete = signup ? 'new-password' : 'current-password';
+    document.title = (signup ? 'Sign up' : 'Log in') + ' · HeatAhead';
+    if (!$('auth_submit').disabled) status('');
+    const url = new URL(location.href);
+    url.searchParams.set('mode', mode);
+    history.replaceState(null, '', url);
+  }
+  $('tab-login').addEventListener('click', () => setMode('login'));
+  $('tab-signup').addEventListener('click', () => setMode('signup'));
+
+  $('auth_form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = $('auth_email').value.trim(), password = $('auth_password').value;
+    if (!EMAIL_OK.test(email)) { status('Type a valid email address.', true); $('auth_email').focus(); return; }
+    if (password.length < 8) { status('Use a password of at least 8 characters.', true); $('auth_password').focus(); return; }
+    if (mode === 'signup' && password !== $('auth_confirm').value) {
+      status('The two passwords do not match.', true); $('auth_confirm').focus(); return; }
+    const button = $('auth_submit');
+    button.disabled = true;
+    status(mode === 'signup' ? 'Creating your account…' : 'Logging you in…');
+    try {
+      const r = await fetch(mode === 'signup' ? '/api/auth/signup' : '/api/auth/login', {
+        method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email, password, remember: $('remember').checked ? 1 : 0})});
+      const j = await r.json().catch(() => ({}));
+      if (r.ok) { status('Signed in. Taking you to your dashboard…'); location.href = NEXT; return; }
+      status(j.error || 'That did not work. Please try again.', true);
+      if (j.code === 'account_exists') setMode('login');
+    } catch { status('Could not reach the server. Please try again.', true); }
+    button.disabled = false;
+  });
+
+  $('email_link').addEventListener('click', async () => {
+    const email = $('auth_email').value.trim();
+    if (!EMAIL_OK.test(email)) { status('Type your email address above first.', true); $('auth_email').focus(); return; }
+    status('Sending your sign-in link…');
+    try {
+      const r = await fetch('/api/auth/email', {method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email, remember: $('remember').checked ? 1 : 0})});
+      const j = await r.json().catch(() => ({}));
+      status(r.ok ? (j.message || 'Check your inbox for the sign-in link.')
+                  : (j.error || 'The sign-in email could not be sent. Please try again.'), !r.ok);
+    } catch { status('Could not reach the server. Please try again.', true); }
+  });
+})();
+</script>
+{% endblock %}

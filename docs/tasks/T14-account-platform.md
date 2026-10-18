@@ -84,7 +84,14 @@ live once `FLASK_SECRET_KEY` and `GOOGLE_CLIENT_SECRET` are pasted into Vercel P
 as Secret variables by a person and the site is redeployed; `/api/health` then reports
 `google_sign_in: true`.
 
-Google sign-in was confirmed live on production on October 18 with a real sign-in.
+Google sign-in was confirmed live on production on October 18 with a real sign-in, and
+email links work since SMTP was turned on with `web/set_smtp.py` the same day.
+
+**Sign-in page (October 18):** sign-in moved to its own page, `/signin`, with Continue with
+Google and Log in / Sign up tabs for email and password accounts (sign-up sends no email).
+The home page shows "Sign up to save your progress" instead of the sign-in box; signed-in
+users still see their profile and dashboard there. Rules and the takeover guard are in
+docs/VERCEL.md section 10.
 
 Email sign-in stays off until the instance has `SMTP_*`: a person runs
 `web/set_smtp.py` over SSH (docs/VERCEL.md section 10), which tests the login, saves the

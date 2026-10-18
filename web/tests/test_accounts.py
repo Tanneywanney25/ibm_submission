@@ -76,6 +76,7 @@ class AccountTests(unittest.TestCase):
         self.mail_patch.start()
         self.addCleanup(self.mail_patch.stop)
         auth._EMAIL_SENDS.clear()
+        auth._PASSWORD_TRIES.clear()
 
     def get(self, path, client=None, **kw):
         return (client or self.client).get(path, base_url=ORIGIN, **kw)
@@ -380,7 +381,7 @@ class AccountTests(unittest.TestCase):
         self.assertTrue(response.json["ok"])
         signed_in = self.get(link)
         self.assertEqual(signed_in.status_code, 302)
-        self.assertEqual(signed_in.location, "/")
+        self.assertEqual(signed_in.location, "/#dashboard")
         with self.client.session_transaction(base_url=ORIGIN) as session:
             self.assertEqual(session["auth_user"]["email"], "link@example.test")
             self.assertTrue(session["auth_user"]["sub"].startswith("email:"))
@@ -421,8 +422,8 @@ class AccountTests(unittest.TestCase):
         client = lone.app.test_client()
         self.assertEqual(self.post("/api/auth/email", dict(email="a@example.test"),
                                    client=client).status_code, 503)
-        page = self.get("/", client=client)
-        self.assertIn(b"Email sign-in is", page.data)
+        page = self.get("/signin", client=client)
+        self.assertIn(b"Password sign-in is unavailable", page.data)
 
     def test_email_link_needs_smtp_on_the_instance(self):
         self.module.HOST = "linuxone"
@@ -474,6 +475,131 @@ class AccountTests(unittest.TestCase):
             self.assertEqual(replay.status_code, 400)
             self.assertIn(b"already used", replay.data)
         self.assertFalse(website.DB.exists(), "the website side must stay stateless")
+
+    # ---- password accounts: sign up / log in (no email at sign-up)
+    def password(self, path, email="pw@example.test", password="correct horse 1", client=None, **extra):
+        return (client or self.client).post(path, base_url=ORIGIN,
+                                            json=dict(email=email, password=password, **extra))
+
+    def logout(self, client=None):
+        with (client or self.client).session_transaction(base_url=ORIGIN) as session:
+            session.clear()
+
+    def test_signin_page_has_google_and_both_tabs(self):
+        page = self.get("/signin?mode=signup")
+        self.assertEqual(page.status_code, 200)
+        for text in (b"Continue with Google", b"Log in", b"Sign up", b"Create account",
+                     b"Signing up sends no"):
+            self.assertIn(text, page.data)
+        home = self.get("/").data
+        self.assertIn(b'href="/signin">Sign in</a>', home)
+        self.assertIn(b'href="/signin?mode=signup"', home)
+        self.assertNotIn(b"email_signin_form", home)
+        self.actor()
+        self.assertEqual(self.get("/signin").location, "/#dashboard")
+
+    def test_password_signup_login_and_saved_buildings_return(self):
+        with patch("mailer.send") as sent:
+            created = self.password("/api/auth/signup", remember=1)
+            self.assertEqual(created.status_code, 200)
+            sent.assert_not_called()
+        with self.client.session_transaction(base_url=ORIGIN) as session:
+            self.assertEqual(session["auth_user"]["email"], "pw@example.test")
+            self.assertEqual(session["auth_user"]["sub"], auth.email_identity("pw@example.test")["sub"])
+            self.assertEqual(session["auth_method"], "password")
+            self.assertGreater(session["auth_expires"], time.time() + 29 * 86400)
+            csrf = session["auth_csrf"]
+        self.assertIn(b"with your password", self.get("/").data)
+        self.assertEqual(self.post("/api/register", dict(bbl="3000410007"), csrf=csrf).status_code, 200)
+        self.logout()
+        self.assertEqual(self.password("/api/auth/login", password="wrong password").status_code, 401)
+        self.assertEqual(self.password("/api/auth/login", email="nobody@example.test").status_code, 401)
+        self.assertEqual(self.password("/api/auth/signup").status_code, 409)
+        self.assertEqual(self.password("/api/auth/login", remember=0).status_code, 200)
+        with self.client.session_transaction(base_url=ORIGIN) as session:
+            self.assertLess(session["auth_expires"], time.time() + 13 * 3600)
+        self.assertEqual(self.get("/api/my_buildings").json["total"], 1)
+        con = self.module.sqlite3.connect(self.db)
+        stored = con.execute("SELECT hash FROM passwords").fetchone()[0]
+        con.close()
+        self.assertNotIn("correct horse", stored)
+
+    def test_password_input_validation_and_rate_limit(self):
+        self.assertEqual(self.password("/api/auth/signup", password="short").status_code, 400)
+        self.assertEqual(self.password("/api/auth/signup", email="not-an-email").status_code, 400)
+        form = self.client.post("/api/auth/signup", base_url=ORIGIN,
+                                data=dict(email="pw@example.test", password="correct horse 1"))
+        self.assertEqual(form.status_code, 400)
+        self.assertEqual(self.password("/api/auth/signup").status_code, 200)
+        self.logout()
+        codes = [self.password("/api/auth/login", password="wrong password").status_code
+                 for _ in range(9)]
+        self.assertEqual(codes[:7], [401] * 7)
+        self.assertEqual(codes[-1], 429)
+
+    def test_signup_cannot_take_over_an_existing_or_later_proven_address(self):
+        # an address that already signed in with Google cannot be claimed by sign-up
+        result, _, _ = self.login()
+        self.assertEqual(result.status_code, 302)
+        self.logout()
+        self.assertEqual(self.password("/api/auth/signup", email="person@example.test").status_code, 409)
+        # a password set by sign-up (unproven) is dropped once the owner proves the address
+        self.assertEqual(self.password("/api/auth/signup", email="link@example.test").status_code, 200)
+        self.logout()
+        _, link = self.request_email_link()
+        self.assertEqual(self.get(link).status_code, 302)
+        self.logout()
+        self.assertEqual(self.password("/api/auth/login", email="link@example.test").status_code, 401)
+
+    def test_profile_sets_a_password_only_after_a_proven_sign_in(self):
+        self.assertEqual(self.password("/api/auth/signup").status_code, 200)
+        with self.client.session_transaction(base_url=ORIGIN) as session:
+            csrf = session["auth_csrf"]
+        refused = self.post("/api/auth/password", dict(password="another pass 2"), csrf=csrf)
+        self.assertEqual(refused.status_code, 403)
+        self.logout()
+        self.actor(email="person@example.test")
+        with self.client.session_transaction(base_url=ORIGIN) as session:
+            session["auth_method"] = "google"
+        self.assertIn(b"Save password", self.get("/").data)
+        self.assertEqual(self.post("/api/auth/password", dict(password="another pass 2"),
+                                   csrf="wrong").status_code, 403)
+        self.assertEqual(self.post("/api/auth/password", dict(password="another pass 2")).status_code, 200)
+        self.logout()
+        self.assertEqual(self.password("/api/auth/login", email="person@example.test",
+                                       password="another pass 2").status_code, 200)
+        # the hash store is reachable only through the signed website protocol
+        self.assertEqual(self.post("/api/account/password", dict(op="lookup")).status_code, 403)
+
+    def test_password_accounts_forward_to_backend_and_fail_closed(self):
+        backend = self.module.app.test_client()
+        website = application(Path(self.directory.name) / "ephemeral.db",
+                              forward="https://backend.test", vercel=True)
+        client = website.app.test_client()
+
+        def transport(method, url, **kwargs):
+            parts = urlsplit(url)
+            self.assertNotIn(b"correct horse", kwargs.get("data") or b"")
+            result = backend.open(parts.path + ("?" + parts.query if parts.query else ""),
+                                  method=method, base_url="https://backend.test",
+                                  data=kwargs.get("data"), headers=kwargs.get("headers"))
+            response = requests.Response()
+            response.status_code = result.status_code
+            response._content = result.data
+            response.headers.update(result.headers)
+            return response
+
+        with patch.object(website.requests, "request", side_effect=transport):
+            self.assertEqual(self.password("/api/auth/signup", client=client).status_code, 200)
+            self.logout(client)
+            self.assertEqual(self.password("/api/auth/login", client=client).status_code, 200)
+            self.assertTrue(self.get("/api/health", client=client).json["password_sign_in"])
+        with patch.object(website.requests, "request", side_effect=requests.Timeout):
+            self.logout(client)
+            self.assertEqual(self.password("/api/auth/login", client=client).status_code, 503)
+        self.assertFalse(website.DB.exists(), "the website side must stay stateless")
+        lone = application(Path(self.directory.name) / "lone.db", vercel=True).app.test_client()
+        self.assertEqual(self.password("/api/auth/signup", client=lone).status_code, 503)
 
     def test_forwarded_requests_are_bound_signed_and_one_use(self):
         self.actor()

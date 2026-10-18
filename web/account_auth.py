@@ -20,20 +20,28 @@ from flask import (Blueprint, current_app, g, jsonify, redirect, render_template
                    request, session, url_for)
 from flask.sessions import SecureCookieSessionInterface
 from itsdangerous import BadSignature, URLSafeTimedSerializer
+from werkzeug.security import check_password_hash, generate_password_hash
 
 bp = Blueprint("accounts", __name__)
 PRIVATE_ENDPOINTS = {"api_register", "api_my_buildings", "api_remove_registration",
                      "api_account_email_link", "api_account_email_consume",
-                     "api_panels_get", "api_panels_set"}
+                     "api_panels_get", "api_panels_set", "api_account_password"}
 FORWARD_PATHS = {"/api/register", "/api/my_buildings", "/api/account/remove",
                  "/api/account/email_link", "/api/account/email_consume",
-                 "/api/account/panels"}
+                 "/api/account/panels", "/api/account/password"}
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 # T14: passwordless email sign-in. The link token is signed with the shared
 # secret, lives EMAIL_LINK_MAX_AGE seconds and is consumed one-use on the
-# durable backend; no password is ever stored or accepted.
+# durable backend.
 EMAIL_LINK_SALT = "heatahead-email-link-v1"
 EMAIL_LINK_MAX_AGE = 900
+# Password accounts (sign up / log in). The password reaches only the website,
+# which hashes it (werkzeug scrypt); the instance stores and returns the hash.
+# Sign-up sends no email, so an address is unproven until a Google or email-link
+# sign-in proves it: that sign-in drops any unproven password on the address,
+# and sign-up refuses an address that already has an account.
+PASSWORD_MIN, PASSWORD_MAX = 8, 128
+VERIFIED_METHODS = ("google", "link")
 SCOPES = ["openid", "https://www.googleapis.com/auth/userinfo.email",
           "https://www.googleapis.com/auth/userinfo.profile"]
 
@@ -57,6 +65,11 @@ def email_configured():
     backend = current_app.config.get("ACCOUNT_EMAIL_BACKEND")
     return bool(_key_ready() and current_app.config.get("AUTH_BASE_URL") and
                 backend and backend["ready"]())
+
+
+def password_configured():
+    backend = current_app.config.get("ACCOUNT_PASSWORD_BACKEND")
+    return bool(_key_ready() and backend and backend["ready"]())
 
 
 def email_identity(email):
@@ -179,6 +192,21 @@ def _proxy_user(nonce_guard):
         return None
 
 
+def _start_session(profile, remember, method):
+    session.clear()
+    session["auth_user"] = profile
+    session["auth_method"] = method
+    session["auth_expires"] = time.time() + (30 * 86400 if remember else 12 * 3600)
+    session.permanent = bool(remember)
+    csrf_token()
+
+
+def _mark_verified(email):
+    """A Google or email-link sign-in proves the address: drop any unproven password."""
+    if password_configured():
+        current_app.config["ACCOUNT_PASSWORD_BACKEND"]["call"]("verified", email)
+
+
 def _error(message, status=400):
     return render_template("auth_message.html", title="Sign-in", message=message), status
 
@@ -261,11 +289,8 @@ def google_callback():
         current_app.logger.warning("google sign-in failed: %s %s", type(exc).__name__,
                                    str(getattr(exc, "error", "") or "")[:40])
         return _error("Google sign-in could not finish. Please try again in a moment.", 503)
-    session.clear()
-    session["auth_user"] = profile
-    session["auth_expires"] = time.time() + (30 * 86400 if pending["remember"] else 12 * 3600)
-    session.permanent = bool(pending["remember"])
-    csrf_token()
+    _start_session(profile, pending["remember"], "google")
+    _mark_verified(profile["email"])
     return redirect(safe_next(pending.get("next")))
 
 
@@ -313,31 +338,146 @@ def email_callback():
         return _error("Email sign-in is being set up. Please try again shortly.", 503)
     token = request.args.get("token", "")
     if not token or len(token) > 2048:
-        return _error("That sign-in link is not valid. Please request a new one from the home page.")
+        return _error("That sign-in link is not valid. Please request a new one from the sign-in page.")
     try:
         claims = _serializer(EMAIL_LINK_SALT).loads(token, max_age=EMAIL_LINK_MAX_AGE)
     except (BadSignature, ValueError, TypeError):
         return _error("That sign-in link expired or is not valid. Sign-in links work "
-                      "for 15 minutes; please request a new one from the home page.")
+                      "for 15 minutes; please request a new one from the sign-in page.")
     email = str(claims.get("email") or "").lower() if isinstance(claims, dict) else ""
     nonce = claims.get("nonce") if isinstance(claims, dict) else None
     if (len(email) > 254 or not EMAIL.fullmatch(email) or
             not isinstance(nonce, str) or not 20 <= len(nonce) <= 100):
-        return _error("That sign-in link is not valid. Please request a new one from the home page.")
+        return _error("That sign-in link is not valid. Please request a new one from the sign-in page.")
     fresh = current_app.config["ACCOUNT_EMAIL_BACKEND"]["consume"](nonce, email)
     if fresh is None:
         return _error("Sign-in is temporarily unavailable. Please open your link "
                       "again in a moment.", 503)
     if not fresh:
         return _error("That sign-in link was already used. Please request a new one "
-                      "from the home page.")
-    remember = bool(claims.get("remember"))
-    session.clear()
-    session["auth_user"] = email_identity(email)
-    session["auth_expires"] = time.time() + (30 * 86400 if remember else 12 * 3600)
-    session.permanent = remember
-    csrf_token()
-    return redirect("/")
+                      "from the sign-in page.")
+    _start_session(email_identity(email), bool(claims.get("remember")), "link")
+    _mark_verified(email)
+    return redirect("/#dashboard")
+
+
+@bp.get("/signin")
+def signin_page():
+    destination = safe_next(request.args.get("next", "/#dashboard"))
+    if user():
+        return redirect(destination)
+    mode = "signup" if request.args.get("mode") == "signup" else "login"
+    return render_template("signin.html", page="signin", mode=mode, next=destination,
+                           password_ready=password_configured())
+
+
+# per-warm-worker brakes, like _email_budget_ok: failed log-ins and sign-ups per
+# address, and attempts per minute overall
+_PASSWORD_TRIES = []
+_DUMMY_HASH = []
+
+
+def _password_budget_ok(email, now):
+    _PASSWORD_TRIES[:] = [(t, e) for t, e in _PASSWORD_TRIES if t > now - 900]
+    return (sum(1 for _, e in _PASSWORD_TRIES if e == email) < 8 and
+            sum(1 for t, _ in _PASSWORD_TRIES if t > now - 60) < 40)
+
+
+def _password_ok(password):
+    return isinstance(password, str) and PASSWORD_MIN <= len(password) <= PASSWORD_MAX
+
+
+def _password_body():
+    """Email + password from a same-origin JSON request (a cross-site form cannot send JSON)."""
+    body = request.get_json(silent=True) if request.is_json else None
+    if not isinstance(body, dict):
+        return None, None, None, "Please refresh the page and try again."
+    email = str(body.get("email") or "").strip().lower()
+    remember = str(body.get("remember", "1")).lower() in ("1", "true")
+    if len(email) > 254 or not EMAIL.fullmatch(email):
+        return None, None, None, "That does not look like an email address."
+    if not _password_ok(body.get("password")):
+        return None, None, None, f"Use a password of {PASSWORD_MIN} to {PASSWORD_MAX} characters."
+    return email, body["password"], remember, None
+
+
+def _password_unavailable():
+    return jsonify(error="Password sign-in is unavailable right now. Continue with Google "
+                         "or try again shortly.", code="password_unavailable"), 503
+
+
+@bp.post("/api/auth/signup")
+def password_signup():
+    """Create a password account. No email is sent; the first sign-in is immediate."""
+    if not password_configured():
+        return _password_unavailable()
+    email, password, remember, problem = _password_body()
+    if problem:
+        return jsonify(error=problem), 400
+    now = time.time()
+    if not _password_budget_ok(email, now):
+        return jsonify(error="Too many attempts just now. Please wait a few minutes."), 429
+    _PASSWORD_TRIES.append((now, email))
+    reply = current_app.config["ACCOUNT_PASSWORD_BACKEND"]["call"](
+        "create", email, generate_password_hash(password))
+    if reply is None:
+        return _password_unavailable()
+    if reply.get("exists"):
+        return jsonify(error="An account with this email already exists. Log in instead, or "
+                             "continue with Google.", code="account_exists"), 409
+    _start_session(email_identity(email), remember, "password")
+    return jsonify(ok=True)
+
+
+@bp.post("/api/auth/login")
+def password_login():
+    if not password_configured():
+        return _password_unavailable()
+    email, password, remember, problem = _password_body()
+    if problem:
+        return jsonify(error=problem), 400
+    now = time.time()
+    if not _password_budget_ok(email, now):
+        return jsonify(error="Too many attempts just now. Please wait a few minutes, or "
+                             "email yourself a sign-in link."), 429
+    reply = current_app.config["ACCOUNT_PASSWORD_BACKEND"]["call"]("lookup", email)
+    if reply is None:
+        return _password_unavailable()
+    stored = reply.get("hash")
+    if not _DUMMY_HASH:
+        _DUMMY_HASH.append(generate_password_hash(secrets.token_urlsafe(16)))
+    # an unknown address still pays for one hash check, so timing does not reveal it
+    matched = check_password_hash(stored if isinstance(stored, str) else _DUMMY_HASH[0], password)
+    if not (isinstance(stored, str) and matched):
+        _PASSWORD_TRIES.append((now, email))
+        return jsonify(error="That email and password do not match. Try again, continue with "
+                             "Google, or email yourself a sign-in link."), 401
+    _start_session(email_identity(email), remember, "password")
+    return jsonify(ok=True)
+
+
+@bp.post("/api/auth/password")
+def password_set():
+    """Set or change the signed-in account's password (profile form)."""
+    if not user():
+        return jsonify(error="Sign in first."), 401
+    if not _csrf_ok():
+        return jsonify(error="Your session changed. Refresh the page and try again."), 403
+    if session.get("auth_method") not in VERIFIED_METHODS:
+        return jsonify(error="To change your password, sign in with Google or an email link "
+                             "first, so we know the address is yours."), 403
+    if not password_configured():
+        return _password_unavailable()
+    body = request.get_json(silent=True) if request.is_json else None
+    password = body.get("password") if isinstance(body, dict) else None
+    if not _password_ok(password):
+        return jsonify(error=f"Use a password of {PASSWORD_MIN} to {PASSWORD_MAX} characters."), 400
+    reply = current_app.config["ACCOUNT_PASSWORD_BACKEND"]["call"](
+        "set", user()["email"], generate_password_hash(password))
+    if reply is None:
+        return _password_unavailable()
+    return jsonify(ok=True, message="Password saved. You can now log in with your email "
+                                    "and this password.")
 
 
 @bp.get("/api/auth/session")
@@ -354,7 +494,7 @@ def logout():
     return redirect("/")
 
 
-def init_app(app, nonce_guard, email_backend=None):
+def init_app(app, nonce_guard, email_backend=None, password_backend=None):
     key = os.environ.get("FLASK_SECRET_KEY", "")
     origin = os.environ.get("AUTH_BASE_URL", os.environ.get("SITE_URL", "https://ibmsubmission.vercel.app")).rstrip("/")
     allow_http = os.environ.get("AUTH_HTTP_DEVELOPMENT") == "1"
@@ -373,7 +513,8 @@ def init_app(app, nonce_guard, email_backend=None):
                       SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_PATH="/",
                       PERMANENT_SESSION_LIFETIME=timedelta(days=30), SESSION_REFRESH_EACH_REQUEST=False,
                       MAX_CONTENT_LENGTH=64 * 1024,
-                      ACCOUNT_EMAIL_BACKEND=email_backend)
+                      ACCOUNT_EMAIL_BACKEND=email_backend,
+                      ACCOUNT_PASSWORD_BACKEND=password_backend)
     app.session_interface = AuthSessionInterface()
     app.register_blueprint(bp)
 
@@ -409,4 +550,6 @@ def init_app(app, nonce_guard, email_backend=None):
     @app.context_processor
     def account_context():
         return dict(account_user=user(), google_ready=configured(),
-                    email_ready=email_configured(), account_csrf=csrf_token() if user() else "")
+                    email_ready=email_configured(), password_ready=password_configured(),
+                    account_csrf=csrf_token() if user() else "",
+                    account_method=session.get("auth_method") if user() else None)

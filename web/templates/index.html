@@ -50,19 +50,7 @@ form .row input[type=text] { width:100%; }
 .consent { font-size:.86rem; color:var(--muted); display:flex; gap:.6rem; align-items:flex-start; }
 .consent input { margin-top:.2rem; flex:none; }
 #reg_out .err { color:var(--bad); }
-.google-button { display:inline-flex; align-items:center; justify-content:center; gap:.75rem; width:100%;
-  background:#fff; color:#1f1f1f; border:var(--bold); padding:.75rem 1rem; font-weight:700; font-size:.98rem;
-  border-radius:var(--radius-sm); min-height:52px; transition:transform .18s, box-shadow .18s; }
-.google-button:hover:not(:disabled) { transform:translate(-3px,-3px); box-shadow:5px 5px 0 var(--ink); }
-.google-button img { width:20px; height:20px; }
-/* a sign-in method that is not configured yet is unavailable, not "loading" */
-.google-button:disabled, .email-signin button:disabled { cursor:not-allowed; }
-.signin-or { display:flex; align-items:center; gap:.8rem; color:var(--muted); font-size:.78rem; font-weight:700;
-  letter-spacing:.1em; text-transform:uppercase; margin:1.1rem 0; }
-.signin-or::before, .signin-or::after { content:""; flex:1; border-top:2px dashed var(--line); }
-.email-signin { display:flex; gap:.6rem; flex-wrap:wrap; }
-.email-signin input { flex:1; min-width:200px; }
-.remember { display:flex; align-items:center; gap:.55rem; color:var(--muted); font-size:.86rem; margin:0 0 1rem; }
+.signup-cta { width:100%; justify-content:center; margin:.6rem 0 .4rem; }
 .account-email { overflow-wrap:anywhere; }
 .saved-row { border-top:2px solid var(--line); padding:.95rem 0; }
 .saved-row:first-child { border-top:0; padding-top:.2rem; }
@@ -172,7 +160,7 @@ document.getElementById('dots100').innerHTML =
 </div>
 
 <div class="section-title">
-  <div><p class="eyebrow">Your account</p>
+  <div><p class="eyebrow">{{ 'Your account' if account_user else 'Save your progress' }}</p>
     <h2>Save a building. Get one email per cold spell.</h2>
     <p>One account for everyone: choose the dashboard panels you want. Browsing never needs an account.</p></div>
 </div>
@@ -181,7 +169,8 @@ document.getElementById('dots100').innerHTML =
     {% if account_user %}
     <div class="acct-head"><span class="badge" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#072a20" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg></span><h2 id="profile">Your profile</h2></div>
     <p class="muted account-email">Signed in
-    {{- ' with Google' if not account_user.sub.startswith('email:') else ' with an email link' }} as
+    {{- ' with Google' if not account_user.sub.startswith('email:') else
+        (' with your password' if account_method == 'password' else ' with an email link') }} as
     <b>{{ account_user.email }}</b>.</p>
 
     <form id="panel_prefs" class="profile-section" novalidate>
@@ -215,39 +204,28 @@ document.getElementById('dots100').innerHTML =
       <div class="row"><button id="submit">Save to my account</button></div>
       <div id="reg_out" class="muted" role="status" aria-live="polite"></div>
     </form>
+    {% if password_ready and account_method != 'password' %}
+    <form id="password_form" class="profile-section" novalidate>
+      <h3>Password</h3>
+      <p class="muted" style="font-size:.85rem; margin:.2rem 0">Set a password to log in with
+      your email and password as well.</p>
+      <div class="row"><input id="new_password" type="password" autocomplete="new-password"
+        minlength="8" maxlength="128" placeholder="New password (at least 8 characters)"
+        aria-label="New password"></div>
+      <div class="row"><button type="submit">Save password</button></div>
+      <p id="password_status" class="muted" role="status" aria-live="polite"
+         style="font-size:.83rem; min-height:1rem; margin:0"></p>
+    </form>
+    {% endif %}
     <p class="muted" style="font-size:.8rem; margin-bottom:0">Saved buildings return when you
     sign in again. Stop alerts for one building from your dashboard, or
     <a href="/unsubscribe">stop all alerts</a>.</p>
     {% else %}
-    <div class="acct-head"><span class="badge" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#072a20" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><h2>Welcome to HeatAhead</h2></div>
-    <p class="muted">Sign in to save your building, manage heat alerts, and
-    pick up where you left off — with Google, or with just your email.</p>
-    <form action="/api/auth/google" method="get">
-      <input type="hidden" name="remember" value="0">
-      <label class="remember"><input type="checkbox" name="remember" value="1" checked>
-        Keep me signed in for 30 days on this device</label>
-      <button class="google-button" type="submit" {% if not google_ready %}disabled
-        title="Google sign-in is not available yet"{% endif %}>
-        <img src="/static/google-g.png" alt="" width="20" height="20">Continue with Google
-      </button>
-    </form>
-    {% if not google_ready %}<p class="muted" role="status">Google sign-in is not available
-    yet{% if email_ready %} — use the email link below instead{% endif %}. You can explore
-    the map and check a building without an account.</p>{% endif %}
-    <div class="signin-or" aria-hidden="true">or</div>
-    <form class="email-signin" id="email_signin_form" novalidate>
-      <input id="email_signin" type="email" placeholder="you@example.com"
-             autocomplete="email" aria-label="Email address for a sign-in link"
-             {% if not email_ready %}disabled{% endif %}>
-      <button type="submit" {% if not email_ready %}disabled
-        title="Email sign-in is not available yet"{% endif %}>Email me a sign-in link</button>
-    </form>
-    <p id="email_signin_status" class="muted" role="status" aria-live="polite"
-       style="font-size:.85rem; min-height:1.1rem">{% if not email_ready %}Email sign-in is
-       being set up. You can explore the map and check a building while we finish.{% endif %}</p>
-    <p class="muted" style="font-size:.8rem">New here? Your first sign-in creates your
-    account; the same button signs you back in. There are no passwords: HeatAhead never
-    receives your Google password, and an email sign-in link works once for 15 minutes.</p>
+    <div class="acct-head"><span class="badge" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#072a20" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><h2>Save your progress</h2></div>
+    <p class="muted">Make a free account to save your buildings, get one email per cold
+    spell, and keep your dashboard on every device.</p>
+    <a class="btnlink signup-cta" href="/signin?mode=signup">Sign up to save your progress</a>
+    <p class="muted" style="font-size:.86rem">Already have an account? <a href="/signin">Log in</a></p>
     <a class="btnlink ghost" href="/map">Explore the risk map</a>
     {% endif %}
   </div>
@@ -551,35 +529,20 @@ if ($('panel_prefs')) {
 }
 if (signedInAccount) { loadPanels(); loadAccount(); }
 
-// T14: passwordless email sign-in - request a one-use 15-minute link
-const emailForm = $('email_signin_form');
-const EMAIL_HINT = 'That doesn’t look like an email address yet.';
-if (emailForm) $('email_signin').addEventListener('input', () => {
-  const input = $('email_signin'), status = $('email_signin_status'), v = input.value.trim();
-  const bad = v.length > 0 && !EMAIL_OK.test(v);
-  input.setAttribute('aria-invalid', bad ? 'true' : 'false');
-  if (bad) status.textContent = EMAIL_HINT;
-  else if (status.textContent === EMAIL_HINT) status.textContent = '';
-});
-if (emailForm) emailForm.addEventListener('submit', async e => {
+// profile: set a password (only after a Google or email-link sign-in)
+const passwordForm = $('password_form');
+if (passwordForm) passwordForm.addEventListener('submit', async e => {
   e.preventDefault();
-  const email = $('email_signin').value.trim();
-  const status = $('email_signin_status');
-  if (!email) { status.textContent = 'Type your email address first.'; $('email_signin').focus(); return; }
-  if (!EMAIL_OK.test(email)) { status.textContent = EMAIL_HINT; $('email_signin').focus(); return; }
-  const remember = document.querySelector('#account input[name=remember][value="1"]');
-  const button = emailForm.querySelector('button');
-  button.disabled = true;
-  status.textContent = 'Sending your sign-in link…';
+  const password = $('new_password').value, status = $('password_status');
+  if (password.length < 8) { status.textContent = 'Use at least 8 characters.'; $('new_password').focus(); return; }
   try {
-    const r = await fetch('/api/auth/email', {method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({email, remember: remember && remember.checked ? 1 : 0})});
-    const j = await r.json();
-    status.textContent = r.ok ? (j.message || 'Check your inbox for the sign-in link.')
-                              : (j.error || 'The sign-in email could not be sent. Please try again.');
-  } catch { status.textContent = 'Could not reach the server — please try again.'; }
-  button.disabled = false;
+    const r = await fetch('/api/auth/password', {method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json', 'X-CSRF-Token':accountCSRF},
+      body:JSON.stringify({password})});
+    const j = await r.json().catch(() => ({}));
+    status.textContent = r.ok ? j.message : (j.error || 'The password could not be saved. Please try again.');
+    if (r.ok) $('new_password').value = '';
+  } catch { status.textContent = 'Could not reach the server. Please try again.'; }
 });
 </script>
 {% endblock %}
