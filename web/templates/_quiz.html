@@ -1,0 +1,462 @@
+{# Homepage quiz: a few questions, then a short plan built only from what the site already
+   offers (building record, draft notice, alerts, map, monitor, inspection list, dashboard
+   panels). Answers stay in the page. A typed address goes to the same GeoSearch autocomplete
+   and /api/lookup the rest of the site uses; a chosen building to /api/building. Building
+   level only: the address field never takes an apartment number. #}
+<style>
+.quiz-card { display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr); gap:1.6rem;
+  align-items:start; margin:2.4rem 0 0; background:var(--sun-soft); }
+@media (max-width:860px) { .quiz-card { grid-template-columns:1fr; } }
+.quiz-card h2 { font-size:clamp(1.4rem, 2.6vw, 1.9rem); letter-spacing:-.03em; margin:.2rem 0 .4rem; }
+.quiz-intro p { margin:.2rem 0 0; }
+.quiz-meta { display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.9rem; }
+.quiz-meta span { border:2px solid var(--ink); border-radius:999px; background:#fff; padding:.2rem .7rem;
+  font-size:.78rem; font-weight:700; }
+.quiz-panel { background:#fff; border:var(--bold); border-radius:20px; padding:1.1rem 1.2rem 1.2rem;
+  box-shadow:5px 5px 0 var(--ink); min-width:0; }
+.quiz-panel [hidden] { display:none !important; }   /* .btn sets display, which would beat [hidden] */
+.quiz-progress { height:10px; border:2px solid var(--ink); border-radius:999px; background:var(--well); overflow:hidden; }
+.quiz-progress span { display:block; height:100%; width:0; background:var(--accent); transition:width .25s ease-out; }
+.quiz-count { font-size:.8rem; font-weight:700; color:var(--muted); margin:.7rem 0 .15rem; }
+.quiz-panel fieldset { border:0; margin:0; padding:0; min-width:0; }
+.quiz-panel legend, .quiz-q { display:block; font-size:1.25rem; font-weight:800; letter-spacing:-.02em;
+  line-height:1.2; padding:0; margin:0 0 .25rem; }
+.quiz-panel legend:focus, .quiz-q:focus, #quiz-result h3:focus { outline:none; }
+.quiz-help { font-size:.86rem; color:var(--muted); margin:0 0 .75rem; }
+.quiz-options { display:grid; grid-template-columns:1fr 1fr; gap:.55rem; }
+@media (max-width:560px) { .quiz-options { grid-template-columns:1fr; } }
+.quiz-options label { display:flex; gap:.55rem; align-items:flex-start; border:2px solid #9fbdb0;
+  border-radius:14px; padding:.65rem .8rem; background:#fff; font-weight:700; font-size:.93rem;
+  cursor:pointer; transition:border-color .15s, background-color .15s, box-shadow .15s; }
+.quiz-options label:hover { border-color:var(--ink); }
+.quiz-options label:has(input:checked) { border-color:var(--ink); background:var(--accent-soft);
+  box-shadow:3px 3px 0 var(--ink); }
+.quiz-options input { margin-top:.25rem; flex:none; accent-color:var(--accent); }
+.quiz-options small { display:block; font-weight:400; color:var(--muted); font-size:.8rem; }
+#quiz-address { width:100%; }
+.quiz-nav { display:flex; gap:.6rem; align-items:center; margin-top:1rem; flex-wrap:wrap; }
+.quiz-nav .right { display:flex; gap:.6rem; margin-left:auto; flex-wrap:wrap; }
+.quiz-error { color:var(--bad); font-weight:600; font-size:.85rem; min-height:1.1rem; margin:.5rem 0 0; }
+.quiz-plan { display:grid; gap:.75rem; margin:.7rem 0 0; padding:0; list-style:none; }
+.quiz-plan li { border:2px solid var(--ink); border-radius:16px; padding:.85rem 1rem; background:var(--well); }
+.quiz-plan li.urgent { background:var(--coral-soft); }
+.quiz-plan li.building { background:var(--accent-soft); }
+.quiz-plan h4 { margin:0 0 .3rem; font-size:1.05rem; letter-spacing:-.01em; }
+.quiz-plan p { margin:.25rem 0; font-size:.9rem; }
+.quiz-actions { display:flex; flex-wrap:wrap; gap:.5rem .9rem; align-items:center; margin-top:.6rem; }
+.quiz-actions .btnlink, .quiz-actions button { min-height:40px; font-size:.78rem; }
+.quiz-actions a.text { font-weight:700; font-size:.88rem; }
+.quiz-done { font-size:.85rem; font-weight:600; }
+</style>
+
+<section class="card quiz-card" id="quiz" aria-labelledby="quiz-title">
+  <div class="quiz-intro">
+    <p class="eyebrow">Start here</p>
+    <h2 id="quiz-title">Not sure where to start?</h2>
+    <p class="muted">Answer a few quick questions and HeatAhead lays out the steps that fit you,
+    whether your apartment is cold tonight or you want a building ready before the first
+    freeze.</p>
+    <div class="quiz-meta"><span>Under a minute</span><span>No sign-in needed</span>
+      <span>Nothing is saved unless you choose</span></div>
+  </div>
+  <div class="quiz-panel">
+    <div class="quiz-progress" aria-hidden="true"><span id="quiz-bar"></span></div>
+    <form id="quiz-form" novalidate>
+      <p class="quiz-count" id="quiz-count" aria-live="polite"></p>
+      <div id="quiz-step"></div>
+      <div id="quiz-building" hidden>
+        <label class="quiz-q" for="quiz-address" id="quiz-building-q" tabindex="-1">Which building?</label>
+        <p class="quiz-help">Optional. Pick it from the suggestions or type its 10-digit BBL, and
+        your plan will include its forecast. Building only: leave out the apartment number.</p>
+        <input id="quiz-address" type="text" data-ha-suggest maxlength="120"
+          placeholder="Street address, e.g. 330 E 139 St, Bronx"
+          aria-describedby="quiz-error">
+      </div>
+      <p class="quiz-error" id="quiz-error" role="alert"></p>
+      <div class="quiz-nav">
+        <button type="button" class="btn ghost sm" id="quiz-back" hidden>Back</button>
+        <div class="right">
+          <button type="button" class="btn ghost sm" id="quiz-skip" hidden>Skip</button>
+          <button type="submit" id="quiz-next">Continue</button>
+        </div>
+      </div>
+    </form>
+    <div id="quiz-result" hidden>
+      <p class="quiz-count">Your plan</p>
+      <h3 id="quiz-result-title" class="quiz-q" tabindex="-1"></h3>
+      <ol class="quiz-plan" id="quiz-plan"></ol>
+      <div class="quiz-nav"><button type="button" class="btn ghost sm" id="quiz-restart">Start over</button></div>
+    </div>
+  </div>
+</section>
+
+<script>
+(() => {
+  'use strict';
+  const el = id => document.getElementById(id);
+  const form = el('quiz-form');
+  if (!form) return;
+  const SIGNED_IN = {{ 'true' if account_user else 'false' }};
+  const CSRF = {{ account_csrf | tojson }};
+  const PANEL_ORDER = {{ panel_order | tojson }};
+  const PANEL_NAMES = {buildings:'My buildings and alerts', audit:'Landlord tools',
+                       queue:'Live monitoring', stats:'City-wide stats'};
+  const REPORT_311 = 'https://portal.311.nyc.gov/article/?kanumber=KA-01036';
+  const HEAT_LAW = 'From October 1 to May 31, city law requires at least 68°F indoors between ' +
+    '6 a.m. and 10 p.m. whenever it is below 55°F outside, and at least 62°F indoors overnight.';
+  const UNIT_IN_ADDRESS = /\s*(?:#|\b(?:apt|apartment|unit)\b\.?)\s*[\w-]*/ig;
+
+  const ROLES = [
+    {id:'renter', label:'I rent my home', hint:'an apartment or a house in New York City'},
+    {id:'owner', label:'I own or manage a building', hint:'one building or several'},
+    {id:'pro', label:'I work for the city or a tenant group', hint:'inspections, outreach or organizing'},
+    {id:'explore', label:'I am just looking around', hint:'curious how the forecast works'},
+  ];
+  const NEEDS = {
+    renter: [
+      {id:'out_now', label:'My heat is out right now'},
+      {id:'warning', label:'I want a warning before the next cold snap'},
+      {id:'history', label:'My building has lost heat before'},
+      {id:'moving', label:'I am checking a building before I move in'},
+    ],
+    owner: [
+      {id:'prepare', label:'Get my building ready before winter'},
+      {id:'history', label:'Tenants reported heat problems last winter'},
+      {id:'portfolio', label:'I manage more than one building'},
+      {id:'warning', label:'I want a warning before the next cold snap'},
+    ],
+    pro: [
+      {id:'ranked', label:'Find the buildings most likely to lose heat'},
+      {id:'list', label:'Download a ranked inspection list'},
+      {id:'live', label:'Follow heat complaints as they come in'},
+      {id:'questions', label:'Answer a question with the public data'},
+    ],
+    explore: [
+      {id:'how', label:'How the forecast works'},
+      {id:'map', label:'Where heat goes out most often'},
+      {id:'questions', label:'Ask a question about the data'},
+      {id:'check', label:'Look up a building I know'},
+    ],
+  };
+  const HOUSEHOLD = [
+    {id:'kids', label:'Young children'},
+    {id:'older', label:'Someone 65 or older'},
+    {id:'health', label:'Someone with a health condition the cold makes worse'},
+    {id:'none', label:'None of these'},
+  ];
+  const PANELS_FOR = {renter:['buildings', 'stats'], owner:['buildings', 'audit'],
+                      pro:['queue', 'stats'], explore:['stats']};
+
+  const state = {role:null, needs:[], household:[], building:null};
+  let at = 0, interacted = false;
+
+  function steps(){
+    const list = ['role', 'needs'];
+    if (state.role === 'renter') list.push('household');
+    if (state.role === 'renter' || state.role === 'owner' ||
+        (state.role === 'explore' && state.needs.includes('check'))) list.push('building');
+    return list;
+  }
+  function error(text){ el('quiz-error').textContent = text || ''; }
+
+  function choices(name, type, options, chosen){
+    return '<div class="quiz-options">' + options.map(o =>
+      '<label><input type="' + type + '" name="' + name + '" value="' + o.id + '"' +
+      (chosen.includes(o.id) ? ' checked' : '') + '><span>' + esc(o.label) +
+      (o.hint ? '<small>' + esc(o.hint) + '</small>' : '') + '</span></label>').join('') + '</div>';
+  }
+  function question(title, help, body){
+    return '<fieldset><legend id="quiz-legend" tabindex="-1">' + esc(title) + '</legend>' +
+      '<p class="quiz-help">' + esc(help) + '</p>' + body + '</fieldset>';
+  }
+  // the question count depends on the role, so it is only given once a role is known
+  const counter = () => 'Question ' + (at + 1) + (state.role ? ' of ' + steps().length : '');
+  function render(){
+    const list = steps(), step = list[at], last = state.role && at === list.length - 1;
+    el('quiz-count').textContent = counter();
+    el('quiz-bar').style.width = Math.round(at / list.length * 100) + '%';
+    el('quiz-back').hidden = at === 0;
+    el('quiz-skip').hidden = !(step === 'household' || step === 'building');
+    el('quiz-next').textContent = last ? 'See my plan' : 'Continue';
+    el('quiz-building').hidden = step !== 'building';
+    error('');
+    const box = el('quiz-step');
+    if (step === 'role') {
+      box.innerHTML = question('Which of these describes you?', 'Pick the one that fits best.',
+        choices('quiz-role', 'radio', ROLES, state.role ? [state.role] : []));
+    } else if (step === 'needs') {
+      box.innerHTML = question('What would help most?', 'Pick as many as apply.',
+        choices('quiz-need', 'checkbox', NEEDS[state.role], state.needs));
+    } else if (step === 'household') {
+      box.innerHTML = question('Is anyone at home more at risk from the cold?',
+        'Optional, and it only changes the advice in your plan. Pick any that apply.',
+        choices('quiz-home', 'checkbox', HOUSEHOLD, state.household));
+      box.querySelectorAll('input').forEach(input => input.addEventListener('change', () => {
+        if (!input.checked) return;
+        box.querySelectorAll('input').forEach(other => {
+          if (other !== input && (input.value === 'none' || other.value === 'none')) other.checked = false;
+        });
+      }));
+    } else {
+      box.innerHTML = '';
+    }
+    if (interacted) (step === 'building' ? el('quiz-building-q') : el('quiz-legend')).focus();
+  }
+  function picked(name){
+    return [...form.querySelectorAll('input[name="' + name + '"]:checked')].map(i => i.value);
+  }
+  function keep(){                                  // read the visible step into state
+    const step = steps()[at];
+    if (step === 'role') {
+      const role = picked('quiz-role')[0] || null;
+      if (role !== state.role) state.needs = [];     // each role has its own options
+      state.role = role;
+    } else if (step === 'needs') state.needs = picked('quiz-need');
+    else if (step === 'household') state.household = picked('quiz-home');
+  }
+
+  async function lookupBuilding(){
+    const input = el('quiz-address');
+    const typed = input.value.trim();
+    if (!typed) { state.building = null; return true; }
+    if (input.dataset.bbl) { state.building = {bbl:input.dataset.bbl, label:typed}; return true; }
+    if (/^[1-5]\d{9}$/.test(typed)) { state.building = {bbl:typed, label:'BBL ' + typed}; return true; }
+    if (/^\d+$/.test(typed)) { error('A BBL is 10 digits starting with the borough (1 to 5).'); return false; }
+    const address = typed.replace(UNIT_IN_ADDRESS, '').replace(/\s+/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '');
+    if (address !== typed) input.value = address;
+    el('quiz-next').disabled = true;
+    el('quiz-count').textContent = 'Looking up the building…';
+    try {
+      const r = await fetch('/api/lookup?address=' + encodeURIComponent(address));
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && /^[1-5]\d{9}$/.test(String(j.bbl))) {
+        state.building = {bbl:String(j.bbl), label:address};
+        return true;
+      }
+      error('We could not match that address. Pick one of the suggestions, type the 10-digit BBL, or skip this question.');
+    } catch {
+      error('The address lookup is unavailable right now. Type the 10-digit BBL or skip this question.');
+    } finally {
+      el('quiz-next').disabled = false;
+    }
+    el('quiz-count').textContent = counter();
+    return false;
+  }
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    interacted = true;
+    keep();
+    const step = steps()[at];
+    if (step === 'role' && !state.role) return error('Pick the one that fits best.');
+    if (step === 'needs' && !state.needs.length) return error('Pick at least one, or the closest match.');
+    if (step === 'building' && !(await lookupBuilding())) return;
+    if (at < steps().length - 1) { at++; render(); } else showPlan();
+  });
+  el('quiz-back').addEventListener('click', () => { interacted = true; keep(); at = Math.max(0, at - 1); render(); });
+  el('quiz-skip').addEventListener('click', () => {
+    interacted = true;
+    const step = steps()[at];
+    if (step === 'household') state.household = [];
+    if (step === 'building') { state.building = null; el('quiz-address').value = ''; delete el('quiz-address').dataset.bbl; }
+    if (at < steps().length - 1) { at++; render(); } else showPlan();
+  });
+  el('quiz-restart').addEventListener('click', () => {
+    Object.assign(state, {role:null, needs:[], household:[], building:null});
+    el('quiz-address').value = ''; delete el('quiz-address').dataset.bbl;
+    at = 0; interacted = true;
+    el('quiz-result').hidden = true; form.hidden = false;
+    render();
+  });
+
+  // ---------------------------------------------------------------- the plan
+  const link = (href, label, primary) =>
+    '<a class="' + (primary ? 'btnlink' : 'text') + '" href="' + href + '">' + esc(label) + '</a>';
+  const external = (href, label) =>
+    '<a class="btnlink" href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(label) + ' ↗</a>';
+  function item(cls, title, paragraphs, actions){
+    return '<li class="' + cls + '"><h4>' + esc(title) + '</h4>' +
+      paragraphs.map(p => '<p>' + p + '</p>').join('') +
+      (actions && actions.length ? '<div class="quiz-actions">' + actions.join('') + '</div>' : '') + '</li>';
+  }
+  function plan(){
+    const has = id => state.needs.includes(id);
+    const b = state.building, record = b ? '/building?bbl=' + encodeURIComponent(b.bbl) : '/building';
+    const draft = b ? record + '#draft' : null;
+    const atRisk = state.household.some(h => h !== 'none');
+    const items = [];
+    const signUp = SIGNED_IN ? [] : [link('/signin?mode=signup', 'Sign up free', true), link('/signin', 'Log in')];
+    const saveBuilding = SIGNED_IN
+      ? (b ? ['<button type="button" data-quiz-save>Save it and email me before cold spells</button>']
+           : [link('/#dashboard', 'Save a building on your dashboard', true)])
+      : signUp;
+    const alerts = (who) => item('', 'Get an email before each cold spell',
+      ['Save ' + who + ' and HeatAhead emails you once per forecast cold spell that puts it at risk, ' +
+       'so there is time to ask for a heating check or make other plans. Stop the emails any time.'],
+      saveBuilding);
+
+    if (state.role === 'renter') {
+      if (has('out_now')) items.push(item('urgent', 'Report the outage now', [
+        'Report it to NYC311 online or by calling 311, and tell your landlord or super in writing. ' +
+        'Give 311 your apartment number so HPD can inspect; HeatAhead never needs it.',
+        esc(HEAT_LAW)].concat(atRisk ? ['With young children, an older adult or someone unwell at ' +
+        'home, do not wait out a cold night: go somewhere warm if you can, and call 911 in an emergency.'] : []),
+        [external(REPORT_311, 'Report to NYC311')].concat(draft ? [link(draft, 'Draft a note to the owner')] : [])));
+      if (b) items.push('<li class="building" data-quiz-building></li>');
+      if (has('warning') || has('history') || atRisk) items.push(alerts(b ? 'this building' : 'your building'));
+      if (has('history')) items.push(item('', 'Ask for a heating check before it gets cold', [
+        'A written request before the first cold spell gives the owner time to service the boiler ' +
+        'and leaves a record. HeatAhead drafts one from the building’s public record; you edit it ' +
+        'and send it yourself.'], [b ? link(draft, 'Draft the request', true) : link('/building', 'Look up your building first', true)]));
+      if (has('moving')) items.push(item('', 'Check the record before you sign a lease', [
+        'The building page shows every heat complaint and violation since 2017, the registered ' +
+        'owner and managing agent, and the forecast for this winter.'],
+        [link(record, b ? 'Open the building record' : 'Look up a building', true)]));
+      if (atRisk && !has('out_now')) items.push(item('', 'Make a plan for cold nights', [
+        'Ask the landlord for a heating check before winter, keep 311 handy, and know where you ' +
+        'could stay warm if the heat goes out. In an emergency, call 911.']));
+    } else if (state.role === 'owner') {
+      if (b) items.push('<li class="building" data-quiz-building></li>');
+      if (has('prepare') || has('history')) items.push(item('', 'Run a pre-winter self-audit', [
+        'Before the first cold spell, have a licensed contractor service the boiler and burner, ' +
+        'confirm the fuel supply or gas account, check heat on the top floors, and post a 24-hour ' +
+        'heat contact in the lobby. HeatAhead drafts a self-audit note with your building’s numbers.'],
+        [b ? link(draft, 'Draft the self-audit', true) : link('/building', 'Look up your building', true)]
+          .concat(b ? ['<span class="muted" style="font-size:.8rem">choose “I own or manage it”</span>'] : [])));
+      if (has('history') && !b) items.push(item('', 'See what tenants reported', [
+        'Each building record lists every season’s heat complaints and violations, so you can see ' +
+        'whether problems cluster on the coldest days.'], [link('/building', 'Look up your building', true)]));
+      if (has('portfolio')) items.push(item('', 'See your whole portfolio, riskiest first', [
+        'Save one building and the Landlord tools panel lists every building registered to the same ' +
+        'owner, ranked by this winter’s risk.' + (SIGNED_IN ? ' The dashboard setup below turns that panel on.' : '')],
+        SIGNED_IN ? [] : signUp));
+      if (has('warning')) items.push(alerts(b ? 'this building' : 'your building'));
+    } else if (state.role === 'pro') {
+      if (has('ranked')) items.push(item('', 'Start with the risk map', [
+        'Every ranked residential building, shaded by its chance of losing heat this winter. ' +
+        'Filter by risk and zoom down to a single block.'], [link('/map', 'Open the risk map', true)]));
+      if (has('list')) items.push(item('', 'Download the inspection list', [
+        'The 500 buildings with the highest modeled risk as a spreadsheet, with rank, calibrated ' +
+        'probability, residential units and community district.'],
+        ['<a class="btnlink" href="/api/queue.csv?k=500" download>Download the top 500 (CSV)</a>']));
+      if (has('live')) items.push(item('', 'Follow complaints as they come in', [
+        'The live monitor shows newly published heat complaints and can replay the February 2026 ' +
+        'cold snap through the model.'], [link('/monitor?mode=current', 'Open the live monitor', true)]));
+      if (has('questions')) items.push(item('', 'Ask the data', [
+        'Ask in plain words, for example which buildings had the most heat complaints in the last ' +
+        'seven days, and get charts and worked numbers from the public records.'], [link('/monitor', 'Ask a question', true)]));
+    } else {
+      if (has('how')) items.push(item('', 'See how the forecast works', [
+        'A short guide to what the model reads, how it was tested on a winter it never saw, and ' +
+        'where it is weakest.'], [link('/learn-more', 'Learn more', true), link('/about', 'Read the methods')]));
+      if (has('map')) items.push(item('', 'Explore the risk map', [
+        'Every ranked residential building, shaded by its chance of losing heat this winter.'],
+        [link('/map', 'Open the risk map', true)]));
+      if (has('questions')) items.push(item('', 'Ask the data', [
+        'Ask about New York City heat complaints in plain words and get charts and worked numbers.'],
+        [link('/monitor', 'Ask a question', true)]));
+      if (has('check')) items.push(b ? '<li class="building" data-quiz-building></li>' :
+        item('', 'Look up a building', ['Its forecast, complaint history and registered owner.'],
+             [link('/building', 'Look up a building', true)]));
+    }
+
+    const panels = PANELS_FOR[state.role].filter(p => PANEL_ORDER.includes(p));
+    if (SIGNED_IN) items.push(item('', 'Set up your dashboard for this', [
+      'Turn on the panels that match your answers: ' + panels.map(p => esc(PANEL_NAMES[p])).join(' and ') +
+      '. Change them any time in <a href="/account">account settings</a>.'],
+      ['<button type="button" data-quiz-panels="' + panels.join(',') + '">Set up my dashboard</button>']));
+    else if (state.role !== 'explore') items.push(item('', 'Keep this plan with a free account', [
+      'Save buildings, get one email per cold spell, and see your dashboard on any device.'], signUp));
+    return items;
+  }
+
+  async function fillBuilding(slot){
+    const b = state.building;
+    const label = esc(b.label);
+    slot.innerHTML = '<h4>' + label + '</h4><p>Loading this building’s forecast…</p>';
+    let data = null;
+    try {
+      const r = await fetch('/api/building/' + encodeURIComponent(b.bbl));
+      if (r.ok) data = await r.json();
+    } catch {}
+    const links = '<div class="quiz-actions">' +
+      link('/building?bbl=' + encodeURIComponent(b.bbl), 'Open the full record', true) +
+      link('/map?bbl=' + encodeURIComponent(b.bbl), 'See it on the map') + '</div>';
+    if (!data) {
+      slot.innerHTML = '<h4>' + label + '</h4><p>The forecast for this building could not be loaded ' +
+        'right now. The building page will try again.</p>' + links;
+    } else if (!data.ranked) {
+      slot.innerHTML = '<h4>' + label + '</h4><p>' + esc(data.note) + '</p>' + links;
+    } else {
+      const s = data.season, last = data.last_season || {};
+      slot.innerHTML = '<h4>' + label + '</h4>' +
+        '<p>Chance of losing heat this winter: <b>' + esc(fmtRisk(s.p)) + '</b>, rank ' +
+        Number(s.rank).toLocaleString() + ' of ' + Number(s.of).toLocaleString() + ' buildings' +
+        (s.vs_median >= 1.5 ? ', about ' + esc(s.vs_median) + ' times the citywide median' : '') + '.</p>' +
+        '<p class="muted">' + esc(last.season || 'Last season') + ': ' + Number(last.complaints || 0).toLocaleString() +
+        ' heat complaints and ' + Number(last.violations || 0).toLocaleString() + ' heat violations.</p>' + links;
+    }
+  }
+
+  async function saveBuilding(button){
+    button.disabled = true;
+    const note = document.createElement('span');
+    note.className = 'quiz-done';
+    button.after(note);
+    note.textContent = 'Saving…';
+    try {
+      const r = await fetch('/api/register', {method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json', 'X-CSRF-Token':CSRF},
+        body:JSON.stringify({bbl:state.building.bbl})});
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error);
+      note.innerHTML = (j.already_registered ? 'Already saved. ' : 'Saved. ') +
+        '<a href="/#dashboard">See it on your dashboard</a>';
+      button.remove();
+      if (typeof loadAccount === 'function') loadAccount();
+    } catch (e) {
+      note.textContent = (e && e.message) || 'It could not be saved right now. Please try again.';
+      button.disabled = false;
+    }
+  }
+  async function savePanels(button){
+    const list = button.dataset.quizPanels.split(',').filter(Boolean);
+    button.disabled = true;
+    const note = document.createElement('span');
+    note.className = 'quiz-done';
+    button.after(note);
+    note.textContent = 'Saving…';
+    try {
+      const r = await fetch('/api/account/panels', {method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json', 'X-CSRF-Token':CSRF},
+        body:JSON.stringify({panels:list})});
+      if (!r.ok) throw new Error();
+      note.innerHTML = 'Done. <a href="/#dashboard">Open your dashboard</a>';
+      button.remove();
+      try { panelsCustomized = true; } catch {}
+      if (typeof applyPanels === 'function') applyPanels(list);
+    } catch {
+      note.textContent = 'Your dashboard could not be updated right now. Please try again.';
+      button.disabled = false;
+    }
+  }
+
+  function showPlan(){
+    const items = plan();
+    el('quiz-bar').style.width = '100%';
+    form.hidden = true;
+    el('quiz-result').hidden = false;
+    el('quiz-result-title').textContent = state.needs.includes('out_now')
+      ? 'Act on the cold first' : 'Here is where to start';
+    el('quiz-plan').innerHTML = items.join('');
+    el('quiz-plan').querySelectorAll('[data-quiz-building]').forEach(fillBuilding);
+    el('quiz-plan').querySelectorAll('[data-quiz-save]').forEach(button =>
+      button.addEventListener('click', () => saveBuilding(button)));
+    el('quiz-plan').querySelectorAll('[data-quiz-panels]').forEach(button =>
+      button.addEventListener('click', () => savePanels(button)));
+    el('quiz-result-title').focus();
+  }
+
+  render();
+})();
+</script>
