@@ -1,5 +1,7 @@
 # HeatAhead — forecast-triggered heat-failure prediction for NYC buildings
 
+**Live website:** [Open HeatAhead](https://ibmsubmission.vercel.app/)
+
 > **Set the team number in the title above and in the Hack2skill project title before submitting.**
 
 NYC tenants filed **300,000+ no-heat complaints** last winter. Since Oct 1, 2026, HPD must
