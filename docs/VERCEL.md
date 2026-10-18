@@ -138,6 +138,7 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/api/live/stats`, `/api/live/queue?k=` | GET | proxy to the realtime service | `REALTIME_URL` env var; 503 `{offline:true}` when unreachable |
 | `/api/live/replay/start` | POST | proxy | same |
 | `/api/current/stats`, `/api/current/queue?k=`, `/api/current/events` | GET | published HPD complaints and collection freshness | COMPLAINT_URL proxy; 503 when unavailable |
+| `/api/assistant/health`, `/api/assistant/jobs`, `/api/assistant/jobs/<id>` | GET / POST as documented | bounded asynchronous public-data research | signed ASSISTANT_URL proxy; see ASSISTANT.md |
 
 New endpoints go under `/api/` and get a row in this table in the same commit.
 
@@ -442,6 +443,23 @@ enter the Vercel import path. The public collector API is read-only; no syntheti
 are accepted. Automated tests use temporary databases and offline source fixtures. No
 emails or NYC complaints are sent by tests, checks, installation, or page polling.
 
+
+## Research assistant deployment
+
+`/monitor` opens the research assistant; the current complaint monitor remains at
+`/monitor?mode=current` and historical replay at `/monitor?mode=replay`. The footer
+links to both. This intentionally extends the monitor contract without changing
+collector/replay endpoints, maps, accounts, frozen models or submission metrics.
+
+LinuxONE runs FreeLLMAPI privately on 3001 and `assistant.service` on 5002.
+Vercel renders the page and proxies short asynchronous job requests through
+`ASSISTANT_URL=http://148.100.78.43:8080/api/assistant` plus the matching
+`ASSISTANT_PROXY_SECRET` (environment only). Never add provider keys to browser
+code. HTTP transport carries public questions only; signatures are not encryption.
+
+Setup, inputs, chronology, quotas, privacy and rollback: [ASSISTANT.md](ASSISTANT.md).
+The count forecast is experimental and separate from frozen building-risk models;
+no current building-risk probability or on-chip language-model inference is claimed.
 ## 13. Project updates, contact and cookie choices
 
 `web/newsletter.py` owns the public newsletter and contact/privacy routes in section 3.

@@ -1,6 +1,6 @@
 {% set walk_id_prefix = walk_id_prefix | default("hg-guide") %}
 <details class="hg-guide-section" id="{{ walk_id_prefix }}-how-it-works"><summary>How HeatAhead works</summary><div>
-    
+
     <div class="help-steps">
       <article class="help-panel"><span class="help-step">1</span><h3>Check the weather</h3><p>Forecasts show when freezing weather is expected.</p></article>
       <article class="help-panel"><span class="help-step">2</span><h3>Look at past problems</h3><p>Past complaints, violations and building records help the model estimate heating risk.</p></article>
@@ -9,10 +9,10 @@
     <p class="help-small">A student project by NYU Tingineers for the IBM Z Datathon. The model work ran on IBM LinuxONE. HeatAhead is independent of NYC311 and HPD.</p>
   </div></details>
 <details class="hg-guide-section" id="{{ walk_id_prefix }}-reading-the-map"><summary>Read the map</summary><div>
-    
+
     <div class="help-map-key help-panel">
       <div><h3>Color shows winter risk</h3>
-        
+
         <p>Darker blue means higher estimated risk. A hexagon shows the average score of the properties inside it. Zoom in to see each property's colored dot.</p></div>
       <div><h3>Height shows past complaints</h3>
         <p>Taller hexagons mean more heating complaints were recorded last season. They don't show the number of buildings or their actual height.</p></div>
@@ -29,7 +29,7 @@
     <a class="help-text-link" href="/map">Try the map →</a>
   </div></details>
 <details class="hg-guide-section" id="{{ walk_id_prefix }}-understanding-risk"><summary>Understand the scores</summary><div>
-    
+
     <div class="help-two">
       <article class="help-panel"><h3>Check which score you're reading</h3><p>Winter risk covers the whole season. Cold-day risk looks at a shorter period around freezing weather. They cover different lengths of time, so the numbers can be different.</p></article>
       <article class="help-panel"><h3>See how it was checked</h3><p>On a building's page, open <b>How accurate is this number?</b> It compares predictions with what happened in a winter the model wasn't trained on. This helps check the model overall, but can't say for sure what will happen to one building.</p></article>
@@ -43,7 +43,7 @@
     <a class="help-text-link" href="/building">Check a building →</a>
   </div></details>
 <details class="hg-guide-section" id="{{ walk_id_prefix }}-taking-action"><summary>What you can do</summary><div>
-    
+
     <div class="help-steps">
       <article class="help-panel"><h3>For tenants</h3><p>Check your building's history and the available owner details. Sign in to save a building for email alerts. Emails also need the team's alert service to be running.</p><a href="/#account">Building alerts →</a></article>
       <article class="help-panel"><h3>For owners &amp; managers</h3><p>Review your building's history and draft a message about checking the heating. You can edit the message and send it yourself.</p><a href="/building?as=landlord">Check your building →</a></article>
@@ -57,7 +57,7 @@
     </aside>
   </div></details>
 <details class="hg-guide-section" id="{{ walk_id_prefix }}-data-and-privacy"><summary>Data and privacy</summary><div>
-    
+
     <p>We use public NYC records about buildings, heat complaints, violations, owners and boilers, along with weather data. Some records may be missing or out of date. A complaint means someone reported a problem; it doesn't mean an inspector confirmed it.</p>
     <div class="help-source-links">
       <a href="https://data.cityofnewyork.us/d/ygpa-z7cr" target="_blank" rel="noopener noreferrer">HPD complaints ↗</a>

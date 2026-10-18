@@ -32,6 +32,7 @@ from flask import (Flask, g, jsonify, redirect, render_template, request,
                    send_from_directory)
 
 sys.path.append(str(Path(__file__).resolve().parent))
+import assistant_proxy  # HeatAhead research assistant
 import mailer  # noqa: E402
 import account_auth  # noqa: E402
 import site_guide  # noqa: E402
@@ -84,6 +85,7 @@ QUEUE_COLS = ["rank", "p_calibrated", "tenants_at_risk", "unitsres", "cd",
               "latitude", "longitude", "c_last1", "v_last1", "chronic"]
 
 app = Flask(__name__)
+assistant_proxy.init_app(app)
 
 
 def _int(x):
@@ -506,6 +508,8 @@ def building_page():
 
 @app.get("/monitor")
 def monitor_page():
+    if request.args.get("mode") not in ("current", "replay"):
+        return render_template("assistant.html", page="monitor")
     return render_template("monitor.html", page="monitor")
 
 

@@ -1,0 +1,28 @@
+{
+  "validation_run": "Retrospective development backtest; uploaded extract only, no live collector or weather. Not frozen submission-model evaluation.",
+  "data_through": "2026-10-13",
+  "universe": 67125,
+  "backtest": {
+    "method": "weekday_4w",
+    "nominal_interval": 0.8,
+    "quality": "experimental_low_coverage",
+    "test_interval_coverage": 0.633,
+    "selection_mae": {
+      "last_week": 309.8,
+      "weekday_4w": 276.0,
+      "weekday_8w_trend": 304.2
+    },
+    "test_origins": 30,
+    "calibration_origins": 90,
+    "test_first_origin": "2026-09-05",
+    "test_last_origin": "2026-10-04",
+    "baseline_test_mae": 60.7,
+    "model_test_mae": 62.4,
+    "note": "Experimental count forecast, without weather covariates. Nominal 80% marginal intervals; historical coverage is reported, not a guarantee. Overlapping test windows are correlated. Do not sum daily interval bounds as a joint interval.",
+    "requested_horizon_coverage": [
+      0.667,
+      0.633,
+      0.6
+    ]
+  }
+}

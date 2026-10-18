@@ -34,7 +34,7 @@ class MonitorTests(unittest.TestCase):
         self.client=self.web.app.test_client()
 
     def test_current_and_replay_tabs_render_without_model_inputs(self):
-        current=self.client.get('/monitor')
+        current=self.client.get('/monitor?mode=current')
         replay=self.client.get('/monitor?mode=replay')
         self.assertEqual(current.status_code,200)
         self.assertEqual(replay.status_code,200)

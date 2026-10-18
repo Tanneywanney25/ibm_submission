@@ -1,0 +1,25 @@
+name: Research assistant checks
+on:
+  pull_request:
+  push:
+    paths: ['assistant/**', 'web/assistant_proxy.py', 'web/templates/assistant.html', 'web/static/assistant.*', 'tests/test_assistant*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install flask requests pandas numpy
+      - run: python -m compileall -q assistant web api
+      - run: python -m unittest discover -s tests -p test_assistant.py -v
+      - run: APP_MODE=lite python -m unittest discover -s tests -p test_assistant_proxy.py -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check web/static/assistant.js
+      - run: node tests/test_assistant_ui.cjs

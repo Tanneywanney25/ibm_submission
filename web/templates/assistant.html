@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Ask HeatAhead — research and analytics{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static',filename='assistant.css') }}">
+{% endblock %}
+{% block body %}
+<section class="ask-shell">
+  <header class="ask-header"><span class="ask-tag">Research &amp; analytics</span>
+    <h1>Ask HeatAhead</h1>
+    <p>Explore NYC heat complaints, compare patterns, and investigate a question with public sources.</p>
+  </header>
+  <form id="ask-form" class="card">
+    <label for="ask-question"><strong>What would you like to understand?</strong></label>
+    <textarea id="ask-question" name="question" rows="4" minlength="3" maxlength="1500" required placeholder="Based on the available complaint history, estimate complaints for the next three days and show a range."></textarea>
+    <p class="muted ask-disclosure">Your question, relevant public data summaries, and search terms may be sent to external AI and search providers. Use building-level public information; leave out contact details, unit numbers, and credentials.</p>
+    <div class="ask-actions"><button type="submit" id="ask-submit">Explore question</button><span id="ask-health" class="muted">Checking connection…</span></div>
+  </form>
+  <div class="ask-examples" aria-label="Example questions">
+    <button type="button" data-ask="Show heat complaint trends for the past 30 days and compare the Bronx with Brooklyn.">Compare boroughs</button>
+    <button type="button" data-ask="Estimate the daily number of complaints for the next three days with prediction ranges. Explain the data cutoff and backtest coverage.">Next three days</button>
+    <button type="button" data-ask="Which buildings had the most published heat complaints in the last seven days? Show a chart.">Recent hotspots</button>
+    <button type="button" data-ask="Where do NYC residents report a heat problem, and what are the current heating requirements? Cite official sources.">Find official guidance</button>
+  </div>
+  <p id="ask-status" role="status" aria-live="polite"></p>
+  <section id="ask-result" hidden aria-label="Research answer">
+    <div class="ask-overview">
+      <div id="ask-charts"></div>
+      <aside id="ask-facts-panel" class="card ask-facts"><h2>What stands out</h2><ul id="ask-facts"></ul></aside>
+    </div>
+  </section>
+  <footer class="ask-monitor-link"><a href="/monitor?mode=current">View current live complaint monitor →</a><a href="/monitor?mode=replay">Historical model replay</a></footer>
+</section>
+<script src="{{ url_for('static',filename='assistant.js') }}" defer></script>
+{% endblock %}
