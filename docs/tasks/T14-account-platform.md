@@ -75,14 +75,20 @@ dashboard panel toggles, a role-free "Save a building" form, and a stop-all-aler
 link. Dashboard: four panels (my buildings & alerts · landlord self-audit tools ·
 inspection queue · city-wide stats).
 
-**Not code; what makes it live on production:**
-1. Vercel Production env vars: `FLASK_SECRET_KEY` (32+ chars, the same value as
-   the instance), and for Google `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
-   `AUTH_BASE_URL=https://ibmsubmission.vercel.app` (docs/GOOGLE_LOGIN.md), then
-   redeploy.
-2. The instance: `cd ~/heatahead/site && git pull --rebase origin main && sudo
-   systemctl restart heatahead-web`, with the same `FLASK_SECRET_KEY` and `SMTP_*`
-   in its environment. This also makes panel choices durable there; until then they
-   fall back to per-device storage.
-3. Styling the auth and profile screens to Opendoor quality belongs to T13 (the
-   reskin), which has not started; T14 used the current theme.
+**Production setup (October 18, 2026):** the Google side, the instance side and the
+non-secret Vercel values are done (docs/GOOGLE_LOGIN.md, "What is set up now"): a
+separate HeatAhead Google Cloud project with a published consent screen and its own web
+client, the shared `FLASK_SECRET_KEY` in `~/.config/heatahead/accounts.env` loaded by a
+systemd drop-in, and the instance clone pulled to `main` and restarted. Google sign-in is
+live once `FLASK_SECRET_KEY` and `GOOGLE_CLIENT_SECRET` are pasted into Vercel Production
+as Secret variables by a person and the site is redeployed; `/api/health` then reports
+`google_sign_in: true`.
+
+Email sign-in stays off until the instance has `SMTP_*` (add them to the same
+`accounts.env` and restart `heatahead-web`). Before this change the instance had no SMTP
+at all, so every "sent" email, including welcome emails, was only written to
+`web/alerts.log`; email sign-in now shows as available only when a link can really be
+delivered.
+
+Styling the auth and profile screens to Opendoor quality belongs to T13 (the reskin);
+T14 used the current theme.

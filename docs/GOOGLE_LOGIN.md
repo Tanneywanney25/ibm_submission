@@ -5,6 +5,23 @@ login. One teammate who can edit the Google Cloud project, Vercel environment an
 service should do the setup below. Never put a client secret or session key in GitHub,
 screenshots, chat, a notebook, or a browser-visible JavaScript variable.
 
+## What is set up now (October 18, 2026)
+
+The steps below have been done once for production; use them again only to rebuild.
+
+| piece | where | state |
+|---|---|---|
+| Google Cloud project | **HeatAhead** (project id `heatahead`), owned by Tanush's Google account | consent screen "HeatAhead", External, **In production**, home page and privacy link (`/learn-more#data-and-privacy`) filled in, authorized domain `ibmsubmission.vercel.app` |
+| OAuth web client | "HeatAhead website" in that project | one redirect URI, `https://ibmsubmission.vercel.app/api/auth/callback` |
+| Vercel Production | Config: `AUTH_BASE_URL`, `GOOGLE_CLIENT_ID`; Secret: `FLASK_SECRET_KEY`, `GOOGLE_CLIENT_SECRET` | the two Secret values are pasted in by a person, never by an agent or through chat |
+| LinuxONE | `~/.config/heatahead/accounts.env` (mode 600) holds `FLASK_SECRET_KEY`; the systemd drop-in `heatahead-web.service.d/accounts.conf` loads it | the Vercel value must be byte-for-byte this one |
+
+The site does its own Google sign-in; it does not use Supabase. The Supabase project's
+Google provider uses a different client (`IBM_Submission` in the "Default Gemini Project",
+whose consent screen is ScoutTree's), and nothing on the site depends on it. To check
+production, `curl https://ibmsubmission.vercel.app/api/health` must show
+`"google_sign_in":true`, `"account_protocol":1`, and the same two under `linuxone`.
+
 ## What users get
 
 - One **Continue with Google** button for both first-time and returning users.

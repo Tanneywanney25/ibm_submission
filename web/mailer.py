@@ -40,6 +40,11 @@ def make_msg(to, subject, body):
     return msg
 
 
+def configured():
+    """True when messages really leave this machine; without SMTP_HOST they are only logged."""
+    return bool(os.environ.get("SMTP_HOST"))
+
+
 def send(msg, dry=False):
     """Send (SMTP env) or log the full message. Returns True on success."""
     if dry:

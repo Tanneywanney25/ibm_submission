@@ -124,7 +124,7 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/api/account/email_link`, `/api/account/email_consume` | POST | instance side of email sign-in: mail the website's link / consume a link nonce; 403 for anything but the signed website-to-backend protocol | FULL mode only (the instance) |
 | `/api/auth/session` | GET | `{user,google_ready,email_ready,csrf_token}`; user is null when signed out | signed cookie, private/no-store |
 | `/api/auth/logout` | POST | clear session, redirect home; form or `X-CSRF-Token` required | website session |
-| `/api/health` | GET | existing health fields plus `account_protocol` (1 when shared secret configured), `google_sign_in` | adds instance health under `linuxone` (3 s timeout, `{offline:true}` when down) |
+| `/api/health` | GET | existing health fields plus `account_protocol` (1 when shared secret configured), `google_sign_in`, `email_sign_in` (on the instance: true only with `SMTP_HOST` set; on Vercel: the instance's value, cached two minutes) | adds instance health under `linuxone` (3 s timeout, `{offline:true}` when down) |
 | `/data/<path>` | GET | the files in `public/data/` | Vercel's CDN serves them before any rewrite; Flask serves them for local runs |
 | `/api/queue.csv?k=` | GET | top-k CSV | `public/data/top500.csv` (k capped at 500 in LITE) |
 | `/api/draft_message/<bbl>?as=&address=` | GET | `{to, recipients, subject, body, framing, note}`: a notice the user copies or opens in their own mail client, never sent. `as=tenant` (default) is a resident's request to the registered owner care of the managing agent; `as=landlord` is the owner's pre-winter self-audit; `address` names the building in the text (units are cut). 400 for another `as`, 404 for an unranked building | computed from the shard |
@@ -272,6 +272,10 @@ Email sign-in (T14) is passwordless: the site emails a signed link that works on
 value on Vercel and the instance), `REGISTER_FORWARD_URL`, `SMTP_*` on the instance, and
 the instance's `~/heatahead/site` clone pulled and restarted; until all of those are in
 place the form says it is being set up and `/api/health` reports `email_sign_in: false`.
+The instance counts as ready only when `SMTP_HOST` is set, because without it `mailer.py`
+only logs messages and nobody would receive the link; Vercel offers email sign-in only
+while the instance's `/api/health` says `email_sign_in: true` (checked at most every two
+minutes). A laptop run (`host: local`) treats its log as the inbox for testing.
 The instance only mails links that point at its own `SITE_URL`, so preview deploys cannot
 send sign-in email. Remembered sessions last up to 30 days; browser cookies are Secure,
 HttpOnly and SameSite=Lax.

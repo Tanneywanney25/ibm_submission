@@ -284,6 +284,30 @@ def send_sign_in_link(email, link):
     return True
 
 
+_EMAIL_PROBE = dict(at=0.0, ready=False)
+
+
+def sign_in_email_ready():
+    """Offer email sign-in only where a link can actually reach an inbox.
+
+    The instance needs SMTP (without it mailer only logs, and nobody would get the
+    link); a laptop run counts its log as the inbox. Vercel asks the instance's
+    /api/health, cached two minutes, so pages do not each pay a round trip."""
+    if FORWARD_URL:
+        now = time.time()
+        if now - _EMAIL_PROBE["at"] > 120:
+            try:
+                r = requests.request("GET", f"{FORWARD_URL}/api/health", timeout=2)
+                ready = r.json().get("email_sign_in") is True
+            except (requests.RequestException, ValueError, AttributeError):
+                ready = False
+            _EMAIL_PROBE.update(at=now, ready=ready)
+        return _EMAIL_PROBE["ready"]
+    if ON_VERCEL:
+        return False
+    return mailer.configured() or HOST == "local"
+
+
 def consume_sign_in_nonce(nonce, email):
     """True = fresh, False = already used, None = backend unavailable (fail closed)."""
     if FORWARD_URL:
@@ -705,6 +729,8 @@ def api_account_email_link():
     link = str(b.get("link") or "")
     if len(link) > 2000 or not link.startswith(mailer.SITE_URL + "/api/auth/email/callback?"):
         return jsonify(error="invalid sign-in link"), 400
+    if not sign_in_email_ready():
+        return jsonify(error="this backend cannot send email (no SMTP)"), 503
     msg = mailer.sign_in_email(account_auth.user()["email"], link)
     threading.Thread(target=mailer.send, args=(msg,), daemon=True).start()
     return jsonify(ok=True)
@@ -919,7 +945,7 @@ def api_draft_message(bbl):
 
 
 account_auth.init_app(app, consume_account_nonce, email_backend=dict(
-    ready=lambda: not ON_VERCEL or bool(FORWARD_URL),
+    ready=sign_in_email_ready,
     send_link=send_sign_in_link, consume=consume_sign_in_nonce))
 site_guide.init_app(app)
 

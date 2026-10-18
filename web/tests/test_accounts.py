@@ -424,6 +424,16 @@ class AccountTests(unittest.TestCase):
         page = self.get("/", client=client)
         self.assertIn(b"Email sign-in is", page.data)
 
+    def test_email_link_needs_smtp_on_the_instance(self):
+        self.module.HOST = "linuxone"
+        with patch.dict(os.environ, {"SMTP_HOST": ""}):
+            self.assertFalse(self.get("/api/auth/session").json["email_ready"])
+            self.assertEqual(self.post("/api/auth/email", dict(email="a@example.test")).status_code, 503)
+            self.assertFalse(self.get("/api/health").json["email_sign_in"])
+        with patch.dict(os.environ, {"SMTP_HOST": "smtp.example.test"}):
+            self.assertTrue(self.get("/api/auth/session").json["email_ready"])
+            self.assertEqual(self.request_email_link()[0].status_code, 200)
+
     def test_email_link_forwards_send_and_consume_to_backend(self):
         backend = self.module.app.test_client()
         website = application(Path(self.directory.name) / "ephemeral.db",
