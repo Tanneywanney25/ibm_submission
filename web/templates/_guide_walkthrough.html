@@ -1,0 +1,72 @@
+{% set walk_id_prefix = walk_id_prefix | default("hg-guide") %}
+<details class="hg-guide-section" id="{{ walk_id_prefix }}-how-it-works"><summary>How HeatAhead works</summary><div>
+    
+    <div class="help-steps">
+      <article class="help-panel"><span class="help-step">1</span><h3>Check the weather</h3><p>Forecasts show when freezing weather is expected.</p></article>
+      <article class="help-panel"><span class="help-step">2</span><h3>Look at past problems</h3><p>Past complaints, violations and building records help the model estimate heating risk.</p></article>
+      <article class="help-panel"><span class="help-step">3</span><h3>Choose what to do</h3><p>Tenants and owners can review a building. Inspectors can see which places the model suggests checking first.</p></article>
+    </div>
+    <p class="help-small">A student project by NYU Tingineers for the IBM Z Datathon. The model work ran on IBM LinuxONE. HeatAhead is independent of NYC311 and HPD.</p>
+  </div></details>
+<details class="hg-guide-section" id="{{ walk_id_prefix }}-reading-the-map"><summary>Read the map</summary><div>
+    
+    <div class="help-map-key help-panel">
+      <div><h3>Color shows winter risk</h3>
+        
+        <p>Darker blue means higher estimated risk. A hexagon shows the average score of the properties inside it. Zoom in to see each property's colored dot.</p></div>
+      <div><h3>Height shows past complaints</h3>
+        <p>Taller hexagons mean more heating complaints were recorded last season. They don't show the number of buildings or their actual height.</p></div>
+    </div>
+    <div class="help-two">
+      <div><h3>Click a hexagon</h3><p>You'll see a list of buildings, with higher scores first. Use Next to see more. Click a building in the list to open its record.</p></div>
+      <div><h3>Zoom in for a closer look</h3><p>The city view uses larger hexagons so it's easier to read. Zoom in to see smaller areas, then colored dots for each property. Gray building shapes come from the background map. One property record can cover more than one building.</p></div>
+    </div>
+    <aside class="help-callout"><h3>Why are some buildings gray?</h3>
+      <p>The background map shows more buildings than we've scored. A building may have missing records or a missing map location. Your filter can also hide lower scores. A building without color can still have heating problems.</p>
+      <p>In 3D, a hexagon stays flat if the area had no recorded complaints last season. Try Flat map to see its color. When you zoom in, colored dots replace the hexagons.</p>
+      <a href="/?help=unranked" data-guide-topic="unranked">More about buildings without color →</a>
+    </aside>
+    <a class="help-text-link" href="/map">Try the map →</a>
+  </div></details>
+<details class="hg-guide-section" id="{{ walk_id_prefix }}-understanding-risk"><summary>Understand the scores</summary><div>
+    
+    <div class="help-two">
+      <article class="help-panel"><h3>Check which score you're reading</h3><p>Winter risk covers the whole season. Cold-day risk looks at a shorter period around freezing weather. They cover different lengths of time, so the numbers can be different.</p></article>
+      <article class="help-panel"><h3>See how it was checked</h3><p>On a building's page, open <b>How accurate is this number?</b> It compares predictions with what happened in a winter the model wasn't trained on. This helps check the model overall, but can't say for sure what will happen to one building.</p></article>
+    </div>
+    <ul class="help-points">
+      <li>A high score doesn't mean the heat has failed. A low score doesn't rule out a problem.</li>
+      <li>Some heating problems never get reported, so they may be missing from the records.</li>
+      <li>From 20% up, scores are shown as ranges. No score goes above 99%.</li>
+      <li>If a building has no score, we don't have an estimate for it. It can still have heating problems.</li>
+    </ul>
+    <a class="help-text-link" href="/building">Check a building →</a>
+  </div></details>
+<details class="hg-guide-section" id="{{ walk_id_prefix }}-taking-action"><summary>What you can do</summary><div>
+    
+    <div class="help-steps">
+      <article class="help-panel"><h3>For tenants</h3><p>Check your building's history and the available owner details. Sign in to save a building for email alerts. Emails also need the team's alert service to be running.</p><a href="/#account">Building alerts →</a></article>
+      <article class="help-panel"><h3>For owners &amp; managers</h3><p>Review your building's history and draft a message about checking the heating. You can edit the message and send it yourself.</p><a href="/building?as=landlord">Check your building →</a></article>
+      <article class="help-panel"><h3>For city teams</h3><p>Use the monitor to review published complaints. Its separate historical replay shows model priorities changing during a past cold spell.</p><a href="/monitor">See published complaints</a></article>
+    </div>
+    <aside class="help-callout" aria-labelledby="{{ walk_id_prefix }}-no-heat"><h3 id="{{ walk_id_prefix }}-no-heat">No heat or hot water?</h3>
+      <p>Tell your landlord or managing agent. If the problem isn't fixed, report it to NYC311. Give your contact and apartment details directly to NYC311. You don't need to wait for a high score or an email alert.</p>
+      <a href="https://portal.311.nyc.gov/article/?kanumber=KA-01036" target="_blank" rel="noopener noreferrer">Report a heat problem through NYC311 ↗</a>
+      <p class="help-small">If you smell gas or a carbon monoxide alarm sounds, leave the building and call 911 from outside. HeatAhead can't send emergency help.
+        <a href="https://www.nyc.gov/site/hpd/services-and-information/heat-and-hot-water-information.page" target="_blank" rel="noopener noreferrer">NYC heating safety advice ↗</a></p>
+    </aside>
+  </div></details>
+<details class="hg-guide-section" id="{{ walk_id_prefix }}-data-and-privacy"><summary>Data and privacy</summary><div>
+    
+    <p>We use public NYC records about buildings, heat complaints, violations, owners and boilers, along with weather data. Some records may be missing or out of date. A complaint means someone reported a problem; it doesn't mean an inspector confirmed it.</p>
+    <div class="help-source-links">
+      <a href="https://data.cityofnewyork.us/d/ygpa-z7cr" target="_blank" rel="noopener noreferrer">HPD complaints ↗</a>
+      <a href="https://data.cityofnewyork.us/d/wvxf-dwi5" target="_blank" rel="noopener noreferrer">HPD violations ↗</a>
+      <a href="https://www.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page" target="_blank" rel="noopener noreferrer">NYC PLUTO properties ↗</a>
+      <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo weather ↗</a>
+    </div>
+    <p>The map is about buildings, not individual tenants. Saving a building for alerts links it to your verified email. HeatAhead doesn't see your Google password. Owner and agent details come from public business records.</p>
+    <p>When you sign in with Google, we receive only your verified email address, your name and Google's account id for you; we keep no Google access tokens and ask for no Drive, Gmail or contacts access. An email sign-in link uses your address the same way. Your saved buildings, alert choices and dashboard panels are stored on the team's own server and are never sold or shared. You can remove a saved building or stop every alert from your profile at any time, and signing out clears the sign-in cookie on that device.</p>
+    <p>The help chat uses published answers. It can suggest close matches when a question is unclear or has a typo. Common questions stay on your device. If AI matching is enabled, an unfamiliar question and the previous help topic may be sent to a provider to suggest a published question. Your Google account details and earlier messages aren't included. We don't save guide chats in this app. Please leave out passwords, contact details and apartment numbers.</p>
+    <p>The photos were taken earlier; they aren't live. The guide can show you where to go. Sending a message, reporting a problem or changing alerts is still up to you.</p>
+  </div></details>

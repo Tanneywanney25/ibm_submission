@@ -17,7 +17,7 @@ const html=execFileSync(process.env.PYTHON||'python',['-c',[
 ].join('\n')],{cwd:root,encoding:'utf8'});
 const windows=[];
 function setup(url='https://heatahead.test/building?bbl=3000410007',ai=false){
-  const dom=new JSDOM('<!doctype html><body><a id="help-nav" href="/learn-more?help=1#help-answers" data-open-guide data-guide-browse>Help</a>'+html+'</body>',
+  const dom=new JSDOM('<!doctype html><body><a id="help-nav" href="/?help=1" data-open-guide data-guide-browse>Ask HeatAhead</a>'+html+'</body>',
     {url,runScripts:'outside-only'});
   const win=dom.window,doc=win.document;windows.push(win);
   if(ai){const data=doc.getElementById('hg-content');const content=JSON.parse(data.textContent);content.ai_enabled=true;data.textContent=JSON.stringify(content);}
@@ -111,6 +111,30 @@ async function run(){
     assert.equal(doc.getElementById('hg-browser').hidden,false);
   }
   {
+    const {win,doc,calls}=setup('https://heatahead.test/?help=guide#reading-the-map');
+    assert.equal(doc.getElementById('hg-guide').hidden,false);
+    assert.equal(doc.getElementById('hg-guide-reading-the-map').open,true);
+    assert.equal(doc.querySelectorAll('#hg-guide > details').length,5);
+    assert.equal(doc.getElementById('privacy-banner').hidden,true);
+    assert.equal(win.HeatAheadPrivacy.preferencesAllowed(),false);
+    click(doc,'#hg-guide [data-guide-topic="unranked"]');
+    assert.equal(doc.getElementById('hg-chat').hidden,false);
+    assert.ok(answer(doc).textContent.includes(items.find(i=>i.id==='unranked').answer));
+    ask(win,items.find(i=>i.id==='heights').question);
+    const guideAction=[...answer(doc).querySelectorAll('.hg-actions button')].find(b=>!b.dataset.guideQuestion);
+    assert.ok(guideAction,'Map explanation includes an in-place walkthrough action');
+    guideAction.click();
+    assert.equal(doc.getElementById('hg-guide').hidden,false);
+    assert.equal(doc.getElementById('hg-guide-reading-the-map').open,true);
+    assert.equal(win.location.pathname,'/');
+    const tab=doc.getElementById('hg-tab-guide');
+    tab.dispatchEvent(new win.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));
+    assert.equal(doc.activeElement.id,'hg-tab-chat');
+    doc.activeElement.dispatchEvent(new win.KeyboardEvent('keydown',{key:'End',bubbles:true,cancelable:true}));
+    assert.equal(doc.activeElement.id,'hg-tab-guide');
+    assert.equal(calls.length,0);
+  }
+  {
     const {win,doc,calls}=setup(undefined,true);click(doc,'#hg-launcher');
     ask(win,'email');assert.equal(calls.length,0,'Local ambiguity is shown immediately even with AI enabled');
     let release;
@@ -129,6 +153,14 @@ async function run(){
     assert.match(doc.getElementById('hg-status').textContent,/Couldn't connect/);
     assert.equal(doc.getElementById('hg-send').disabled,false);
     click(doc,'#hg-tab-browse');assert.equal(doc.getElementById('hg-count').textContent,'29 questions');
+    let late;
+    win.fetch=()=>new Promise(resolve=>{late=resolve;});
+    click(doc,'#hg-tab-chat');ask(win,'please help with an unusual situation');
+    click(doc,'#hg-tab-guide');
+    const before=doc.getElementById('hg-log').textContent;
+    late({ok:true,json:async()=>({topic:'heights',mode:'ai'})});await tick();
+    assert.equal(doc.getElementById('hg-log').textContent,before,'Opening the guide cancels pending AI suggestions');
+    assert.equal(doc.getElementById('hg-guide').hidden,false);
   }
   console.log('PASS: real templates, all 29 help questions, typo search, categories, multiple choices, BBL links, keyboard tabs/focus, legacy FAQ fragments, no unsafe markup or private input, bounded chat, stale/offline AI and cookie-banner coexistence.');
 }

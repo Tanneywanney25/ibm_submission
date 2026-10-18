@@ -158,7 +158,7 @@
     if(typeof href!=='string'||/[\\\u0000-\u0020]/.test(href))return false;
     try{
       const u=new URL(href,'https://heatahead.invalid');
-      if(u.origin==='https://heatahead.invalid')return href.startsWith('/')&&!href.startsWith('//')&&['/','/building','/map','/monitor','/inspection-queue','/learn-more','/contact','/privacy','/api/queue.csv'].includes(u.pathname);
+      if(u.origin==='https://heatahead.invalid')return href.startsWith('/')&&!href.startsWith('//')&&['/','/building','/map','/monitor','/about','/contact','/privacy','/api/queue.csv'].includes(u.pathname);
       return u.protocol==='https:'&&!u.username&&!u.password&&['www.nyc.gov','portal.311.nyc.gov','data.cityofnewyork.us','open-meteo.com'].includes(u.hostname);
     }catch{return false;}
   }
@@ -174,7 +174,7 @@
     const doc=win.document,$=id=>doc.getElementById(id),bootstrap=$('hg-content');
     if(!bootstrap||!$('hg-launcher')||bootstrap.dataset.ready)return;
     let content;try{content=JSON.parse(bootstrap.textContent);if(!Array.isArray(content.items))return;}catch{return;}
-    if(!['hg-dialog','hg-chat','hg-browser','hg-tab-chat','hg-tab-browse','hg-search','hg-category','hg-count','hg-empty','hg-input','hg-log','hg-status','hg-form','hg-privacy','hg-intro','hg-send','hg-close','hg-clear'].every(id=>$(id)))return;
+    if(!['hg-dialog','hg-chat','hg-browser','hg-guide','hg-tab-chat','hg-tab-browse','hg-tab-guide','hg-search','hg-category','hg-count','hg-empty','hg-input','hg-log','hg-status','hg-form','hg-privacy','hg-intro','hg-send','hg-close','hg-clear'].every(id=>$(id)))return;
     bootstrap.dataset.ready='1';
     const items=content.items,byId=new Map(items.map(i=>[i.id,i]));
     const panel=$('hg-dialog'),launcher=$('hg-launcher'),input=$('hg-input'),log=$('hg-log'),status=$('hg-status');
@@ -186,13 +186,18 @@
     }
     function scroll(){log.scrollTop=log.scrollHeight;}
     function view(name,focus=false){
-      const browsing=name==='browse';if(browsing)cancel();
-      $('hg-chat').hidden=browsing;log.hidden=browsing;$('hg-browser').hidden=!browsing;
-      $('hg-form').hidden=browsing;$('hg-privacy').hidden=browsing;$('hg-intro').hidden=browsing;
-      for(const id of ['chat','browse']){
+      if(!['chat','browse','guide'].includes(name))name='chat';
+      const chatting=name==='chat';if(!chatting)cancel();
+      for(const id of ['chat','browse','guide'])$('hg-'+(id==='browse'?'browser':id)).hidden=id!==name;
+      log.hidden=!chatting;$('hg-form').hidden=!chatting;$('hg-privacy').hidden=!chatting;$('hg-intro').hidden=!chatting;
+      for(const id of ['chat','browse','guide']){
         const active=id===name,tab=$('hg-tab-'+id);tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;
       }
-      if(focus)(browsing?$('hg-search'):input).focus();
+      if(focus)(name==='browse'?$('hg-search'):name==='guide'?$('hg-guide').querySelector('summary')||$('hg-guide'):input).focus();
+    }
+    function guideSection(id){
+      const section=doc.getElementById('hg-guide-'+id);
+      if(section&&$('hg-guide').contains(section)){section.open=true;section.querySelector('summary')?.focus();}
     }
     function bubble(speaker,text){
       const node=el('div','hg-message'+(speaker==='You'?' hg-user':''));
@@ -208,6 +213,10 @@
       for(const action of actions){
         const href=contextualLink(action.href,bbl||currentBBL());if(!href)continue;
         const url=new URL(href,'https://heatahead.invalid'),topic=byId.get(url.searchParams.get('help'));
+        if(url.origin==='https://heatahead.invalid'&&url.searchParams.get('help')==='guide'){
+          const button=el('button','',action.label);button.type='button';
+          button.addEventListener('click',()=>{view('guide',true);guideSection(url.hash.slice(1));});block.append(button);continue;
+        }
         if(url.origin==='https://heatahead.invalid'&&topic){
           const button=topicButton(topic);button.textContent=action.label;block.append(button);continue;
         }
@@ -241,7 +250,7 @@
     function fallback(){
       const node=bubble('HeatAhead guide',"I couldn't find a close match. I can help with buildings, the map, alerts and using HeatAhead.");
       const browse=el('button','hg-browse-more','Browse help questions');browse.type='button';browse.addEventListener('click',()=>view('browse',true));node.append(browse);
-      links(node,[{label:'Contact the team',href:'/contact'},{label:'How HeatAhead works',href:'/learn-more'}]);scroll();
+      links(node,[{label:'Contact the team',href:'/contact'},{label:'How to use HeatAhead',href:'/?help=guide'}]);scroll();
     }
     function busy(value){$('hg-send').disabled=value;}
     function cancel(){version++;if(pending)pending.abort();pending=null;busy(false);status.textContent='';}
@@ -295,11 +304,12 @@
     panel.addEventListener('keydown',event=>{if(event.key==='Escape'){event.stopPropagation();close();}});
     $('hg-form').addEventListener('submit',event=>{event.preventDefault();ask(input.value);});
     $('hg-clear').addEventListener('click',()=>{cancel();previous=null;bbl=null;log.replaceChildren();input.value='';welcome();view('chat',true);});
-    for(const name of ['chat','browse']){
+    const tabNames=['chat','browse','guide'];
+    for(const name of tabNames){
       const tab=$('hg-tab-'+name);tab.addEventListener('click',()=>view(name,true));
       tab.addEventListener('keydown',event=>{
         if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
-        event.preventDefault();const next=event.key==='Home'?'chat':event.key==='End'?'browse':name==='chat'?'browse':'chat';
+        event.preventDefault();const next=event.key==='Home'?'chat':event.key==='End'?'guide':tabNames[(tabNames.indexOf(name)+(event.key==='ArrowRight'?1:2))%3];
         view(next);$('hg-tab-'+next).focus();
       });
     }
@@ -310,14 +320,16 @@
     doc.querySelectorAll('[data-open-guide],[data-guide-topic]').forEach(trigger=>{
       trigger.hidden=false;trigger.addEventListener('click',event=>{
         if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
-        event.preventDefault();open(trigger.hasAttribute('data-guide-browse')?'browse':'chat',trigger.dataset.guideTopic||null);
+        event.preventDefault();open(trigger.dataset.guideView||(trigger.hasAttribute('data-guide-browse')?'browse':'chat'),trigger.dataset.guideTopic||null);
+        if(trigger.dataset.guideView==='guide')guideSection(trigger.dataset.guideSection||'');
       });
     });
     if(content.ai_enabled)$('hg-privacy').textContent="Unrecognized questions may use AI to suggest a help topic. Please leave out passwords, contact details and apartment numbers.";
     function openLinkedHelp(){
       const requested=new URLSearchParams(win.location.search).get('help');if(!requested)return;
       let legacy;try{legacy=decodeURIComponent(win.location.hash.slice(1));}catch{legacy='';}
-      open('browse',byId.has(requested)?requested:requested==='1'&&byId.has(legacy)?legacy:null);
+      if(requested==='guide'){open('guide');guideSection(legacy);}
+      else open('browse',byId.has(requested)?requested:requested==='1'&&byId.has(legacy)?legacy:null);
     }
     openLinkedHelp();
   }

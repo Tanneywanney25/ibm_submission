@@ -37,3 +37,23 @@
 .hg-actions button{min-height:40px;padding:.35rem .7rem;border:2px solid var(--ink);border-radius:12px;font-size:.76rem;text-transform:none;letter-spacing:0;background:var(--panel);color:var(--ink)}
 @media(max-width:480px){.hg-search-tools input,.hg-search-tools select{font-size:16px}.hg-dialog{width:calc(100vw - 24px)}}
 @media(max-height:520px){.hg-tabs{padding:.35rem .75rem}.hg-tabs button{min-height:34px}.hg-search-tools{padding:.4rem .75rem .2rem}}
+/* The former help-page walkthroughs now live in the chat. */
+.hg-walkthrough{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:.75rem 1rem;scrollbar-width:thin}
+.hg-help-guide{font-size:.84rem;line-height:1.7;color:var(--ink)}
+.hg-guide-section{margin:0 0 .7rem;border:2px solid var(--line);border-radius:12px;background:var(--panel)}
+.hg-guide-section>summary{padding:.8rem .9rem;min-height:44px;font-weight:800;line-height:1.5;cursor:pointer}
+.hg-guide-section>div,.hg-guide-section>p{padding:0 .9rem .7rem;margin:0}
+.hg-help-guide h3{font-size:.92rem;line-height:1.5;margin:1rem 0 .3rem}
+.hg-help-guide p{color:var(--muted);margin:.4rem 0 .8rem;line-height:1.7}
+.hg-help-guide .help-steps,.hg-help-guide .help-two,.hg-help-guide .help-map-key{display:block;margin:0}
+.hg-help-guide .help-panel,.hg-help-guide .help-callout{display:block;padding:0;margin:.7rem 0;background:transparent;border:0;border-radius:0;box-shadow:none;transform:none}
+.hg-help-guide .help-steps .help-panel:nth-child(n){background:transparent;box-shadow:none;transform:none}
+.hg-help-guide .help-step{display:none}
+.hg-help-guide .help-points{padding-left:1.1rem;list-style:disc;display:block;background:transparent}
+.hg-help-guide .help-points li{position:static;padding:0;margin:.5rem 0;background:none;border:0;line-height:1.7}
+.hg-help-guide .help-points li::before{display:none}
+.hg-help-guide .help-source-links{display:flex;gap:.5rem;flex-wrap:wrap;margin:.8rem 0}
+.hg-help-guide .help-source-links a{padding:0;border:0;border-radius:0;background:none;box-shadow:none;transform:none}
+.hg-help-guide a{font-weight:700;overflow-wrap:anywhere}
+.hg-footer{justify-content:flex-end}
+.hg-nojs{max-width:1100px;margin:1rem auto;padding:1rem;border:2px solid var(--ink);border-radius:14px;background:var(--panel)}

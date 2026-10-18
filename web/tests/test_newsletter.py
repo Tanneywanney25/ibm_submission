@@ -59,7 +59,7 @@ class NewsletterTests(unittest.TestCase):
 
     def test_public_pages_assets_and_embed(self):
         for route in ("/", "/contact", "/privacy", "/building", "/map", "/learn-more", "/monitor"):
-            result = self.client.get(route, base_url=ORIGIN)
+            result = self.client.get(route, base_url=ORIGIN, follow_redirects=True)
             self.assertEqual(result.status_code, 200, route)
             self.assertIn(b"mailto:heataheadnyc@gmail.com", result.data)
             self.assertIn(b'id="privacy-banner"', result.data)

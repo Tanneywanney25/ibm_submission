@@ -73,7 +73,6 @@ returned 503).
 | `map_data.json` | `{columns:[lon,lat,p_season,c_last1,units], rows:[...], bbls:[...]}`, exactly what `/api/map_data` returns today | about 4 MB |
 | `b/<n>.json` for n = `bbl % 128` (0 to 127) | `{bbl: [record]}` where the record is a positional list over `FIELDS` in `web/app.py` (season risk and rank, units, community district, chronic flag, complaints and violations by season, last dates, cold-day risk and rank, coordinates, landlord name and portfolio size, then the T5a fields: managing agent, whether it files as a company, its address, the corporate owner's business address, HPD building id and last registration date); `building_payload()` turns a record into the `/api/building` JSON in both modes. New fields go at the end of `FIELDS`, so a shard built before them still reads (the missing ones are None) | about 78 KB each before T5a; see `meta.json` for the current total |
 | `reliability.json` | the calibration table (`/api/reliability`) | tiny |
-| `top50.csv` | first 50 rows of the same cold-day inspection ranking; refreshed alongside top500.csv by `web/build_assets.py` | small |
 | `top500.csv` | the government export (`/api/queue.csv?k=500`) | small |
 | `meta.json` | citywide median season risk, ranked count, build timestamp, git sha, model file names | tiny |
 
@@ -104,10 +103,10 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/` | GET | homepage with sign-in or saved buildings and registration (`index.html`); logo is the home link, no duplicate My account/Home tab | template + authenticated account API |
 | `/building` | GET | lookup page (`building.html`); `?bbl=` opens a building directly, `?q=` runs an address search on arrival (T17) | template |
 | `/map` | GET | risk map (`map.html`); `?bbl=` opens centered on that building with a highlight ring, `?embed=1` is the chrome-free embed the building page's map panel uses (T17) | template |
-| `/inspection-queue` | GET | public top-50 cold-day model priorities, building/map links, history and the existing top-50 CSV export; original model order retained, unavailable state for missing/malformed snapshot | same `queue_csv(50)` source as `/api/queue.csv?k=50`, stdlib CSV parsing; no login, live-feed or model dependency |
+| `/inspection-queue` | GET | legacy 302 redirect to `/monitor`; the separate shortlist page is retired | redirect |
 | `/monitor` | GET | live monitor (`monitor.html`) | template |
-| `/learn-more` | GET | how the site works, map reading, prediction windows, actions and privacy; the 29 chat help answers are also readable here without JavaScript | template + shared guide content |
-| `/faq` | GET | legacy 302 redirect to `/learn-more?help=1`; the standalone FAQ page is retired; browsers preserve old `#topic` fragments and the guide opens that answer | redirect; shared help chat is on every page |
+| `/learn-more`, `/help` | GET | legacy 302 redirect to `/?help=guide`, or `/?help=<known topic>`; walkthroughs now live in Ask HeatAhead | redirect + shared widget |
+| `/faq` | GET | legacy 302 redirect to `/?help=1`; the standalone FAQ page is retired; browsers preserve old `#topic` fragments and the guide opens that answer | redirect; shared help chat is on every page |
 | `/about` | GET | research and methods: cleaning/labels, 36-feature pipeline, model recipes, holdouts/backtests, versioned results, experiment decisions, IBM Z, LLM-help steps and limits; original anchors retained (`about.html`, `about.css`, claim ledger `docs/about-copy.md`) | server-rendered prose and native details; uses existing public META/RELIABILITY via read-only callback, no model/provider/database/network needed |
 | `/contact` | GET | team contact address, chat help, project-update link and NYC311 direction | template; no account required |
 | `/privacy` | GET | actual cookies, optional browser storage, accounts, newsletter and external services; reopen cookie settings | template; no account required |
@@ -320,14 +319,14 @@ both to 1 and blurring Retina text. Caps bound the fill/picking cost. The flat/3
 is preserved when zooming to buildings. Verify actual-device appearance/performance in
 the preview; logic tests cannot prove frame rate or GPU rendering.
 
-## 11. Learn more and help chat
+## 11. Ask HeatAhead
 
-`web/site_guide.py` owns `/learn-more`, the legacy `/faq` redirect and the optional AI topic
-endpoint. All 26 original answers plus newsletter, contact and cookie help live once in
-`web/static/guide-content.json`. Help in the navigation opens the chat on the current page;
-Browse questions inside it offers search, categories and every published answer. The
-standalone FAQ template is retired. Without JavaScript, Learn more renders the same answers
-as native details. New UI follows the existing theme.
+`web/site_guide.py` redirects the retired `/learn-more`, `/help` and `/faq` pages into
+the shared chat and owns the optional AI topic endpoint. All 29 answers live once in
+`web/static/guide-content.json`. The chat has Ask a question, Browse questions (search
+and categories) and How to use (five expandable walkthroughs). Footer and homepage
+help links open it in place. Without JavaScript, the shared widget exposes the same
+walkthroughs and answers as native details. No new production dependency is required.
 
 `web/static/guide.js` answers clear questions locally. Word aliases and bounded edit distance
 find nearby wording/spelling. Vague requests show two to four relevant "Did you mean" choices;
@@ -337,6 +336,7 @@ This is local retrieval, not a claim of an unrestricted generative chatbot. No A
 Google credentials or LinuxONE connection is needed for local help and question browsing.
 
 Links with `?help=<topic-id>` open that chat answer; `?help=1` opens Browse questions.
+`?help=guide#reading-the-map` opens and expands the map walkthrough.
 Legacy `/faq#topic-id` redirects into this behavior. Existing map coverage links now open
 the answer in place, retaining the map and selected BBL. Opening help temporarily hides an
 undecided cookie banner so it cannot cover the chat; closing restores it. That never
