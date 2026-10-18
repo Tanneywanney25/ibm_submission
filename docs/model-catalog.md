@@ -205,7 +205,39 @@ All metrics are on the held-out 2025-26 winter unless marked otherwise.
   absolute curve does not meet our display bar (probabilities shown to users
   must be calibrated), so no site surface uses M10. The identified fix — a
   second, horizon-level recalibration of 1 − S(t) on the 2024-25 curves
-  (M10b) — is on the shelf. Frozen numbers untouched.
+  (M10b) — is below. Frozen numbers untouched.
+- **M10b — horizon-level recalibration (the fix, built):** a second isotonic
+  g: cumulative predicted risk 1 − S(t) → realized first-failure share, fit
+  on the 2024-25 full-universe at-risk curves (1.91M building-day pairs from
+  34 strided days; the three 2024-25 horizon day-indices held out as an
+  in-season check), applied on top of M10's day-calibrated curve. Monotone in
+  t by construction, so the result is still a CDF and the expected failure
+  week recomputes from its increments. `model/19_hazard_recal.py` →
+  `hazard_recal_map.csv` (the isotonic's knots), `hazard_eval_recal.csv`,
+  `expected_failure_week_recal.csv`; M10's own outputs untouched. Verified
+  ONCE on 2025-26:
+
+  | horizon | realized overall | max \|gap\| any decile | decile 8 pred→real | decile 9 pred→real |
+  |---|---|---|---|---|
+  | by Dec 1 | 8.3% | **8.0pp** | 23.1% → 19.5% | 32.9% → 24.9% |
+  | by Jan 1 | 12.2% | **3.8pp** | 28.8% → 27.0% | 34.8% → 31.0% |
+  | by Feb 1 | 16.6% | **4.7pp** | 32.0% → 34.9% | 35.4% → 40.1% |
+
+  The 8–42pp overshoot collapses to ≤4.7pp at Jan 1 / Feb 1 (within the ~5pp
+  bar); Dec 1 decile 9 still misses at +8.0pp — a residual EARLY-season
+  overconfidence the pooled (t-free) isotonic cannot remove, visible in the
+  2024-25 in-season check too (+7.3pp), so it is a known limitation, not a
+  holdout surprise. C-index 0.869 (vs 0.871 — only isotonic ties moved it).
+  Top-1000 median failure-week error improves 11.1 → **10.0 weeks** (449 of
+  1000 failed): absolute timing is still far from the ~2-week target.
+- **M10b decision: still NOT shipped.** Jan/Feb horizon probabilities now
+  meet the display bar but Dec 1 does not, and the failure week remains
+  unusable; shipping a timing surface that is right in February and wrong in
+  December fails the "calibrated probabilities only" rule. A per-horizon
+  (t-indexed) recalibration would likely fix Dec 1, but the 2025-26 holdout
+  has now been consumed twice for this model family — further iteration
+  would be fitting to the test winter, so M10b is where this line stops for
+  the submission.
 
 ## B1–B3 — The baselines (every eval runs them under the identical protocol)
 
