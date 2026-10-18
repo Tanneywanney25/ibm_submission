@@ -10,6 +10,11 @@
  * page's own lookup (and its geocoder-down / BBL fallbacks) takes over.
  * A page can intercept instead: the form dispatches cancelable "ha-search"
  * ({bbl, label}) and "ha-search-query" ({q}) events before navigating.
+ *
+ * Fill-only mode, for an address field inside a larger form (the profile's
+ * "Save a building"): <input data-ha-suggest>. The same suggestions appear, but
+ * choosing one only fills the field and sets input.dataset.bbl (cleared on any
+ * further typing); it never navigates or takes over the form's submit.
  */
 (() => {
   'use strict';
@@ -17,8 +22,7 @@
   const MIN_CHARS = 3, DEBOUNCE_MS = 250, MAX_ITEMS = 6;
   let nextId = 0;
 
-  function attach(form) {
-    const input = form.querySelector('input');
+  function attach(form, input, fillOnly) {
     if (!input) return;
     const id = 'ha-search-' + (++nextId);
     const box = document.createElement('div');
@@ -32,7 +36,7 @@
     list.setAttribute('role', 'listbox');
     list.setAttribute('aria-label', 'Address suggestions');
     box.appendChild(list);
-    const status = form.querySelector('.ha-search-status');
+    const status = fillOnly ? null : form.querySelector('.ha-search-status');
     input.setAttribute('role', 'combobox');
     input.setAttribute('aria-autocomplete', 'list');
     input.setAttribute('aria-expanded', 'false');
@@ -89,6 +93,11 @@
       close();
       input.value = item.label;
       say('');
+      if (fillOnly) {
+        input.dataset.bbl = item.bbl;
+        input.dispatchEvent(new CustomEvent('ha-search', {detail: {bbl: item.bbl, label: item.label}}));
+        return;
+      }
       const event = new CustomEvent('ha-search', {cancelable: true, detail: {bbl: item.bbl, label: item.label}});
       if (form.dispatchEvent(event)) window.location.assign('/building?bbl=' + encodeURIComponent(item.bbl));
     }
@@ -139,6 +148,7 @@
     }
 
     input.addEventListener('input', () => {
+      if (fillOnly) delete input.dataset.bbl;
       clearTimeout(timer);
       timer = setTimeout(suggest, DEBOUNCE_MS);
     });
@@ -154,10 +164,13 @@
       }
     });
     input.addEventListener('blur', () => setTimeout(close, 120));
-    form.addEventListener('submit', event => { event.preventDefault(); submitQuery(); });
+    if (!fillOnly) form.addEventListener('submit', event => { event.preventDefault(); submitQuery(); });
   }
 
-  function init() { document.querySelectorAll('form[data-ha-search]').forEach(attach); }
+  function init() {
+    document.querySelectorAll('form[data-ha-search]').forEach(f => attach(f, f.querySelector('input'), false));
+    document.querySelectorAll('input[data-ha-suggest]').forEach(i => attach(i.form, i, true));
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once: true});
   else init();
 })();
