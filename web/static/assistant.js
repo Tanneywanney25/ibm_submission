@@ -90,7 +90,8 @@ async function api(path,options={}){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
   try{const r=await fetch('/api/assistant/'+path,{...options,signal:controller.signal,cache:'no-store'});const data=await r.json();if(!r.ok)throw new Error(data.error||'Assistant unavailable');return data;}finally{clearTimeout(timer);}
 }
-const askedFromHome=new URLSearchParams(location.search).get('q');
+// browser-only (tests run this file in a bare Node VM without URLSearchParams/location)
+let askedFromHome=null;try{askedFromHome=new URLSearchParams(location.search).get('q');}catch{}
 if(askedFromHome){$('ask-question').value=askedFromHome.slice(0,1500);$('ask-question').focus();}
 document.querySelectorAll('[data-ask]').forEach(b=>b.addEventListener('click',()=>{$('ask-question').value=b.dataset.ask;$('ask-question').focus();}));
 $('ask-form').addEventListener('submit',async event=>{
