@@ -1,4 +1,4 @@
-# [ONLXXX] HeatAhead — forecast-triggered heat-failure prediction for NYC buildings
+# HeatAhead — forecast-triggered heat-failure prediction for NYC buildings
 
 > **Set the team number in the title above and in the Hack2skill project title before submitting.**
 
