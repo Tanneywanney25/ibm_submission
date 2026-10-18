@@ -203,7 +203,10 @@ def _verify_id_token(token):
             kwargs["timeout"] = 3
             return super().__call__(*args, **kwargs)
 
-    return verify_oauth2_token(token, BoundedRequest(), current_app.config["GOOGLE_CLIENT_ID"])
+    # google-auth allows no clock skew by default; a serverless clock a second behind
+    # Google's then rejects a fresh token as "used too early".
+    return verify_oauth2_token(token, BoundedRequest(), current_app.config["GOOGLE_CLIENT_ID"],
+                               clock_skew_in_seconds=10)
 
 
 @bp.get("/api/auth/google")
@@ -252,8 +255,11 @@ def google_callback():
                 not isinstance(claims.get("nonce"), str) or
                 not _equal(claims["nonce"], pending["nonce"])):
             return _error("Google could not verify this account. Please try signing in again.")
-    except Exception:
-        # Token responses and authorization codes must never enter a log or error page.
+    except Exception as exc:
+        # Token responses and authorization codes must never enter a log or error page:
+        # log only the failure's type and Google's short error code (e.g. invalid_client).
+        current_app.logger.warning("google sign-in failed: %s %s", type(exc).__name__,
+                                   str(getattr(exc, "error", "") or "")[:40])
         return _error("Google sign-in could not finish. Please try again in a moment.", 503)
     session.clear()
     session["auth_user"] = profile
@@ -360,8 +366,8 @@ def init_app(app, nonce_guard, email_backend=None):
     except ValueError:
         origin = ""
     app.config.update(SECRET_KEY=key if len(key) >= 32 else None,
-                      GOOGLE_CLIENT_ID=os.environ.get("GOOGLE_CLIENT_ID", ""),
-                      GOOGLE_CLIENT_SECRET=os.environ.get("GOOGLE_CLIENT_SECRET", ""),
+                      GOOGLE_CLIENT_ID=os.environ.get("GOOGLE_CLIENT_ID", "").strip(),
+                      GOOGLE_CLIENT_SECRET=os.environ.get("GOOGLE_CLIENT_SECRET", "").strip(),
                       AUTH_BASE_URL=origin, SESSION_COOKIE_NAME="heatahead_account",
                       SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SECURE=not allow_http,
                       SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_PATH="/",
