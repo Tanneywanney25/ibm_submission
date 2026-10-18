@@ -38,6 +38,7 @@
   letter-spacing:0; text-transform:none; width:31%; }
 .about-table tbody td { color:var(--muted); line-height:1.6; }
 .about-table a { color:var(--accent-dark); }
+.about-table tbody th a { white-space:nowrap; }
 .about-table tr:last-child > * { border-bottom:0; }
 .about-numbers { font-variant-numeric:tabular-nums; }
 .about-numbers tbody th { width:30%; }
