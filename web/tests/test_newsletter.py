@@ -58,7 +58,7 @@ class NewsletterTests(unittest.TestCase):
             con.execute("UPDATE newsletter_subscribers SET last_requested=?", (int(time.time()) - 601,))
 
     def test_public_pages_assets_and_embed(self):
-        for route in ("/", "/contact", "/privacy", "/building", "/map", "/faq", "/monitor"):
+        for route in ("/", "/contact", "/privacy", "/building", "/map", "/learn-more", "/monitor"):
             result = self.client.get(route, base_url=ORIGIN)
             self.assertEqual(result.status_code, 200, route)
             self.assertIn(b"mailto:heataheadnyc@gmail.com", result.data)

@@ -1,97 +1,171 @@
-# Learn more, FAQs and Ask HeatAhead
+# Help chat and Learn more
 
-## What ships immediately
+## What changed
 
-- `/learn-more`: purpose, the three-step process, map colors vs heights, prediction
-  windows, limitations, tenant/owner/inspector actions, sources and privacy.
-- `/faq`: 26 categorized answers, text search, topic filters and openable URL fragments
-  such as `/faq#heights`. Native `<details>` work without JavaScript.
-- An **Ask HeatAhead** guide on every page: questions, published answers, source links,
-  follow-up suggestions and explicit navigation buttons. It preserves the current valid
-  building BBL in building-page links and can recognize a typed `BBL 3000410007`.
-- Learn more and FAQ navigation links, a home-page entry point and footer links.
+The separate FAQ page is retired. Help in the navigation, footer and home page opens
+Ask HeatAhead on the page the visitor is already using. Inside the chat:
 
-No new Python dependency, database, Node build step or key is needed for these features.
-The Google login work remains intact and can be configured separately.
+- **Ask a question** answers clear requests and offers nearby published questions when
+  wording is unclear or misspelled.
+- **Browse questions** holds all 26 original answers plus newsletter, team contact and
+  cookie choices: 29 in total. Search accepts nearby spelling; a topic filter narrows
+  the list. Choosing a question opens its answer in the conversation.
+- Answers keep the existing source links, action shortcuts, follow-up questions and
+  valid building BBL. Choosing a suggestion does not submit a complaint, change an
+  account, send mail or run a model.
 
-## Optional real AI matching
+The same catalog lives in web/static/guide-content.json. There is no second copy of
+the answer text in the JavaScript or templates. No database, build step or new
+production dependency is needed. The newsletter/contact/cookie features remain intact.
 
-Common questions are answered locally. If the site's owner wants AI to interpret unfamiliar
-wording, add these to the **existing** Vercel project's environment:
+## Matching and uncertainty
 
-1. `OPENAI_API_KEY`: a project-scoped API key, entered directly into hosting settings.
-2. `GUIDE_AI_MODEL`: the id of an active model in that project that supports the Responses
-   API and Structured Outputs. Select from the current model catalog; do not assume an old
-   model name is still supported. <https://developers.openai.com/api/docs/models>
+Clear questions still use the existing published terms and specific intent rules.
+Local retrieval also compares meaningful words in titles/keywords, common aliases
+(photos/pictures, colors/colours, notifications/alerts) and bounded edit distance for
+nearby spelling and swapped letters. The catalog index is cached within the page.
 
-Redeploy the preview after setting them. Do not paste a key into chat, a notebook, browser
-JavaScript or GitHub. Enabling this public endpoint consumes provider credits. Configure
-provider spending/rate limits and hosting controls; the in-app limits are per warm worker,
-not distributed or a guarantee against total spend. Leaving both values unset keeps the
-working local guide and makes no external AI calls.
+Uncertain spelling produces **Did you mean** options rather than silently answering a
+guessed question. Broad requests such as email, risk, contact and unsubscribe present
+several relevant choices. For example, "email" can mean building alerts, project updates,
+sign-in or drafting a notice; "stop emails" distinguishes building alerts from the
+newsletter. Only credible catalog matches are offered, up to four. A single close
+spelling match can have one option; unrelated questions get a browse/contact fallback.
 
-The provider sees only the current general question and previous FAQ topic id, with BBLs
-redacted. The shared question titles are the classification vocabulary. It selects a
-schema-constrained topic id. The response renderer uses the catalog answer and allowlisted
-links, never provider-written facts or URLs. Refusal, timeout, malformed output, unrecognized
-topics and rate limits fall back to the existing FAQ/shortcut flow. No agent tools or
-write permissions exist. There is no conversation persistence or Google identity in this
-request. `store:false` does not change the provider's own applicable retention policies.
+This is a local help guide, not an unrestricted generative chatbot. It never invents
+building scores, provider-written answers or arbitrary URLs. Obvious no-heat/emergency
+questions keep their direct action guidance. General follow-ups can refer to the last
+selected help topic. The conversation stays in memory for that page, is bounded to 24
+message elements, and clears on navigation or Clear chat. No chat localStorage is used.
 
-Official API contract: <https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses>.
-The provider path has fixture tests, but a real API-key/model deployment must still be tested.
+## Links and accessibility
+
+- Any site page can use ?help=TOPIC-ID to open that answer, or ?help=1 to open Browse
+  questions. Valid topic ids come from the catalog.
+- /faq redirects with 302 to /learn-more?help=1. A browser preserves an old #topic-id
+  fragment, which the chat recognizes. New site links do not point to /faq.
+- Map coverage links open the unranked explanation in place, retaining the current map.
+  Building action links retain the selected valid BBL.
+- Both tabs support keyboard arrows, Home and End. Escape closes help and returns
+  focus; suggestions focus a question for keyboard selection. Closing and reopening
+  within the page preserves the conversation.
+- The undecided cookie banner temporarily hides while help is open, preventing it from
+  covering the chat on small screens. It returns when help closes. This records no
+  consent and enables no optional storage, including when a help deep link opens before
+  the privacy widget finishes initializing.
+- Without JavaScript, Learn more shows the same answers as native details. Contact and
+  project-update links still work. The chat itself needs JavaScript.
+
+The unused web/templates/faq.html is deleted in this change. A GitHub file-upload update
+may leave the old file in the repository; no route renders it, so the separate page is
+still removed. The redirect handles old links without requiring a manual deletion.
+
+## Optional AI matching
+
+The default guide and all 29 questions work with no key. If the owner enables the existing
+provider integration, OPENAI_API_KEY and GUIDE_AI_MODEL stay server-side in the current
+Vercel project. Choose an active model that supports the Responses API and Structured
+Outputs from the official model catalog; no silently assumed model name is included:
+
+- https://developers.openai.com/api/docs/models
+- https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses
+
+Local matches and ambiguous choices do not call the provider. An otherwise unrecognized
+general question may call the existing same-origin POST /api/guide/ask. The provider can
+only suggest one allowlisted topic id. It appears as a possible question for the visitor
+to choose; it does not automatically become an answer. The API shape remains
+{topic, mode}, so an older configured provider endpoint stays compatible.
+
+Only the current cleaned question and previous topic id enter the provider input. Valid
+BBLs are redacted; obvious contact/unit details and secrets are rejected. Account identity
+and earlier chat messages are not included. The application stores no conversation and
+logs no provider errors/questions/keys. store:false does not override provider retention.
+
+The endpoint retains a 400-character cap, a seven-second browser deadline, bounded server
+timeout/output and warm-worker limits of five requests/client/minute and 20 total/minute.
+These are not distributed quotas or a global spending cap; configure provider/hosting
+limits before enabling it. Refusal, invalid topic, timeout, 429 and offline service leave
+the local help questions available. Clear chat, Browse questions and newer questions
+invalidate pending responses, so late results cannot overwrite the new interaction.
 
 ## Content ownership
 
-Edit `web/static/guide-content.json` to update an answer, its search phrases, links or
-follow-ups. Both FAQ and assistant use it. Keep ids stable so bookmarked FAQ anchors work.
-Use building-level information, honest prediction windows and existing display rules.
-The map legend links to `/faq#unranked` for overlay coverage: background footprints extend
-beyond mapped/ranked properties, filters can hide scores, zero last-season complaints give
-a 3D hexagon zero height, and zoom replaces hexagons with property markers. An absent
-overlay is not proof of no complaints or working heat. Keep this explanation aligned in
-the map, Learn more, and the shared FAQ/guide entry.
-Do not call a reported complaint a confirmed outage. Do not promise that an email will
-arrive while the team's alert service is not configured. There is one account type;
-dashboard panels are preferences, not verified owner/inspector credentials. Keep Google
-and email-link instructions aligned with T14. `/monitor` shows delayed published reports;
-`/monitor?mode=replay` shows the historical ranking demonstration. The top-500 download
-is a saved model ranking, not a queue of today's confirmed outages. The guide must never
-invent a risk score.
+Edit guide-content.json for question titles, answers, terms, keywords, action links and
+follow-ups. Keep all original ids stable for legacy links. New help questions should use
+the existing schema and supported public paths. Keep map color/height/coverage explanations
+consistent with the map and Learn more. Missing color is not proof of no complaints or
+working heat; reported complaints are not confirmed current outages.
 
-NYC action guidance was checked against these official pages on October 17, 2026:
+Keep accounts and building heat alerts separate from project-update subscriptions.
+Dashboard panels do not verify an owner's or inspector's identity. Preserve the published
+monitor versus historical replay distinction, honest prediction windows, calibrated display
+rules and frozen submission metrics. The guide must never invent a risk score or promise
+delivery while an email service is unconfigured.
 
-- <https://portal.311.nyc.gov/article/?kanumber=KA-01036>
-- <https://www.nyc.gov/site/hpd/services-and-information/heat-and-hot-water-information.page>
+Heat-action sources remain the official NYC pages:
 
-## Validate and upload
+- https://portal.311.nyc.gov/article/?kanumber=KA-01036
+- https://www.nyc.gov/site/hpd/services-and-information/heat-and-hot-water-information.page
 
-```sh
-python -m compileall web api
-python -m unittest discover -s web/tests -v
-node web/tests/test_guide.cjs
-node web/tests/test_map.cjs
-```
+## Test and upload
 
-Use a new branch from current `main`, upload the changed `web/` and `docs/` contents in
-their original paths, and review the preview before merging. The zip contains only this
-update; it does not re-upload account/map files that were not modified. Do not upload
-the surrounding download folder, databases, keys or test dependencies.
+Use the project's Python environment with the pinned requirements/authentication test
+dependencies. The DOM tests additionally need development-only jsdom, not a production
+dependency:
+
+    python -m compileall web api
+    python -m unittest discover -s web/tests -v
+    node web/tests/test_guide.cjs
+    node web/tests/test_map.cjs
+    node web/tests/test_live_monitor.cjs
+    npm install --prefix /tmp/heatahead-dom jsdom@26
+    NODE_PATH=/tmp/heatahead-dom/node_modules node web/tests/test_chat.cjs
+    NODE_PATH=/tmp/heatahead-dom/node_modules node web/tests/test_privacy.cjs
+
+The chat DOM test uses Python/Flask to render the real widget template. If the Python
+environment has a different executable, set PYTHON to that interpreter before running it.
+
+Upload the changed web/ and docs/ folders at the repository root on a new branch from
+current main. Do not upload the surrounding download folder, keys or test dependencies.
+Review the Vercel preview before merging. No new environment setting is needed for local
+matching and browsing. Vercel renders its own help pages; restart the instance web process
+as well if the team uses its frontend directly.
 
 Preview checks:
 
-1. Open `/learn-more` and `/faq` from the home page and the shared navigation.
-2. Search FAQs for `height`, filter Accounts and alerts, then open `/faq#no-heat` directly.
-3. Open the guide by mouse and keyboard. Ask how to check a building, get alerts, draft a
-   notice, inspect the queue and interpret map heights/colors. Follow its links.
-4. Open a building BBL, ask about its risk, and confirm the shortcut retains that BBL.
-5. Ask an unrelated question: get a useful fallback, not a made-up answer. Clear chat and
-   confirm it resets; close and reopen within the page to continue the same conversation.
-6. Test a narrow phone screen and Escape/focus behavior. Disable JavaScript and verify
-   the Learn more and FAQ content remains readable. Check the map and its area panel.
-7. If AI is enabled, ask an unfamiliar paraphrase, confirm a grounded FAQ answer and its
-   AI-matching status. Simulate an unavailable provider and verify the fallback. No API
-   key may be present in page source or browser request payloads.
+1. Help opens Browse questions without leaving the current page. Check every category,
+   a typo search, an empty result and selection of an answer.
+2. Ask "email", "emial", "risk", "stop emails" and "map colors and heights": see choices.
+   Choose one and verify the answer and shortcuts.
+3. Ask clear building/map/action questions and an unrelated question. Verify BBL links,
+   source links and the absence of invented answers or scores.
+4. Open /faq#heights, /learn-more?help=1 and /building?bbl=3000410007&help=alerts.
+5. Test keyboard tabs, Escape, focus return, Clear chat and a narrow screen. Cookie
+   choices must remain undecided when opening/closing help.
+6. With JavaScript disabled, read the answers in Learn more.
+7. If AI is configured, verify a proposed topic requires selection; simulate downtime
+   and a late response. No key belongs in page source or browser payloads.
 
-Live WebGL appearance, actual-device interaction, and a configured provider are preview
-checks, not things the local Python/Node fixtures can prove.
+Local tests do not prove actual-device layout, map GPU rendering or real provider quality;
+those remain preview checks. No automated test sends real mail or files a city complaint.
+
+## Navigation and the public top-50 queue (October 18)
+
+- The logo links home; there is no duplicate Home / My account navigation tab.
+  Sign-in, saved buildings and account settings remain on the homepage.
+- `/faq` redirects to the help browser; navigation and authored help links do not
+  send visitors to a separate FAQ page. Its obsolete template is deleted locally;
+  a leftover copy after GitHub file upload is unreachable through the app.
+- `/inspection-queue` is public, server-rendered and read-only. It displays exactly
+  the same first 50 rows as `/api/queue.csv?k=50`, preserving model order and ties.
+- Each row is a BBL property record, not an aggregate map cell. Some lots contain
+  more than one physical building. Rows link to the existing building and map URLs.
+- The score is calibrated cold-day/48-hour risk, not the map's season risk. The
+  list is labeled a saved model snapshot, not a live forecast or HPD schedule.
+- Display uses the existing risk formatter (cap 99%, bands from 20%). Missing
+  history counts display a dash. Missing/invalid snapshots display a clear state.
+- Top-50 CSV: `public/data/top50.csv`, deterministically sliced from the current
+  `top500.csv`; `web/build_assets.py` regenerates both from the same model output.
+  The canonical download API remains `/api/queue.csv?k=50`. No model was retrained.
+- The existing signed-in inspection panel and the help assistant now link directly
+  to the public shortlist. No login is required to view or download it.

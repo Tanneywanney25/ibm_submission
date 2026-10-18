@@ -1,7 +1,6 @@
 .help-page{max-width:1100px;margin:auto}
 .help-hero{position:relative;padding:clamp(1.6rem,4vw,3rem);margin:0 0 1.6rem;border:3px solid var(--ink);border-radius:28px;overflow:hidden;box-shadow:var(--shadow-card);background:radial-gradient(circle at 1px 1px,rgb(7 42 32 / .09) 1.2px,transparent 0) 0 0/22px 22px,var(--accent-soft)}
 .help-hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:9px;background:linear-gradient(90deg,var(--sky),var(--coral) 34%,var(--sun) 68%,var(--mint));border-top:3px solid var(--ink)}
-.faq-page .help-hero{background:radial-gradient(circle at 1px 1px,rgb(7 42 32 / .09) 1.2px,transparent 0) 0 0/22px 22px,var(--sky-soft)}
 .help-eyebrow{display:inline-block;font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:800;margin:0 0 .75rem}
 .help-hero .help-eyebrow{color:var(--ink);background:var(--sun);border:2px solid var(--ink);border-radius:999px;padding:.3rem .8rem;letter-spacing:.08em}
 .help-hero h1{font-size:clamp(2.3rem,5.2vw,4rem);line-height:1.03;letter-spacing:-.045em;margin:.3rem 0 1.1rem;max-width:18ch}
@@ -52,25 +51,7 @@
 .help-bottom .help-secondary{border-color:#fff}
 .help-bottom .help-primary{background:var(--sun);color:var(--ink)}.help-bottom .help-primary:hover{color:var(--ink);box-shadow:5px 5px 0 #fff}
 .help-page [hidden]{display:none!important}
-.help-page a:focus-visible,.help-page button:focus-visible,.faq-item summary:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
-.faq-tools{margin-bottom:1rem}.faq-tools:hover{transform:none!important}
-.faq-tools label{display:block;font-size:.9rem;font-weight:800;margin-bottom:.5rem}
-.faq-tools input{width:100%;font-size:1rem;min-height:50px}
-.faq-categories{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.9rem}
-.faq-filter{min-height:0;background:#fff;color:var(--ink);border:2px solid var(--ink);border-radius:999px;font-size:.8rem;font-weight:700;padding:.35rem .8rem;transition:background-color .15s,transform .15s,box-shadow .15s}
-.faq-filter:hover{transform:translate(-2px,-2px);box-shadow:3px 3px 0 var(--ink)}
-.faq-filter[aria-pressed=true]{background:var(--accent);color:#fff}
-.faq-group{margin:2.2rem 0}
-.faq-group h2{font-size:.8rem;color:var(--accent);font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin:0 0 .8rem}
-.faq-item{border:3px solid var(--ink);border-radius:16px;background:#fff;margin:.7rem 0;scroll-margin-top:120px;overflow:hidden;transition:box-shadow .18s,transform .18s}
-.faq-item:hover{box-shadow:4px 4px 0 var(--ink);transform:translate(-2px,-2px)}
-.faq-item summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1rem 1.2rem;cursor:pointer;font-weight:700;font-size:1.02rem;line-height:1.45}
-.faq-item summary::-webkit-details-marker{display:none}
-.faq-item summary::after{content:"+";flex:none;display:grid;place-items:center;width:30px;height:30px;border:2px solid var(--ink);border-radius:9px;background:var(--sun);font-weight:800;font-size:1.1rem;transition:transform .2s}
-.faq-item[open] summary::after{content:"\2212";background:var(--mint)}
-.faq-item[open] summary{border-bottom:2px solid var(--line);background:var(--accent-soft)}
-.faq-answer{padding:.5rem 1.2rem 1.1rem}.faq-answer p{color:var(--muted);line-height:1.8}
-.faq-item:target{box-shadow:5px 5px 0 var(--accent)}
-.faq-page > p.help-callout{box-shadow:none}
+.help-page a:focus-visible,.help-page button:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
 @media(max-width:1100px){.help-page .help-toc{top:122px}}
 @media(max-width:820px){.help-steps,.help-two,.help-map-key{grid-template-columns:1fr}.help-map-key{gap:.8rem}.help-section{padding:1.9rem 0}.help-bottom{align-items:flex-start;flex-direction:column}.help-page .help-toc{position:static;border-radius:18px;font-size:.8rem}.help-lead{font-size:1rem}}
+.help-answer{padding:1rem;margin:.7rem 0;background:var(--panel);border:2px solid var(--line);border-radius:12px}.help-answer summary{cursor:pointer;font-weight:700}.help-answer p{margin:.8rem 0}
