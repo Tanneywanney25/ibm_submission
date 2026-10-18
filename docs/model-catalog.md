@@ -166,6 +166,50 @@ All metrics are on the held-out 2025-26 winter unless marked otherwise.
 - **Role:** the tuned successor to M1's day-level config for anything built
   after the freeze; M1/M2 remain the cited submission models.
 
+## M15 — Next-winter watchlist v2 (T6e; NOT adopted — a measured negative)
+
+- **Predicts:** the same thing as M4 — P(building fails at least once this
+  winter), one row per building-season, features as of Oct 1. Same rows,
+  label, model family and split as M4; trained on the LinuxONE guest.
+- **Adds to M4's 21 features (all from seasons before Oct 1):** complaints
+  season-over-season delta (`c_delta`, `c_delta_prev`), violations delta
+  (`v_delta`), landlord-portfolio trend (`lord_c_other_last2`, `lord_trend`,
+  `lord_c_per_bldg`). "Age of the last violation" was already M4's
+  `days_since_v`. A history block (prior failing seasons, all-time counts)
+  was tried and not selected. Caveat: complaints start July 2017, so the 2018
+  and 2019 rows carry truncated deltas (M4's `c_last2` has the same artifact).
+- **Selection (2024-25 only, trained 2018-2023):** M4 97.1% @1000; trajectory
+  depth 6 96.7, depth 8 **97.3** (selected); +history 96.8 at both depths.
+  The winning margin is 2 buildings in 1,000.
+- **Held-out 2025-26 (touched once; precision for "fails at least once this
+  winter", 59,687 buildings, 19.5% fail):**
+
+  | k | M15 | M4 | B1 last-season complaints | B3 last-season violations |
+  |---|---|---|---|---|
+  | 100 | 100% | 100% | 97% | 80% |
+  | 500 | 97.8% | **98.0%** | 95.8% | 71.4% |
+  | 1000 | 96.5% | **96.7%** | 94.6% | 69.2% |
+  | 2500 | **92.3%** | 92.0% | 89.0% | 60.4% |
+
+  The two top-1000 lists share 905 buildings. "Failed last season" (B4) ranks
+  identically to B1 at every k.
+- **Forward-chaining (train < S, test S), @1000 M15 vs M4:** 2020 87.8/87.9,
+  2021 93.7/93.8, 2022 94.3/95.0, 2023 94.0/93.9, 2024 97.3/97.1 (the
+  selection winter). M15 wins 2 of 5 and loses 3, every gap at most 0.7pp;
+  @2500 it is level or slightly ahead (+0.0 to +0.6).
+- **Calibration:** isotonic fit on half of 2025-26, verified on the other
+  half: every bin within 3pp (worst 0.5-0.65: 56.8% predicted, 53.9%
+  actual); Brier 0.096, identical to M4's.
+- **Verdict: not adopted.** The trajectory features do not beat M4 at k=1000
+  (96.5 vs 96.7 on the holdout), so M4 stays the season model. The slope
+  information is already carried by M4's per-season counts and days-since
+  features; the season task sits near its own ceiling (100% @100). On the
+  95.4% target: that docs figure is M1 ranked at the first cold spell,
+  scored on the rest of the season, not M4 at Oct 1. M4's own Oct-1
+  precision @1000 under this label is 96.7%.
+- **Files:** `model/27_watchlist_v2.py` → `model/out/watchlist_v2_{selection,
+  forward,holdout,reliability}.csv`. No model artifact is saved (not adopted).
+
 ## B1–B3 — The baselines (every eval runs them under the identical protocol)
 
 - **B1 last-season complaints:** rank by prior season's distinct complaints.
@@ -185,6 +229,7 @@ All metrics are on the held-out 2025-26 winter unless marked otherwise.
 04_snapml_bench   -> M5 numbers        05_backtest.py -> M6 fleet + CV table
 06_final_scores   -> M2 + ranked list  07_spell_eval  -> spell/season metrics
 09_season_risk    -> M4 + season_risk_2026.csv
+27_watchlist_v2   -> M15 (T6e, not adopted) + watchlist_v2_*.csv
 ```
 
 Rules that apply to every model here: features strictly pre-date the prediction

@@ -103,6 +103,10 @@ it runs (M9 on s390x — no cross-endian artifacts). Full specs per model:
 ## Still untried (post-hackathon shelf)
 
 Severity regression (expected cold households, T6c) · per-borough specialists
-(T6d) · watchlist v2 with trajectory features (T6e) · richer graphs (shared
+(T6d) · richer graphs (shared
 boiler BINs, management companies across LLC shells) — the LLC-shell one is
 the real research paper hiding in this repo.
+
+Watchlist v2 with trajectory features (T6e) has since been run as M15, a
+measured negative: 96.5% vs M4's 96.7% @1000 on 2025-26, not adopted (see the
+catalog).

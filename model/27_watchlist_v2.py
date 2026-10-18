@@ -27,7 +27,7 @@ M4 at Oct 1. This script measures M4 itself at Oct 1 under the identical label,
 so M15 is compared to M4 like for like; cite 95.4 only as the M1 reference.
 
 Run on the LinuxONE guest from the repo root:
-    ~/datathon-env/bin/python model/26_watchlist_v2.py
+    sudo -n docker exec -w /home/ibm-user/ibm_submission notebook python model/27_watchlist_v2.py
 Writes model/out/watchlist_v2_{selection,forward,holdout,reliability}.csv
 """
 

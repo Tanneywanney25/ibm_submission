@@ -43,6 +43,12 @@ M4 (season risk) + slope features: complaints season-over-season delta,
 age of last violation, landlord-portfolio trend. Target: beat M4's 95.4%
 @1000 preseason. Recipe: add 3 features to `09_season_risk.py`'s SFEATS. ~1 hr.
 
+**Done (M15, `model/27_watchlist_v2.py`): measured negative, not adopted.**
+Held-out 2025-26 @1000 for "fails this winter": M15 96.5% vs M4 96.7%
+(M4's own Oct-1 number; the 95.4 above is M1 ranked at the first cold spell).
+Forward-chaining: 2 of 5 winters won, gaps at most 0.7pp. Details are in
+`docs/model-catalog.md` under M15.
+
 ## Rules that still bind every experiment
 
 - The frozen submission numbers never change; new models get NEW names
