@@ -177,7 +177,8 @@ instance. Full setup and coordinated rollout: [GOOGLE_LOGIN.md](GOOGLE_LOGIN.md)
 1. Keep the URL contract in section 3 intact. Templates only call same-origin `/api/...`
    paths and `/data/...` static files, plus the public third-party services already in use
    (basemap/tile CDNs, ArcGIS imagery, and NYC Planning GeoSearch autocomplete for the T17
-   search box — the query string is the only thing sent). Never reference `localhost`,
+   search box — the query string is the only thing sent). Fonts are self-hosted in
+   `web/static/fonts/`, never loaded from a font CDN. Never reference `localhost`,
    `127.0.0.1` or the instance IP from browser code.
 2. Code that runs on Vercel imports the standard library, Flask, requests and the pinned
    Google auth libraries in `requirements.txt`. Google SDK imports are lazy, used only by
