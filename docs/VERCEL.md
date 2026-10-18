@@ -150,6 +150,8 @@ New endpoints go under `/api/` and get a row in this table in the same commit.
 | `OPENAI_API_KEY` | optional server-side provider key; never send it to the browser or commit it | guide AI topic matching only |
 | `GUIDE_AI_MODEL` | explicit active Responses API model with Structured Outputs support; AI stays disabled unless both variables are set | optional semantic matching of unfamiliar wording |
 
+These are Production-scope variables, so preview deploys of other branches do not get them. On Vercel, `web/app.py` therefore defaults `REALTIME_URL` and `COMPLAINT_URL` to the production values above when they are unset, so both monitor tabs work on previews (they are read-only public data). `REGISTER_FORWARD_URL` has no such default: account features stay unavailable on previews.
+
 The browser calls only the HTTPS website. Account forwarding now signs the exact request
 and matching reply with 60-second expiry, SHA-256, and a SQLite one-use nonce. An old backend,
 wrong secret or tampered response fails closed with 503. The existing HTTP instance URL
