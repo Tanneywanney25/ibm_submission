@@ -58,7 +58,7 @@ function esc(s){
     </form>
     <div class="account-nav">
       {% if account_user %}
-      <span title="{{ account_user.email }}">{{ account_user.name or account_user.email }}</span>
+      <a href="/account" title="Account settings · {{ account_user.email }}">{{ account_user.name or account_user.email }}</a>
       <form action="/api/auth/logout" method="post">
         <input type="hidden" name="csrf_token" value="{{ account_csrf }}">
         <button type="submit" class="btn ghost sm">Sign out</button>

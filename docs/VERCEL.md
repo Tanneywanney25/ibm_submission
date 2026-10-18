@@ -100,7 +100,8 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 
 | route | method | serves | LITE mode source |
 |---|---|---|---|
-| `/` | GET | homepage with sign-in or saved buildings and registration (`index.html`); logo is the home link, no duplicate My account/Home tab | template + authenticated account API |
+| `/` | GET | homepage; signed out: sign-up prompt; signed in: the full-width dashboard with the save-a-building form inside the buildings panel (`index.html`); logo is the home link, no duplicate Home tab | template + authenticated account API |
+| `/account` | GET | account settings (T14): profile form (display name, phone, borough/ZIP, pause-all-alerts), the dashboard panel chooser, set-a-password; the header's signed-in name links here; signed out 302 to `/signin?next=/account` (`account.html`) | template + authenticated account APIs |
 | `/building` | GET | lookup page (`building.html`); `?bbl=` opens a building directly, `?q=` runs an address search on arrival (T17) | template |
 | `/map` | GET | risk map (`map.html`); `?bbl=` opens centered on that building with a highlight ring, `?embed=1` is the chrome-free embed the building page's map panel uses (T17) | template |
 | `/inspection-queue` | GET | legacy 302 redirect to `/monitor`; the separate shortlist page is retired | redirect |
@@ -122,6 +123,7 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/api/register` | POST | save a building to the signed-in account (`{address or bbl, phone?}`); `role` is optional since T14 (one account type) and defaults to `tenant`, the value the `users.role` column and `web/alerts.py` use for building alerts; older clients may still send one of the four legacy roles; signed-in identity and `X-CSRF-Token` required; email comes from the session; 400 missing/invalid building, unknown role or bad phone, 401 signed out, 403 other email or bad CSRF, 503 unavailable account service | signed request forwarded to the instance; no ephemeral fallback |
 | `/api/my_buildings` | GET | `{buildings, total, registrations:[{role,bbl}]}` for the signed-in email, plus public portfolio context; optional legacy `email=` must equal that account | signed request forwarded to the instance; 503 when unavailable |
 | `/api/account/panels` | GET, POST | the signed-in account's dashboard panel set (T14: `buildings`, `audit`, `queue`, `stats`); GET returns `{panels}` where null means "never customized" (the page derives defaults from the account's registration roles); POST `{panels:[...]}` stores a distinct subset in fixed display order; 400 unknown panel, 401 signed out, 403 bad CSRF, 503 account service unavailable (a local fallback is used only with optional-storage consent; otherwise changes last for that visit) | signed request forwarded to the instance; 503 when unavailable |
+| `/api/account/profile` | GET, POST | the signed-in account's profile; GET `{profile}` where null means "never saved", else `{name, phone, borough, zip, alerts_paused}`; POST replaces the whole profile (name ≤80 chars, phone empty or 7–15 digits, borough one of the five or empty, ZIP empty or 5 digits, alerts_paused boolean); coarse location only — never a street address or unit; `alerts_paused` makes `web/alerts.py` skip the account without touching its saved buildings; 400 invalid field, 401 signed out, 403 bad CSRF, 503 account service unavailable | signed request forwarded to the instance; 503 when unavailable |
 | `/unsubscribe?email=&bbl=` | GET | sign-in followed by a confirmation form; GET never deletes data | signed-in website template |
 | `/api/account/remove` | POST | `{ok,removed}`; JSON/form optional `bbl` (omit to remove all own registrations), signed-in identity and CSRF required; form success redirects home | signed request to durable instance storage |
 | `/api/auth/google` | GET | start Google sign-in; optional safe local `next`, `remember=1` (30 days) or `0` (browser session, maximum 12 hours); 503 when unconfigured | Google library authorization-code flow with PKCE, state and nonce |
@@ -311,7 +313,13 @@ It asks for the sending Gmail address and an app password (hidden input; the acc
 message before saving anything, writes `SMTP_*` into `accounts.env` (mode 600) and
 restarts `heatahead-web`. Outbound ports 587 and 465 are open from the instance; 25 is not.
 An email account and a Google account with the same address are the same HeatAhead
-account: saved buildings and dashboard panels are keyed by the verified email.
+account: saved buildings, dashboard panels and the profile are keyed by the verified email.
+The profile (`/account`) holds an optional display name, phone, borough and ZIP — coarse
+location only, never a street address or apartment — plus a pause-all-alerts switch stored
+in the instance's `profiles` table; the hourly alert job skips paused accounts. The email
+address is the account key and is shown read-only; changing it would be a different account.
+Saving a building no longer asks for a phone number (the profile owns it); `/api/register`
+still accepts one from older clients.
 The instance only mails links that point at its own `SITE_URL`, so preview deploys cannot
 send sign-in email. Remembered sessions last up to 30 days; browser cookies are Secure,
 HttpOnly and SameSite=Lax.

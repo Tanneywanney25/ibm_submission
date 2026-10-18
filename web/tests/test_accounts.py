@@ -10,6 +10,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import sqlite3
 import sys
 import tempfile
 import time
@@ -301,6 +302,80 @@ class AccountTests(unittest.TestCase):
                                        client=client).status_code, 503)
         self.assertFalse(website.DB.exists(), "Vercel must not keep panel choices in /tmp")
 
+    def test_profile_round_trip_validation_and_account_page(self):
+        self.assertEqual(self.get("/api/account/profile").status_code, 401)
+        signed_out = self.get("/account")
+        self.assertEqual(signed_out.status_code, 302)
+        self.assertIn("/signin", signed_out.location)
+        self.actor()
+        self.assertIsNone(self.get("/api/account/profile").json["profile"])
+        for bad in ["not an object", dict(phone="123"), dict(zip="1045"), dict(zip="abcde"),
+                    dict(borough="Yonkers"), dict(name="x" * 81), dict(alerts_paused="yes")]:
+            self.assertEqual(self.post("/api/account/profile", bad).status_code, 400, bad)
+        self.assertEqual(self.post("/api/account/profile", dict(name="A Tenant"),
+                                   csrf="wrong-token").status_code, 403)
+        saved = self.post("/api/account/profile", dict(
+            name="  A   Tenant ", phone="(718) 555-0199", borough="Bronx", zip="10454",
+            alerts_paused=True))
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(self.get("/api/account/profile").json["profile"],
+                         dict(name="A Tenant", phone="(718) 555-0199", borough="Bronx",
+                              zip="10454", alerts_paused=True))
+        another = self.module.app.test_client()
+        self.actor(another, email="another@example.test", sub="google-user-2")
+        self.assertIsNone(self.get("/api/account/profile", client=another).json["profile"])
+        page = self.get("/account")
+        self.assertEqual(page.status_code, 200)
+        for marker in [b"Your profile", b"pf_borough", b"panel_prefs",
+                       b"Pause all alert emails", b"person@example.test"]:
+            self.assertIn(marker, page.data)
+        home = self.get("/")
+        self.assertIn(b"Account settings", home.data)
+        self.assertNotIn(b"panel_prefs", home.data)  # the chooser lives on /account now
+
+    def test_paused_profile_is_excluded_from_the_alert_query(self):
+        self.actor()
+        self.assertEqual(self.post("/api/register", dict(bbl="3000410007")).status_code, 200)
+        self.assertEqual(self.post("/api/account/profile", dict(alerts_paused=True)).status_code, 200)
+        query = ("SELECT email FROM users WHERE bbl IS NOT NULL AND role IN "
+                 "('tenant','landlord') AND email NOT IN "
+                 "(SELECT email FROM profiles WHERE alerts_paused=1)")  # as web/alerts.py selects
+        con = sqlite3.connect(self.db)
+        self.assertEqual(con.execute(query).fetchall(), [])
+        self.assertEqual(self.post("/api/account/profile", dict(alerts_paused=False)).status_code, 200)
+        self.assertEqual(con.execute(query).fetchall(), [("person@example.test",)])
+        con.close()
+
+    def test_profile_forwards_to_backend_and_fail_closed_on_vercel(self):
+        backend = self.module.app.test_client()
+        website = application(Path(self.directory.name) / "ephemeral-profile.db",
+                              forward="https://backend.test", vercel=True)
+        client = website.app.test_client()
+        self.actor(client)
+
+        def transport(method, url, **kwargs):
+            parts = urlsplit(url)
+            result = backend.open(parts.path + ("?" + parts.query if parts.query else ""),
+                                  method=method, base_url="https://backend.test",
+                                  data=kwargs.get("data"), headers=kwargs.get("headers"))
+            response = requests.Response()
+            response.status_code = result.status_code
+            response._content = result.data
+            response.headers.update(result.headers)
+            return response
+
+        with patch.object(website.requests, "request", side_effect=transport):
+            saved = self.post("/api/account/profile",
+                              dict(name="Forwarded", borough="Queens"), client=client)
+            self.assertEqual(saved.status_code, 200)
+            profile = self.get("/api/account/profile", client=client).json["profile"]
+            self.assertEqual((profile["name"], profile["borough"]), ("Forwarded", "Queens"))
+        with patch.object(website.requests, "request", side_effect=requests.Timeout):
+            self.assertEqual(self.get("/api/account/profile", client=client).status_code, 503)
+            self.assertEqual(self.post("/api/account/profile", dict(name="x"),
+                                       client=client).status_code, 503)
+        self.assertFalse(website.DB.exists(), "Vercel must not keep profiles in /tmp")
+
     def test_registered_building_returns_after_restart_and_logout(self):
         self.actor()
         result = self.post("/api/register", dict(role="tenant", bbl="3000410007"))
@@ -561,7 +636,7 @@ class AccountTests(unittest.TestCase):
         self.actor(email="person@example.test")
         with self.client.session_transaction(base_url=ORIGIN) as session:
             session["auth_method"] = "google"
-        self.assertIn(b"Save password", self.get("/").data)
+        self.assertIn(b"Save password", self.get("/account").data)  # the profile moved there
         self.assertEqual(self.post("/api/auth/password", dict(password="another pass 2"),
                                    csrf="wrong").status_code, 403)
         self.assertEqual(self.post("/api/auth/password", dict(password="another pass 2")).status_code, 200)

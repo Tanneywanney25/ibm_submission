@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}Account settings · HeatAhead{% endblock %}
+{% block head %}
+<style>
+.account-wrap { max-width:1040px; margin:0 auto; }
+.acct-head { display:flex; align-items:center; gap:.8rem; margin:1.6rem 0 .4rem; }
+.acct-head .badge { width:46px; height:46px; flex:none; border-radius:14px; border:var(--bold); display:grid; place-items:center; background:var(--sun); }
+.acct-head h1 { margin:0; font-size:clamp(1.8rem, 4vw, 2.6rem); letter-spacing:-.035em; }
+.account-email { overflow-wrap:anywhere; }
+.account-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; align-items:start; margin-top:1.2rem; }
+@media (max-width:860px) { .account-grid { grid-template-columns:1fr; } }
+form .row { margin:.65rem 0; }
+form .row input[type=text], form .row input[type=tel], form .row select { width:100%; }
+.field-hint { font-size:.8rem; margin-top:.35rem; color:var(--muted); min-height:1rem; }
+.field-hint.warn { color:var(--bad); font-weight:600; }
+input[aria-invalid=true] { border-color:var(--bad); }
+.profile-section { border-top:2px dashed var(--line); margin-top:1.2rem; padding-top:1rem; }
+.profile-section:first-child { border-top:0; margin-top:0; padding-top:0; }
+.profile-section h2 { margin:.1rem 0 .5rem; font-size:1.3rem; }
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+@media (max-width:520px) { .two-col { grid-template-columns:1fr; } }
+.pause-row { display:flex; gap:.6rem; align-items:flex-start; font-size:.92rem; }
+.pause-row input { margin-top:.2rem; flex:none; }
+.panel-picks { display:grid; gap:.55rem; margin:.6rem 0; }
+.panel-picks label { font-size:.92rem; font-weight:700; border:2px solid #9fbdb0; border-radius:14px;
+  padding:.65rem .8rem; background:#fff; transition:border-color .15s, background-color .15s, box-shadow .15s; display:block; }
+.panel-picks label:hover { border-color:var(--ink); }
+.panel-picks label:has(input:checked) { border-color:var(--ink); background:var(--accent-soft); box-shadow:3px 3px 0 var(--ink); }
+.panel-picks input { margin-right:.45rem; vertical-align:-2px; }
+.panel-picks small { display:block; font-weight:400; color:var(--muted); margin:.15rem 0 0 1.65rem; }
+.status-line { font-size:.83rem; min-height:1rem; margin:0; }
+</style>
+{% endblock %}
+{% block body %}
+<div class="account-wrap">
+<div class="acct-head"><span class="badge" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#072a20" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg></span><h1>Account settings</h1></div>
+<p class="muted account-email">Signed in
+{{- ' with Google' if not account_user.sub.startswith('email:') else
+    (' with your password' if account_method == 'password' else ' with an email link') }} as
+<b>{{ account_user.email }}</b>. Your email is your account and cannot be changed here.
+<a href="/#dashboard">Back to your dashboard</a>.</p>
+
+<div class="account-grid">
+  <div class="card">
+    <form id="profile_form" class="profile-section" novalidate>
+      <h2>Your profile</h2>
+      <p class="muted" style="font-size:.85rem; margin:.2rem 0">Everything here is optional.
+      Building-level only: we never ask for a street address or apartment number.</p>
+      <div class="row"><label for="pf_name">Display name</label>
+        <input id="pf_name" type="text" maxlength="80" autocomplete="name"
+          placeholder="how we greet you">
+        <div class="field-hint" id="pf_name_hint"></div></div>
+      <div class="row"><label for="pf_phone">Phone</label>
+        <input id="pf_phone" type="tel" maxlength="30" autocomplete="tel"
+          placeholder="optional contact number">
+        <div class="field-hint" id="pf_phone_hint"></div></div>
+      <div class="two-col">
+        <div class="row"><label for="pf_borough">Borough</label>
+          <select id="pf_borough" aria-label="Borough">
+            <option value="">— none —</option>
+            {% for b in boroughs %}<option value="{{ b }}">{{ b }}</option>{% endfor %}
+          </select></div>
+        <div class="row"><label for="pf_zip">ZIP code</label>
+          <input id="pf_zip" type="text" inputmode="numeric" maxlength="5"
+            autocomplete="postal-code" placeholder="e.g. 10454">
+          <div class="field-hint" id="pf_zip_hint"></div></div>
+      </div>
+      <div class="row pause-row"><input type="checkbox" id="pf_paused">
+        <label for="pf_paused"><b>Pause all alert emails.</b> Your saved buildings stay on
+        your account, but no cold-snap alerts are sent until you turn this off.</label></div>
+      <div class="row"><button id="pf_save" type="submit">Save profile</button></div>
+      <p id="profile_status" class="muted status-line" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+
+  <div class="card">
+    <form id="panel_prefs" class="profile-section" novalidate>
+      <h2>What your dashboard shows</h2>
+      <p class="muted" style="font-size:.85rem; margin:.2rem 0">One account for everyone —
+      turn on the panels you want on <a href="/#dashboard">your dashboard</a>.
+      Changes save as you click.</p>
+      <div class="panel-picks">
+        <label><input type="checkbox" data-panel="buildings">My buildings &amp; alerts
+          <small>each saved building's winter risk, its history, and one alert per cold spell</small></label>
+        <label><input type="checkbox" data-panel="audit">Landlord self-audit tools
+          <small>your buildings plus the registered owner's portfolio, riskiest first</small></label>
+        <label><input type="checkbox" data-panel="queue">Live monitoring
+          <small>published complaints and the historical model replay</small></label>
+        <label><input type="checkbox" data-panel="stats">City-wide stats
+          <small>the public risk map and the headline numbers</small></label>
+      </div>
+      <p id="panels_status" class="muted status-line" role="status" aria-live="polite"></p>
+    </form>
+
+    {% if password_ready and account_method != 'password' %}
+    <form id="password_form" class="profile-section" novalidate>
+      <h2>Password</h2>
+      <p class="muted" style="font-size:.85rem; margin:.2rem 0">Set a password to log in with
+      your email and password as well.</p>
+      <div class="row"><input id="new_password" type="password" autocomplete="new-password"
+        minlength="8" maxlength="128" placeholder="New password (at least 8 characters)"
+        aria-label="New password"></div>
+      <div class="row"><button type="submit">Save password</button></div>
+      <p id="password_status" class="muted status-line" role="status" aria-live="polite"></p>
+    </form>
+    {% endif %}
+
+    <div class="profile-section">
+      <h2>Alerts</h2>
+      <p class="muted" style="font-size:.88rem">Stop alerts for one building from
+      <a href="/#dashboard">your dashboard</a>, pause them all with the profile switch,
+      or <a href="/unsubscribe">remove every saved building</a>.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const accountCSRF = {{ account_csrf | tojson }};
+const PANEL_ORDER = {{ panel_order | tojson }};
+const ROLE_PANELS = {{ role_panels | tojson }};
+
+function hint(input, hintEl, message, isProblem){
+  input.setAttribute('aria-invalid', isProblem ? 'true' : 'false');
+  hintEl.textContent = message;
+  hintEl.classList.toggle('warn', !!isProblem);
+}
+function checkPhone(){
+  const v = $('pf_phone').value.trim(), digits = v.replace(/\D/g, '').length;
+  const bad = v && (digits < 7 || digits > 15);
+  hint($('pf_phone'), $('pf_phone_hint'), bad ? 'Phone looks wrong — leave it empty or give 7 to 15 digits.' : '', bad);
+  return !bad;
+}
+function checkZip(){
+  const v = $('pf_zip').value.trim();
+  const bad = v && !/^\d{5}$/.test(v);
+  hint($('pf_zip'), $('pf_zip_hint'), bad ? 'A ZIP code is 5 digits — or leave it empty.' : '', bad);
+  return !bad;
+}
+$('pf_phone').addEventListener('input', checkPhone);
+$('pf_zip').addEventListener('input', checkZip);
+
+function setProfileEnabled(on){
+  ['pf_name', 'pf_phone', 'pf_borough', 'pf_zip', 'pf_paused', 'pf_save']
+    .forEach(id => { $(id).disabled = !on; });
+}
+async function loadProfile(){
+  const status = $('profile_status');
+  status.textContent = 'Loading your profile…';
+  try {
+    const r = await fetch('/api/account/profile', {credentials:'same-origin', cache:'no-store'});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Your profile could not be loaded right now.');
+    const p = j.profile || {};
+    $('pf_name').value = p.name || '';
+    $('pf_phone').value = p.phone || '';
+    $('pf_borough').value = p.borough || '';
+    $('pf_zip').value = p.zip || '';
+    $('pf_paused').checked = !!p.alerts_paused;
+    status.textContent = '';
+  } catch (error) {
+    setProfileEnabled(false);
+    status.textContent = (error.message || 'Your profile could not be loaded right now.') +
+      ' Reload the page to try again.';
+  }
+}
+$('profile_form').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!checkPhone()) return $('pf_phone').focus();
+  if (!checkZip()) return $('pf_zip').focus();
+  const status = $('profile_status');
+  $('pf_save').disabled = true;
+  status.textContent = 'Saving…';
+  try {
+    const r = await fetch('/api/account/profile', {method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json', 'X-CSRF-Token':accountCSRF},
+      body:JSON.stringify({name:$('pf_name').value.trim(), phone:$('pf_phone').value.trim(),
+        borough:$('pf_borough').value, zip:$('pf_zip').value.trim(),
+        alerts_paused:$('pf_paused').checked})});
+    const j = await r.json().catch(() => ({}));
+    status.textContent = r.ok ? 'Saved to your account.' :
+      (j.error || 'Your profile could not be saved right now. Please try again.');
+  } catch { status.textContent = 'Could not reach the server. Please try again.'; }
+  finally { $('pf_save').disabled = false; }
+});
+loadProfile();
+
+// Dashboard panel chooser: the stored choice first (account, then this device as
+// the offline fallback), else the defaults the registrations derive.
+function devicePanels(){
+  try {
+    const v = window.HeatAheadPrivacy?.readPanels();
+    return Array.isArray(v) ? v.filter(p => PANEL_ORDER.includes(p)) : null;
+  } catch { return null; }
+}
+function showPanels(list){
+  document.querySelectorAll('#panel_prefs [data-panel]').forEach(c => {
+    c.checked = list.includes(c.dataset.panel);
+  });
+}
+async function defaultPanels(){
+  const on = new Set();
+  try {
+    const r = await fetch('/api/my_buildings', {credentials:'same-origin', cache:'no-store'});
+    if (r.ok) ((await r.json()).registrations || [])
+      .forEach(reg => (ROLE_PANELS[reg.role] || []).forEach(p => on.add(p)));
+  } catch {}
+  if (!on.size) { on.add('buildings'); on.add('stats'); }
+  return PANEL_ORDER.filter(p => on.has(p));
+}
+async function loadPanels(){
+  let stored = null, fromAccount = false;
+  try {
+    const r = await fetch('/api/account/panels', {credentials:'same-origin', cache:'no-store'});
+    if (r.ok) { stored = (await r.json()).panels; fromAccount = Array.isArray(stored); }
+  } catch {}
+  if (!fromAccount) stored = devicePanels();
+  showPanels(Array.isArray(stored) ? stored.filter(p => PANEL_ORDER.includes(p))
+                                   : await defaultPanels());
+  if (Array.isArray(stored) && !fromAccount)
+    $('panels_status').textContent = 'Using the panel choice saved on this device.';
+}
+let panelSaveVersion = 0;
+async function savePanels(){
+  const chosen = PANEL_ORDER.filter(p => {
+    const c = document.querySelector('#panel_prefs [data-panel="' + p + '"]');
+    return c && c.checked;
+  });
+  const version = ++panelSaveVersion, status = $('panels_status');
+  status.textContent = 'Saving…';
+  let message;
+  try {
+    const r = await fetch('/api/account/panels', {method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json', 'X-CSRF-Token':accountCSRF},
+      body:JSON.stringify({panels: chosen})});
+    if (!r.ok) throw new Error();
+    message = 'Saved to your account.';
+  } catch {
+    message = window.HeatAheadPrivacy?.savePanels(chosen)
+      ? 'Saved on this device — your account service is unreachable right now.'
+      : 'Changed for this visit. We couldn’t save it to your account. Please try again later.';
+  }
+  if (version === panelSaveVersion) status.textContent = message;
+}
+$('panel_prefs').addEventListener('change', savePanels);
+$('panel_prefs').addEventListener('submit', e => e.preventDefault());
+loadPanels();
+
+// set a password (only offered after a Google or email-link sign-in)
+const passwordForm = $('password_form');
+if (passwordForm) passwordForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const password = $('new_password').value, status = $('password_status');
+  if (password.length < 8) { status.textContent = 'Use at least 8 characters.'; $('new_password').focus(); return; }
+  try {
+    const r = await fetch('/api/auth/password', {method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json', 'X-CSRF-Token':accountCSRF},
+      body:JSON.stringify({password})});
+    const j = await r.json().catch(() => ({}));
+    status.textContent = r.ok ? j.message : (j.error || 'The password could not be saved. Please try again.');
+    if (r.ok) $('new_password').value = '';
+  } catch { status.textContent = 'Could not reach the server. Please try again.'; }
+});
+</script>
+{% endblock %}

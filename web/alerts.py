@@ -125,10 +125,18 @@ def main():
 
     risks = risk_table()
     con = sqlite3.connect(DB)
+    # the account page's "pause all alert emails" switch (profiles.alerts_paused);
+    # the table may predate this script run on a fresh database
+    con.execute("CREATE TABLE IF NOT EXISTS profiles (email TEXT PRIMARY KEY, "
+                "name TEXT NOT NULL DEFAULT '', phone TEXT NOT NULL DEFAULT '', "
+                "borough TEXT NOT NULL DEFAULT '', zip TEXT NOT NULL DEFAULT '', "
+                "alerts_paused INTEGER NOT NULL DEFAULT 0, "
+                "updated TEXT DEFAULT CURRENT_TIMESTAMP)")
     users = con.execute(
         "SELECT email, bbl FROM users WHERE bbl IS NOT NULL "
-        "AND role IN ('tenant','landlord')").fetchall()
-    log(f"{len(users)} registered building subscriptions")
+        "AND role IN ('tenant','landlord') AND email NOT IN "
+        "(SELECT email FROM profiles WHERE alerts_paused=1)").fetchall()
+    log(f"{len(users)} registered building subscriptions (paused accounts excluded)")
 
     sent = skipped = 0
     for email, bbl in users:

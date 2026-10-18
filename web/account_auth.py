@@ -25,10 +25,12 @@ from werkzeug.security import check_password_hash, generate_password_hash
 bp = Blueprint("accounts", __name__)
 PRIVATE_ENDPOINTS = {"api_register", "api_my_buildings", "api_remove_registration",
                      "api_account_email_link", "api_account_email_consume",
-                     "api_panels_get", "api_panels_set", "api_account_password"}
+                     "api_panels_get", "api_panels_set", "api_account_password",
+                     "api_profile_get", "api_profile_set"}
 FORWARD_PATHS = {"/api/register", "/api/my_buildings", "/api/account/remove",
                  "/api/account/email_link", "/api/account/email_consume",
-                 "/api/account/panels", "/api/account/password"}
+                 "/api/account/panels", "/api/account/password",
+                 "/api/account/profile"}
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 # T14: passwordless email sign-in. The link token is signed with the shared
 # secret, lives EMAIL_LINK_MAX_AGE seconds and is consumed one-use on the
@@ -134,7 +136,7 @@ def safe_next(value):
         parts = urlsplit(value)
     except ValueError:
         return "/"
-    if parts.scheme or parts.netloc or parts.path not in {"/", "/map", "/building", "/monitor", "/unsubscribe", "/learn-more", "/faq", "/about"}:
+    if parts.scheme or parts.netloc or parts.path not in {"/", "/map", "/building", "/monitor", "/unsubscribe", "/learn-more", "/faq", "/about", "/account"}:
         return "/"
     return value
 
