@@ -28,8 +28,6 @@ your PRs. Roles doc: `docs/roles-endgame.md`.
 | [T20](T20-narrative-features.md) | M11: complaint narrative/category text as features + per-unit rates | new | — |
 | [T21](T21-fairness-audit.md) | fairness & equity audit: precision/calibration by borough, CD, income band | new | — |
 | [T22](T22-telum-nnpa.md) | real Telum/NNPA offload via zDLC: earn the accelerator claim (distilled MLP benchmark) | new | — |
-| [T23](T23-ops-survival.md) | ops survival: nightly off-box backups, CI on main, service watchdog | new — **backups first, guest has none and expires 2026-11-15** | — |
-
 Build order: T1–T6 are landed or owned; the rigor sprint runs **T11c (leakage
 tests) → T7 → T9 ∥ T12 → T8 → T10**. The submission needs T1–T3 for the video;
 T7–T12 are the technical-rigor push.
