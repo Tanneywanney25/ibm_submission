@@ -104,15 +104,15 @@ and say in the commit message which model files produced it. `.gitignore` ignore
 | `/building` | GET | lookup page (`building.html`); `?bbl=` opens a building directly, `?q=` runs an address search on arrival (T17) | template |
 | `/map` | GET | risk map (`map.html`); `?bbl=` opens centered on that building with a highlight ring, `?embed=1` is the chrome-free embed the building page's map panel uses (T17) | template |
 | `/monitor` | GET | live monitor (`monitor.html`) | template |
-| `/learn-more` | GET | how the site works, map reading, prediction windows, actions, data and privacy | template + shared guide content |
-| `/faq` | GET | 26 searchable, categorized questions with deep links and official sources | shared guide content, server-rendered answers (works without JavaScript) |
-| `/about` | GET | About/Methods page: what HeatAhead is, methods, why precision@k, ranges and calibration, open source (`about.html`; copy source `docs/about-copy.md`) | template only, static content |
-| `/contact` | GET | team contact address, FAQs, project-update link and NYC311 direction | template; no account required |
+| `/learn-more` | GET | how the site works, map reading, prediction windows, actions and privacy; the 29 chat help answers are also readable here without JavaScript | template + shared guide content |
+| `/faq` | GET | legacy 302 redirect to `/learn-more?help=1`; the standalone FAQ page is retired; browsers preserve old `#topic` fragments and the guide opens that answer | redirect; shared help chat is on every page |
+| `/about` | GET | project and methods: data, training, model-specific results, calibration, IBM Z, help-chat scope, limits and team; stable original anchors retained (`about.html`, page-scoped `about.css`; claim ledger `docs/about-copy.md`) | template only, static content; native expandable details, no new JS or services |
+| `/contact` | GET | team contact address, chat help, project-update link and NYC311 direction | template; no account required |
 | `/privacy` | GET | actual cookies, optional browser storage, accounts, newsletter and external services; reopen cookie settings | template; no account required |
 | `/api/newsletter/subscribe` | POST | `{name?,email,consent:true,website?}` or equivalent form (`consent=yes`); records a pending request and sends a confirmation email; generic receipt, 400 invalid input, 403 cross-origin/missing Origin, 429 send budget, 503 delivery/storage unavailable | anonymous same-origin request forwarded to `REGISTER_FORWARD_URL`; never saves subscribers in Vercel `/tmp` |
 | `/newsletter/confirm?token=`, `/newsletter/unsubscribe?token=` | GET | read-only signed-link landing pages; GET never changes a subscription; invalid/expired link 410 | template; shared secret verifies an opaque subscriber id; no email in token |
 | `/api/newsletter/confirm`, `/api/newsletter/unsubscribe` | POST | `{token}` or form; confirms opt-in / stops project updates without sign-in; Origin required; 410 invalid/replaced link; does not change account registrations or heat alerts | forwards to durable instance; private/no-store and no-referrer |
-| `/api/guide/ask` | POST | `{question,previous_topic?}` → `{topic,mode}`; optional AI selects an existing FAQ id; no generated URLs, scores, account actions or conversation storage; 400 invalid/private input, 403 cross-origin, 429 warm-worker request limit | stdlib + requests; 200 `{topic:null,mode:"guide"}` if unconfigured or provider fails |
+| `/api/guide/ask` | POST | `{question,previous_topic?}` → `{topic,mode}`; optional AI suggests an existing help id for the visitor to choose; no generated URLs, scores, account actions or conversation storage; 400 invalid/private input, 403 cross-origin, 429 warm-worker request limit | stdlib + requests; 200 `{topic:null,mode:"guide"}` if unconfigured or provider fails |
 | `/api/lookup?address=` | GET | `{bbl, normalized}` from NYC GeoSearch; 502 when the geocoder is down | live call, same in both modes |
 | `/api/building/<bbl>` | GET | the building payload | `public/data/b/NN.json` |
 | `/api/map_data` | GET | map rows | 302 redirect to `/data/map_data.json` (static, 3.1 MB; the function must not return 4 MB bodies, Vercel caps function responses at 4.5 MB). `fetch` follows the redirect, so `map.html` is unchanged |
@@ -310,17 +310,31 @@ both to 1 and blurring Retina text. Caps bound the fill/picking cost. The flat/3
 is preserved when zooming to buildings. Verify actual-device appearance/performance in
 the preview; logic tests cannot prove frame rate or GPU rendering.
 
-## 11. Learn more, FAQs and site guide
+## 11. Learn more and help chat
 
-`web/site_guide.py` owns `/learn-more`, `/faq` and the optional AI topic endpoint. The 26
-answers live once in `web/static/guide-content.json`, which drives the FAQ page and the
-guide on every page. The guide matches common wording locally using `web/static/guide.js`;
-it runs without Google credentials, a provider key or the LinuxONE backend. FAQ details
-and links remain available when JavaScript is disabled. New UI uses the existing theme.
+`web/site_guide.py` owns `/learn-more`, the legacy `/faq` redirect and the optional AI topic
+endpoint. All 26 original answers plus newsletter, contact and cookie help live once in
+`web/static/guide-content.json`. Help in the navigation opens the chat on the current page;
+Browse questions inside it offers search, categories and every published answer. The
+standalone FAQ template is retired. Without JavaScript, Learn more renders the same answers
+as native details. New UI follows the existing theme.
+
+`web/static/guide.js` answers clear questions locally. Word aliases and bounded edit distance
+find nearby wording/spelling. Vague requests show two to four relevant "Did you mean" choices;
+spelling matches can offer fewer when only one topic fits. Choosing a question shows its
+published answer. Unrelated inputs get a help/contact fallback, never an invented answer.
+This is local retrieval, not a claim of an unrestricted generative chatbot. No AI key,
+Google credentials or LinuxONE connection is needed for local help and question browsing.
+
+Links with `?help=<topic-id>` open that chat answer; `?help=1` opens Browse questions.
+Legacy `/faq#topic-id` redirects into this behavior. Existing map coverage links now open
+the answer in place, retaining the map and selected BBL. Opening help temporarily hides an
+undecided cookie banner so it cannot cover the chat; closing restores it. That never
+records consent or enables optional storage.
 
 Optional AI **only selects a topic id** from the shared catalog. The application, not the
-model, supplies the published answer and allowlisted links. The visitor clicks a shortcut
-to navigate; no account changes, notices, complaint filings or model scoring occur.
+model, supplies the published answer and allowlisted links after the visitor chooses the
+suggested question. No account changes, notices, complaint filings or model scoring occur.
 Questions use a same-origin POST, not a query string. Account identity and conversation
 history never enter the provider payload; BBLs are redacted, obvious contact/unit details
 are rejected, and the application stores no guide conversation. `store:false` on provider
