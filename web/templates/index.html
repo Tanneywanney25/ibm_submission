@@ -103,24 +103,19 @@ form .row input[type=text] { width:100%; }
 .field-hint { font-size:.8rem; margin-top:.35rem; color:var(--muted); min-height:1rem; }
 .field-hint.warn { color:var(--bad); font-weight:600; }
 input[aria-invalid=true] { border-color:var(--bad); }
-.profile-section { border-top:2px dashed var(--line); margin-top:1.2rem; padding-top:1rem; }
-.profile-section h3 { margin:.1rem 0 .5rem; }
 .dash-head { display:flex; justify-content:space-between; align-items:center; gap:.6rem; }
 .dash-head h2 { margin:0; }
 .dash-head a { font-size:.85rem; font-weight:700; }
-.panel { border:2px solid var(--ink); border-radius:16px; padding:1rem 1.1rem; margin-top:1rem; }
+/* T14 account page: the dashboard owns the whole row; panels sit two across */
+.panel-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start; margin-top:1rem; }
+@media (max-width:860px){ .panel-grid { grid-template-columns:1fr; } }
+.panel { border:2px solid var(--ink); border-radius:16px; padding:1rem 1.1rem; }
 .panel h3 { margin:.1rem 0 .5rem; }
 #panel-buildings { background:var(--accent-soft); } #panel-audit { background:var(--sun-soft); }
 #panel-queue { background:var(--sky-soft); } #panel-stats { background:var(--coral-soft); }
 .panel .btnlink { min-height:40px; font-size:.78rem; }
-.panel-picks { display:grid; grid-template-columns:1fr 1fr; gap:.55rem; margin:.6rem 0; }
-.panel-picks label { font-size:.9rem; font-weight:700; border:2px solid #9fbdb0; border-radius:14px;
-  padding:.6rem .75rem; background:#fff; transition:border-color .15s, background-color .15s, box-shadow .15s; }
-.panel-picks label:hover { border-color:var(--ink); }
-.panel-picks label:has(input:checked) { border-color:var(--ink); background:var(--accent-soft); box-shadow:3px 3px 0 var(--ink); }
-.panel-picks input { margin-right:.45rem; vertical-align:-2px; }
+#reg { border-top:2px dashed var(--line); margin-top:.8rem; padding-top:.4rem; }
 #portfolio table { width:100%; font-size:.86rem; background:#fff; border-radius:10px; }
-@media (max-width:760px){ .panel-picks { grid-template-columns:1fr; } }
 </style>
 {% endblock %}
 {% block body %}
@@ -194,125 +189,89 @@ document.getElementById('dots100').innerHTML =
 </section>
 
 <div class="section-title">
-  <div><p class="eyebrow">{{ 'Your account' if account_user else 'Save your progress' }}</p>
+  <div><p class="eyebrow">{{ 'Your dashboard' if account_user else 'Save your progress' }}</p>
     <h2>Save a building. Get one email per cold spell.</h2>
     <p>One account for everyone: choose the dashboard panels you want. Browsing never needs an account.</p></div>
 </div>
+{% if account_user %}
+<div class="card" id="dashboard">
+  <div class="dash-head">
+    <h2>Your dashboard</h2>
+    <a href="/account">Account settings</a>
+  </div>
+  <p class="muted account-email" style="font-size:.9rem; margin:.3rem 0 0">Signed in
+  {{- ' with Google' if not account_user.sub.startswith('email:') else
+      (' with your password' if account_method == 'password' else ' with an email link') }} as
+  <b>{{ account_user.email }}</b>.</p>
+  <p id="panels_empty" class="muted" hidden>No panels are on. Turn some on in
+  <a href="/account">your account settings</a>.</p>
+  <div class="panel-grid">
+    <div class="panel" id="panel-buildings" hidden>
+      <h3>Your saved buildings</h3>
+      <div id="saved-buildings" class="muted" role="status">Loading your account…</div>
+      <p id="saved-status" class="muted" style="font-size:.83rem"></p>
+      <form id="reg" onsubmit="return register(event)" novalidate>
+        <div class="row"><input id="address" type="text" data-ha-suggest
+          placeholder="save a building: street address or 10-digit BBL"
+          autocomplete="street-address" aria-describedby="address_hint"
+          aria-label="Building street address or 10-digit BBL">
+          <div class="field-hint" id="address_hint">Building only: leave out your apartment
+          number. We never store or show one.</div></div>
+        <div class="row consent"><input type="checkbox" id="consent" checked>
+          <label for="consent">Email me when a forecast cold snap puts this building at risk:
+          one email per cold spell, unsubscribe any time.</label></div>
+        <div class="row"><button id="submit">Save to my account</button></div>
+        <div id="reg_out" class="muted" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+    <div class="panel" id="panel-audit" hidden>
+      <h3>Landlord tools</h3>
+      <div id="portfolio" class="muted" role="status">Loading your portfolio…</div>
+      <p class="muted" style="font-size:.8rem; margin-bottom:0">Buildings registered to you plus
+      the rest of each registered owner's portfolio, riskiest first. Run the self-audit before
+      the first cold spell.</p>
+    </div>
+    <div class="panel" id="panel-queue" hidden><h3>Live monitoring</h3><p class="muted">Review published complaints or explore the historical model replay.</p><a class="btnlink" href="/monitor?mode=current">Open live monitor</a></div>
+    <div class="panel" id="panel-stats" hidden>
+      <h3>City-wide picture</h3>
+      <p class="muted" style="font-size:.9rem"><b class="accent">{{ '{:,}'.format(site_meta.ranked) }}</b>
+      buildings ranked for this winter{% if site_meta.median_text %} · median winter risk
+      <b>{{ site_meta.median_text }}</b>{% endif %}.</p>
+      <a class="btnlink" href="/map">Open the risk map</a>
+      <a class="btnlink ghost" href="/building">Look up a building</a>
+    </div>
+  </div>
+  <p class="muted" style="font-size:.8rem; margin-bottom:0">Stop alerts for one building above,
+  or <a href="/unsubscribe">stop all alerts</a>. Your profile, dashboard panels and password
+  live in <a href="/account">account settings</a>.</p>
+</div>
+{% else %}
 <div class="grid2">
   <div class="card" id="account">
-    {% if account_user %}
-    <div class="acct-head"><span class="badge" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#072a20" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg></span><h2 id="profile">Your profile</h2></div>
-    <p class="muted account-email">Signed in
-    {{- ' with Google' if not account_user.sub.startswith('email:') else
-        (' with your password' if account_method == 'password' else ' with an email link') }} as
-    <b>{{ account_user.email }}</b>.</p>
-
-    <form id="panel_prefs" class="profile-section" novalidate>
-      <h3>What your dashboard shows</h3>
-      <p class="muted" style="font-size:.85rem; margin:.2rem 0">One account for everyone —
-      turn on the panels you want. Changes save as you click.</p>
-      <div class="panel-picks">
-        <label><input type="checkbox" data-panel="buildings">My buildings &amp; alerts</label>
-        <label><input type="checkbox" data-panel="audit">Landlord self-audit tools</label>
-        <label><input type="checkbox" data-panel="queue">Live monitoring</label>
-        <label><input type="checkbox" data-panel="stats">City-wide stats</label>
-      </div>
-      <p id="panels_status" class="muted" role="status" aria-live="polite"
-         style="font-size:.83rem; min-height:1rem; margin:0"></p>
-    </form>
-
-    <form id="reg" class="profile-section" onsubmit="return register(event)" novalidate>
-      <h3>Save a building</h3>
-      <div class="row"><input id="address" type="text" data-ha-suggest
-        placeholder="building street address, e.g. 330 E 139 St, Bronx (or a 10-digit BBL)"
-        autocomplete="street-address" aria-describedby="address_hint"
-        aria-label="Building street address or 10-digit BBL">
-        <div class="field-hint" id="address_hint">Building only: leave out your apartment
-        number. We never store or show one.</div></div>
-      <div class="row"><input id="phone" type="tel" placeholder="phone (optional)"
-        autocomplete="tel" aria-describedby="phone_hint" aria-label="Phone (optional)">
-        <div class="field-hint" id="phone_hint"></div></div>
-      <div class="row consent"><input type="checkbox" id="consent" checked>
-        <label for="consent">Email me when a forecast cold snap puts this building at risk:
-        one email per cold spell, unsubscribe any time.</label></div>
-      <div class="row"><button id="submit">Save to my account</button></div>
-      <div id="reg_out" class="muted" role="status" aria-live="polite"></div>
-    </form>
-    {% if password_ready and account_method != 'password' %}
-    <form id="password_form" class="profile-section" novalidate>
-      <h3>Password</h3>
-      <p class="muted" style="font-size:.85rem; margin:.2rem 0">Set a password to log in with
-      your email and password as well.</p>
-      <div class="row"><input id="new_password" type="password" autocomplete="new-password"
-        minlength="8" maxlength="128" placeholder="New password (at least 8 characters)"
-        aria-label="New password"></div>
-      <div class="row"><button type="submit">Save password</button></div>
-      <p id="password_status" class="muted" role="status" aria-live="polite"
-         style="font-size:.83rem; min-height:1rem; margin:0"></p>
-    </form>
-    {% endif %}
-    <p class="muted" style="font-size:.8rem; margin-bottom:0">Saved buildings return when you
-    sign in again. Stop alerts for one building from your dashboard, or
-    <a href="/unsubscribe">stop all alerts</a>.</p>
-    {% else %}
     <div class="acct-head"><span class="badge" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#072a20" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><h2>Save your progress</h2></div>
     <p class="muted">Make a free account to save your buildings, get one email per cold
     spell, and keep your dashboard on every device.</p>
     <a class="btnlink signup-cta" href="/signin?mode=signup">Sign up to save your progress</a>
     <p class="muted" style="font-size:.86rem">Already have an account? <a href="/signin">Log in</a></p>
     <a class="btnlink ghost" href="/map">Explore the risk map</a>
-    {% endif %}
   </div>
-
-  <div>
-    {% if account_user %}
-    <div class="card" id="dashboard">
-      <div class="dash-head">
-        <h2>Your dashboard</h2>
-        <a href="#profile" style="font-size:.85rem">Choose panels</a>
-      </div>
-      <p id="panels_empty" class="muted" hidden>No panels are on. Turn some on in
-      <a href="#profile">your profile</a>.</p>
-      <div class="panel" id="panel-buildings" hidden>
-        <h3>Your saved buildings</h3>
-        <div id="saved-buildings" class="muted" role="status">Loading your account…</div>
-        <p id="saved-status" class="muted" style="font-size:.83rem"></p>
-      </div>
-      <div class="panel" id="panel-audit" hidden>
-        <h3>Landlord tools</h3>
-        <div id="portfolio" class="muted" role="status">Loading your portfolio…</div>
-        <p class="muted" style="font-size:.8rem; margin-bottom:0">Buildings registered to you plus
-        the rest of each registered owner's portfolio, riskiest first. Run the self-audit before
-        the first cold spell.</p>
-      </div>
-      <div class="panel" id="panel-queue" hidden><h3>Live monitoring</h3><p class="muted">Review published complaints or explore the historical model replay.</p><a class="btnlink" href="/monitor?mode=current">Open live monitor</a></div>
-      <div class="panel" id="panel-stats" hidden>
-        <h3>City-wide picture</h3>
-        <p class="muted" style="font-size:.9rem"><b class="accent">{{ '{:,}'.format(site_meta.ranked) }}</b>
-        buildings ranked for this winter{% if site_meta.median_text %} · median winter risk
-        <b>{{ site_meta.median_text }}</b>{% endif %}.</p>
-        <a class="btnlink" href="/map">Open the risk map</a>
-        <a class="btnlink ghost" href="/building">Look up a building</a>
-      </div>
+  <div class="card" id="whatyouget">
+    <h2>Dashboard panels</h2>
+    <div class="role-list">
+      <div><b>My buildings</b><span>each saved building's chance of losing heat this winter, its
+        complaint and violation history, and one alert per forecast cold spell</span></div>
+      <div><b>Landlord tools</b><span>every building you register plus the rest of the registered
+        owner's portfolio, ranked by risk, with pre-winter self-audit drafts</span></div>
+      <div><b>Inspection</b><span>the live inspector queue during a cold snap and a top-500 CSV
+        for routing inspectors</span></div>
+      <div><b>City stats</b><span>the public citywide risk map and the headline numbers</span></div>
     </div>
-    {% endif %}
-    <div class="card" id="whatyouget">
-      <h2>Dashboard panels</h2>
-      <div class="role-list">
-        <div><b>My buildings</b><span>each saved building's chance of losing heat this winter, its
-          complaint and violation history, and one alert per forecast cold spell</span></div>
-        <div><b>Landlord tools</b><span>every building you register plus the rest of the registered
-          owner's portfolio, ranked by risk, with pre-winter self-audit drafts</span></div>
-        <div><b>Inspection</b><span>the live inspector queue during a cold snap and a top-500 CSV
-          for routing inspectors</span></div>
-        <div><b>City stats</b><span>the public citywide risk map and the headline numbers</span></div>
-      </div>
-      <p class="callout-num">Of the 100 buildings our model flags before a cold snap,
-      <b class="accent">86 lose heat during that snap</b> and
-      <b class="accent">99 lose heat that winter</b>.</p>
-    </div>
+    <p class="callout-num">Of the 100 buildings our model flags before a cold snap,
+    <b class="accent">86 lose heat during that snap</b> and
+    <b class="accent">99 lose heat that winter</b>.</p>
   </div>
 </div>
+{% endif %}
 
 <div class="section-title">
   <div><p class="eyebrow">How it works</p><h2>Forecast in. Ranked list out.</h2></div>
@@ -383,13 +342,7 @@ function checkAddress(){
   hint($('address'), $('address_hint'), ADDRESS_NOTE, false);
   return true;
 }
-function checkPhone(){
-  const v = $('phone').value.trim(), digits = v.replace(/\D/g, '').length;
-  const bad = v && (digits < 7 || digits > 15);
-  hint($('phone'), $('phone_hint'), bad ? 'Phone looks wrong — leave it empty or give 7 to 15 digits.' : '', bad);
-  return !bad;
-}
-if ($('address')) { $('address').addEventListener('input', checkAddress); $('phone').addEventListener('input', checkPhone); }
+if ($('address')) $('address').addEventListener('input', checkAddress);
 function fail(message){
   if ($('reg_out')) $('reg_out').textContent = message;
 }
@@ -406,9 +359,8 @@ async function register(e){
   const address = $('address').value.trim();
   if (!address) return fail('Enter your building’s street address or 10-digit BBL.'), $('address').focus(), false;
   if (!checkAddress()) return $('address').focus(), false;
-  if (!checkPhone()) return $('phone').focus(), false;
   if (!$('consent').checked) return fail('Please confirm the alert checkbox: saving a building turns on its cold-snap alerts. You can browse the map and building pages without saving.'), false;
-  const body = {phone:$('phone').value.trim()};
+  const body = {};
   const picked = $('address').dataset.bbl;
   if (picked) body.bbl = picked;
   else if (/^\d{10}$/.test(address)) body.bbl = address; else body.address = address;
@@ -423,10 +375,13 @@ async function register(e){
     if (!panelsCustomized) {
       // keep what the user is looking at (plus their buildings) rather than letting the
       // stored building row re-derive a narrower legacy default
-      document.querySelectorAll('#panel_prefs [data-panel]').forEach(c => {
-        c.checked = c.dataset.panel === 'buildings' || !$('panel-' + c.dataset.panel).hidden;
-      });
-      await savePanels();
+      const keep = PANEL_ORDER.filter(p => p === 'buildings' || !$('panel-' + p).hidden);
+      try {
+        const saved = await fetch('/api/account/panels', {method:'POST', credentials:'same-origin',
+          headers:{'Content-Type':'application/json', 'X-CSRF-Token':accountCSRF},
+          body:JSON.stringify({panels: keep})});
+        if (saved.ok) { panelsCustomized = true; applyPanels(keep); }
+      } catch {}
     }
     await loadAccount();
   } catch (error) { fail(error.message || 'Could not reach the account service. Please try again.'); }
@@ -446,7 +401,7 @@ async function loadAccount(){
     if (!panelsCustomized) applyPanels(defaultPanels());
     const rows = (result.buildings || []).filter(b => b.registered && /^[1-5]\d{9}$/.test(String(b.bbl)));
     if (!rows.length) {
-      target.innerHTML = 'No buildings saved yet. <a href="#reg">Save one in your profile</a> to get its cold-snap alerts.';
+      target.innerHTML = 'No buildings saved yet. Save one below to get its cold-snap alerts.';
     } else {
       target.innerHTML = rows.map(b => {
         const link = '/building?bbl=' + encodeURIComponent(b.bbl);
@@ -512,7 +467,6 @@ function defaultPanels(){
 }
 function applyPanels(list){
   PANEL_ORDER.forEach(p => { const el = $('panel-' + p); if (el) el.hidden = !list.includes(p); });
-  document.querySelectorAll('#panel_prefs [data-panel]').forEach(c => { c.checked = list.includes(c.dataset.panel); });
   if ($('panels_empty')) $('panels_empty').hidden = list.length > 0;
 }
 function devicePanels(){
@@ -531,52 +485,7 @@ async function loadPanels(){
   if (!fromAccount) stored = devicePanels();
   panelsCustomized = Array.isArray(stored);
   applyPanels(panelsCustomized ? stored.filter(p => PANEL_ORDER.includes(p)) : defaultPanels());
-  if (panelsCustomized && !fromAccount) $('panels_status').textContent = 'Using the panel choice saved on this device.';
-}
-let panelSaveVersion = 0;
-async function savePanels(){
-  const chosen = PANEL_ORDER.filter(p => {
-    const c = document.querySelector('#panel_prefs [data-panel="' + p + '"]');
-    return c && c.checked;
-  });
-  const version = ++panelSaveVersion, status = $('panels_status');
-  panelsCustomized = true;
-  applyPanels(chosen);
-  status.textContent = 'Saving…';
-  let message;
-  try {
-    const r = await fetch('/api/account/panels', {method:'POST', credentials:'same-origin',
-      headers:{'Content-Type':'application/json', 'X-CSRF-Token':accountCSRF},
-      body:JSON.stringify({panels: chosen})});
-    if (!r.ok) throw new Error();
-    message = 'Saved to your account.';
-  } catch {
-    message = window.HeatAheadPrivacy?.savePanels(chosen)
-      ? 'Saved on this device — your account service is unreachable right now.'
-      : 'Changed for this visit. We couldn’t save it to your account. Please try again later.';
-  }
-  if (version === panelSaveVersion) status.textContent = message;
-}
-if ($('panel_prefs')) {
-  $('panel_prefs').addEventListener('change', savePanels);
-  $('panel_prefs').addEventListener('submit', e => e.preventDefault());
 }
 if (signedInAccount) { loadPanels(); loadAccount(); }
-
-// profile: set a password (only after a Google or email-link sign-in)
-const passwordForm = $('password_form');
-if (passwordForm) passwordForm.addEventListener('submit', async e => {
-  e.preventDefault();
-  const password = $('new_password').value, status = $('password_status');
-  if (password.length < 8) { status.textContent = 'Use at least 8 characters.'; $('new_password').focus(); return; }
-  try {
-    const r = await fetch('/api/auth/password', {method:'POST', credentials:'same-origin',
-      headers:{'Content-Type':'application/json', 'X-CSRF-Token':accountCSRF},
-      body:JSON.stringify({password})});
-    const j = await r.json().catch(() => ({}));
-    status.textContent = r.ok ? j.message : (j.error || 'The password could not be saved. Please try again.');
-    if (r.ok) $('new_password').value = '';
-  } catch { status.textContent = 'Could not reach the server. Please try again.'; }
-});
 </script>
 {% endblock %}

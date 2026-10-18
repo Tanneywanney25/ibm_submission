@@ -100,5 +100,16 @@ at all, so every "sent" email, including welcome emails, was only written to
 `web/alerts.log`; email sign-in now shows as available only when a link can really be
 delivered.
 
+**Account page (October 18):** profile editing moved off the home page to `/account`
+(linked from the header's signed-in name and the dashboard). It holds the new profile
+form — optional display name, phone, borough and ZIP (coarse location only, never a
+street address or apartment), and a pause-all-alerts switch — plus the dashboard panel
+chooser and the set-a-password form. Storage is a `profiles` table on the instance keyed
+by the verified email, reached through the signed forwarding protocol
+(`/api/account/profile` GET/POST, rows in VERCEL.md §3); `web/alerts.py` skips paused
+accounts. The email address is the account key and is read-only. The home page dashboard
+now spans the full width with panels two across, and the save-a-building form lives
+inside the buildings panel; it no longer asks for a phone number (the profile owns it).
+
 Styling the auth and profile screens to Opendoor quality belongs to T13 (the reskin);
 T14 used the current theme.

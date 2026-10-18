@@ -68,6 +68,7 @@ ROLES = ("tenant", "landlord", "government", "viewer")
 # until the user toggles panels, stored per account (/api/account/panels).
 BUILDING_ROLE = "tenant"
 PANELS = ("buildings", "audit", "queue", "stats")
+PROFILE_BOROUGHS = ("Manhattan", "Bronx", "Brooklyn", "Queens", "Staten Island")
 ROLE_PANELS = dict(tenant=("buildings",), landlord=("buildings", "audit"),
                    government=("buildings", "queue"), viewer=("stats",))
 SHARDS = 128
@@ -240,6 +241,14 @@ def db():
             nonce TEXT PRIMARY KEY, expires INTEGER NOT NULL)""")
         g.db.execute("""CREATE TABLE IF NOT EXISTS panels (
             email TEXT PRIMARY KEY, panels TEXT NOT NULL,
+            updated TEXT DEFAULT CURRENT_TIMESTAMP)""")
+        # account profile (T14 account page): coarse location only, never a street
+        # address or unit; alerts_paused=1 stops cold-snap alert emails (alerts.py)
+        # without touching the account's saved buildings
+        g.db.execute("""CREATE TABLE IF NOT EXISTS profiles (
+            email TEXT PRIMARY KEY, name TEXT NOT NULL DEFAULT '',
+            phone TEXT NOT NULL DEFAULT '', borough TEXT NOT NULL DEFAULT '',
+            zip TEXT NOT NULL DEFAULT '', alerts_paused INTEGER NOT NULL DEFAULT 0,
             updated TEXT DEFAULT CURRENT_TIMESTAMP)""")
         # password accounts: only the website's scrypt hash, never a password;
         # verified=0 until a Google or email-link sign-in proves the address
@@ -551,6 +560,15 @@ def index():
                            site_meta=dict(ranked=META["ranked"],
                                           median_text=fmt_risk(CITYWIDE_SEASON_MEDIAN)
                                           if CITYWIDE_SEASON_MEDIAN else None))
+
+
+@app.get("/account")
+def account_page():
+    """Account settings (T14): profile, dashboard panel chooser, password."""
+    if not account_auth.user():
+        return redirect("/signin?" + requests.compat.urlencode({"next": "/account"}))
+    return render_template("account.html", page="account", panel_order=PANELS,
+                           role_panels=ROLE_PANELS, boroughs=PROFILE_BOROUGHS)
 
 
 @app.get("/map")
@@ -924,6 +942,75 @@ def api_panels_set():
                 (email, json.dumps(chosen)))
     con.commit()
     return jsonify(ok=True, panels=chosen)
+
+
+def clean_profile(b):
+    """A validated profile dict, or (None, error text). Coarse location only:
+    borough and ZIP, never a street address or apartment (building-level rule)."""
+    name = " ".join(str(b.get("name") or "").split())
+    phone = str(b.get("phone") or "").strip()
+    borough = str(b.get("borough") or "").strip()
+    zip_code = str(b.get("zip") or "").strip()
+    paused = b.get("alerts_paused", False)
+    if len(name) > 80:
+        return None, "Use a display name of at most 80 characters."
+    if phone and not 7 <= len(re.sub(r"\D", "", phone)) <= 15:
+        return None, "Phone looks wrong - leave it empty or give 7 to 15 digits."
+    if borough and borough not in PROFILE_BOROUGHS:
+        return None, f"Borough must be one of: {', '.join(PROFILE_BOROUGHS)}."
+    if zip_code and not re.fullmatch(r"\d{5}", zip_code):
+        return None, "A ZIP code is 5 digits - or leave it empty."
+    if not isinstance(paused, bool):
+        return None, "alerts_paused must be true or false."
+    return dict(name=name, phone=phone[:30], borough=borough, zip=zip_code,
+                alerts_paused=paused), None
+
+
+@app.get("/api/account/profile")
+def api_profile_get():
+    """The signed-in account's profile, or null when never saved."""
+    email = account_auth.user()["email"]
+    if FORWARD_URL:
+        sent = forward("GET", "/api/account/profile")
+        if sent is not None:
+            return sent
+        return jsonify(error="Your profile could not be loaded right now. Please try again shortly.",
+                       code="account_service_unavailable"), 503
+    if ON_VERCEL:
+        return jsonify(error="Account storage is temporarily unavailable."), 503
+    row = db().execute("SELECT name, phone, borough, zip, alerts_paused FROM profiles "
+                       "WHERE email=?", (email,)).fetchone()
+    return jsonify(profile=None if row is None else dict(
+        name=row[0], phone=row[1], borough=row[2], zip=row[3], alerts_paused=bool(row[4])))
+
+
+@app.post("/api/account/profile")
+def api_profile_set():
+    b = request.get_json(silent=True)
+    if not isinstance(b, dict):
+        return jsonify(error="profile update must be a JSON object"), 400
+    profile, problem = clean_profile(b)
+    if problem:
+        return jsonify(error=problem), 400
+    email = account_auth.user()["email"]
+    if FORWARD_URL:
+        sent = forward("POST", "/api/account/profile", json=profile)
+        if sent is not None:
+            return sent
+        return jsonify(error="Your profile could not be saved right now. Please try again shortly.",
+                       code="account_service_unavailable"), 503
+    if ON_VERCEL:
+        return jsonify(error="Account storage is temporarily unavailable."), 503
+    con = db()
+    con.execute("INSERT INTO profiles(email, name, phone, borough, zip, alerts_paused) "
+                "VALUES (?,?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET "
+                "name=excluded.name, phone=excluded.phone, borough=excluded.borough, "
+                "zip=excluded.zip, alerts_paused=excluded.alerts_paused, "
+                "updated=CURRENT_TIMESTAMP",
+                (email, profile["name"], profile["phone"], profile["borough"],
+                 profile["zip"], int(profile["alerts_paused"])))
+    con.commit()
+    return jsonify(ok=True, profile=profile)
 
 
 @app.get("/api/queue.csv")
