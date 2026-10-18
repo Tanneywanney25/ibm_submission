@@ -10,6 +10,18 @@ before tenants freeze.
 
 Built at the IBM Z Datathon, Oct 17–18, 2026, on an IBM z17 LinuxONE guest (s390x).
 
+## Start here
+
+- [Try the live website](https://ibmsubmission.vercel.app)
+- [Read the submission story](docs/SUBMISSION.md)
+- [See the models, methods and validation results](docs/models-complete-report.md)
+- [Inspect the IBM Z benchmark and reproduction steps](docs/benchmarks/2026-10-18-emerson/README.md)
+- [Find the presentation scripts](slides/README.md)
+- [Browse all project documentation](docs/README.md)
+
+Contributing code? Read [CLAUDE.md](CLAUDE.md) for project rules and
+[the deployment guide](docs/VERCEL.md) before changing the website.
+
 ## The results (all on the held-out 2025-26 winter)
 
 One model, one list, four honest clocks — of the **top 100** ranked buildings:
@@ -54,20 +66,26 @@ the frozen 172,485-row benchmark above.
 
 ## Repo map
 
-| where | what |
+| Folder | Contents |
 |---|---|
-| `docs/` | project brief, team split, **SUBMISSION.md (the full story)**, model-iterations.md, webapp-spec.md |
-| `analysis/` | stream 1: weather bands, building-type × cold reaction rates, heatmaps |
-| `task 2/` | stream 2: label credibility (violation confirmation), Bronx geography, Forecast-Only buildings, boiler join, z17 hardware log |
-| `model/` | stream 5: the full pipeline, numbered `00`–`09`; `model/README.md` has run instructions |
-| `realtime/` | stream 6: live replay event loop (Feb 7–9, 2026 cold snap) + Flask API |
-| `web/`, `slides/` | frontend spec and the presentation scripts |
-| `R/` | early EDA (Quarto) + processed master tables (`days.csv`, `buildings.csv`) |
+| [docs/](docs/README.md) | Submission story, model reports, deployment guides and task notes |
+| [web/](web/) | Flask application, website templates and static assets |
+| [api/](api/) | Vercel entry point for the Flask application |
+| [public/](public/) | Precomputed assets included in the public deployment |
+| [model/](model/README.md) | Training, evaluation, calibration and LinuxONE benchmark scripts |
+| [realtime/](realtime/README_MODEL.md) | Complaint replay, building re-scoring and service API |
+| [analysis/](analysis/README.md) | Weather bands, building-type reaction rates and heatmaps |
+| [task 2/](task%202/README.md) | Violation confirmation, Bronx geography, Forecast-Only buildings, boiler joins and hardware logs |
+| [R/](R/) | Early Quarto exploration and preparation of the master tables |
+| [assistant/](assistant/) | Assistant service code; see [the assistant guide](docs/ASSISTANT.md) |
+| [sim/](sim/) | Policy simulation |
+| [tests/](tests/) | Website and service checks |
+| [slides/](slides/README.md) | Presentation and explainer scripts |
 
 ## Reproduce
 
 Data (not in git — complaints CSV is 345 MB) comes from the sources below into `data/`;
-names and layout in `docs/README.md`. Then:
+names and layout in [the documentation index](docs/README.md). Then:
 
 ```
 python model/00_second_tier.py   # landlord + boiler feature tables
@@ -80,7 +98,7 @@ python model/09_season_risk.py   # per-building winter risk (the tenant number)
 python model/04_snapml_bench.py  # LinuxONE: Snap ML throughput (s390x)
 ```
 
-LinuxONE setup: `model/linuxone_setup.md`.
+LinuxONE setup: [model/linuxone_setup.md](model/linuxone_setup.md).
 
 ## Data sources (NYC Open Data unless noted)
 
@@ -106,6 +124,6 @@ LinuxONE setup: `model/linuxone_setup.md`.
 ## Team
 
 NYU Tingineers — IBM Z Datathon 2026. Prior art and what's new vs it:
-`docs/heat-project-brief.md` §9 (short version: building-level heat prediction exists;
+[the project brief, §9](docs/heat-project-brief.md) (short version: building-level heat prediction exists;
 a short-horizon, forecast-triggered, calibrated inspection ranking scored per fixed
 inspection budget does not — that is the contribution).
